@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: appsody-operator
+subjects:
+- kind: ServiceAccount
+  name: appsody-operator
+roleRef:
+  kind: Role
+  name: appsody-operator
+  apiGroup: rbac.authorization.k8s.io

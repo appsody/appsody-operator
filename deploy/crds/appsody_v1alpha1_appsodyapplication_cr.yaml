@@ -1,0 +1,7 @@
+apiVersion: appsody.dev/v1alpha1
+kind: AppsodyApplication
+metadata:
+  name: example-appsodyapplication
+spec:
+  # Add fields here
+  size: 3
