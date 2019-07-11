@@ -30,6 +30,7 @@ spec:
         spec:
           properties:
             applicationImage:
+              pattern: .+:.+
               type: string
             architecture:
               items:
@@ -67,21 +68,25 @@ spec:
               type: string
             readinessProbe:
               type: object
+            replicas:
+              format: int32
+              type: integer
             resourceConstraints:
               type: object
             service:
               properties:
                 port:
                   format: int32
+                  maximum: 65536
+                  minimum: 1
                   type: integer
                 type:
                   type: string
+              required:
+              - port
               type: object
             serviceAccountName:
               type: string
-            staticReplicas:
-              format: int32
-              type: integer
             volumeMounts:
               items:
                 type: object

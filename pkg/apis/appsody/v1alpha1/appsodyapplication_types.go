@@ -10,6 +10,7 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
+	// +kubebuilder:validation:Pattern=.+:.+
 	ApplicationImage    string                         `json:"applicationImage"`
 	Replicas            *int32                         `json:"replicas,omitempty"`
 	Autoscaling         *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
@@ -17,7 +18,7 @@ type AppsodyApplicationSpec struct {
 	PullSecret          string                         `json:"pullSecret,omitempty"`
 	Volumes             []corev1.Volume                `json:"volumes,omitempty"`
 	VolumeMounts        []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
-	ResourceConstraints *corev1.ResourceRequirements   `json:"resourceConstraints,omitempty"`
+	ResourceConstraints corev1.ResourceRequirements    `json:"resourceConstraints,omitempty"`
 	ReadinessProbe      *corev1.Probe                  `json:"readinessProbe,omitempty"`
 	LivenessProbe       *corev1.Probe                  `json:"livenessProbe,omitempty"`
 	Service             AppsodyApplicationService      `json:"service,omitempty"`
@@ -41,7 +42,10 @@ type AppsodyApplicationAutoScaling struct {
 // +k8s:openapi-gen=true
 type AppsodyApplicationService struct {
 	Type corev1.ServiceType `json:"type,omitempty"`
-	Port *int32             `json:"port,omitempty"`
+
+	// +kubebuilder:validation:Maximum=65536
+	// +kubebuilder:validation:Minimum=1
+	Port int32 `json:"port"`
 }
 
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication

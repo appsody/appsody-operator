@@ -114,6 +114,7 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationService(ref common.Refer
 						},
 					},
 				},
+				Required: []string{"port"},
 			},
 		},
 		Dependencies: []string{},
@@ -132,7 +133,7 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref common.Referenc
 							Format: "",
 						},
 					},
-					"staticReplicas": {
+					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"integer"},
 							Format: "int32",
