@@ -100,17 +100,22 @@ func GeneratePodSpec(cr *appsodyv1alpha1.AppsodyApplication) corev1.PodSpec {
 						ContainerPort: cr.Spec.Service.Port,
 					},
 				},
-				Resources:      cr.Spec.ResourceConstraints,
-				ReadinessProbe: cr.Spec.ReadinessProbe,
-				LivenessProbe:  cr.Spec.LivenessProbe,
-				Env:            cr.Spec.Env,
-				EnvFrom:        cr.Spec.EnvFrom,
-				VolumeMounts:   cr.Spec.VolumeMounts,
+				Resources:       cr.Spec.ResourceConstraints,
+				ReadinessProbe:  cr.Spec.ReadinessProbe,
+				LivenessProbe:   cr.Spec.LivenessProbe,
+				Env:             cr.Spec.Env,
+				EnvFrom:         cr.Spec.EnvFrom,
+				VolumeMounts:    cr.Spec.VolumeMounts,
+				ImagePullPolicy: cr.Spec.PullPolicy,
 			},
 		},
-		Volumes:       cr.Spec.Volumes,
-		RestartPolicy: corev1.RestartPolicyAlways,
-		DNSPolicy:     corev1.DNSClusterFirst,
+		Volumes:            cr.Spec.Volumes,
+		RestartPolicy:      corev1.RestartPolicyAlways,
+		DNSPolicy:          corev1.DNSClusterFirst,
+		ServiceAccountName: cr.Name,
+	}
+	if cr.Spec.ServiceAccountName != "" {
+		pod.ServiceAccountName = cr.Spec.ServiceAccountName
 	}
 	return pod
 }

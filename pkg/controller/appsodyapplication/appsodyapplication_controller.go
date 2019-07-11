@@ -47,7 +47,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO(user): Modify this to be the types you create that are owned by the primary resource
 	// Watch for changes to secondary resource Pods and requeue the owner AppsodyApplication
 	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
@@ -93,20 +92,47 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, err
 	}
 
-	serviceAccount := appsodyutils.GenerateSeviceAccount(instance)
-	err = r.CreateOrUpdateResource(serviceAccount, instance)
-	if err != nil {
-		reqLogger.Error(err, "Failed to create ServiceAccount")
+	if instance.Spec.ServiceAccountName == "" {
+		serviceAccount := appsodyutils.GenerateSeviceAccount(instance)
+		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
+			if instance.Spec.PullSecret != "" {
+				serviceAccount.ImagePullSecrets[0].Name = instance.Spec.PullSecret
+			}
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to create ServiceAccount")
+		}
 	}
 
 	deploy := appsodyutils.GenerateDeployment(instance)
-	r.CreateOrUpdateResource(deploy, instance)
+	r.CreateOrUpdate(deploy, instance, func() error {
+		deploy.Spec.Replicas = instance.Spec.Replicas
+		deploy.Spec.Template.Spec.Containers[0].Image = instance.Spec.ApplicationImage
+		deploy.Spec.Template.Spec.Containers[0].Resources = instance.Spec.ResourceConstraints
+		deploy.Spec.Template.Spec.Containers[0].ReadinessProbe = instance.Spec.ReadinessProbe
+		deploy.Spec.Template.Spec.Containers[0].LivenessProbe = instance.Spec.LivenessProbe
+		deploy.Spec.Template.Spec.Containers[0].VolumeMounts = instance.Spec.VolumeMounts
+		deploy.Spec.Template.Spec.Containers[0].ImagePullPolicy = instance.Spec.PullPolicy
+		deploy.Spec.Template.Spec.Containers[0].Env = instance.Spec.Env
+		deploy.Spec.Template.Spec.Containers[0].EnvFrom = instance.Spec.EnvFrom
+		deploy.Spec.Template.Spec.Volumes = instance.Spec.Volumes
+		if instance.Spec.ServiceAccountName != "" {
+			deploy.Spec.Template.Spec.ServiceAccountName = instance.Spec.ServiceAccountName
+		}
+		return nil
+	})
+
 	if err != nil {
 		reqLogger.Error(err, "Failed to create Deployment")
 	}
 
 	svc := appsodyutils.GenerateService(instance)
-	r.CreateOrUpdateResource(svc, instance)
+	r.CreateOrUpdate(svc, instance, func() error {
+		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
+		svc.Spec.Type = instance.Spec.Service.Type
+		return nil
+	})
 	if err != nil {
 
 		reqLogger.Error(err, "Failed to create Service")
