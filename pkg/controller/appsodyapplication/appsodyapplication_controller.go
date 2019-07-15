@@ -7,6 +7,7 @@ import (
 	appsodyutils "github.com/appsody-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -114,6 +115,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	svc = appsodyutils.GenerateService(instance)
 	r.CreateOrUpdate(svc, instance, func() error {
 		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
+		svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
 		svc.Spec.Type = instance.Spec.Service.Type
 		return nil
 	})
@@ -136,13 +138,27 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return nil
 	})
 
-	if err != nil {
-		reqLogger.Error(err, "Failed to create Deployment")
+	if instance.Spec.Expose {
+		route := appsodyutils.GenerateRoute(instance)
+		err = r.CreateOrUpdate(route, instance, func() error {
+			route.Spec.Port.TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
+			return nil
+		})
+		if err != nil && appsodyutils.ErrorIsNoMatchesForKind(err, route.Kind, route.APIVersion) {
+			ingress := appsodyutils.GenerateIngress(instance)
+			err = r.CreateOrUpdate(ingress, instance, func() error {
+				ingress.Spec.Rules[0].HTTP.Paths[0].Backend.ServicePort = intstr.FromInt(int(instance.Spec.Service.Port))
+				return nil
+			})
+
+			if err != nil {
+				log.Error(err, "Failed to create both Route and Ingress on the cluster.")
+			}
+		}
+	} else {
+		route := appsodyutils.GenerateRoute(instance)
+		r.DeleteResource(route)
 	}
 
-	if err != nil {
-
-		reqLogger.Error(err, "Failed to create Service")
-	}
 	return reconcile.Result{}, nil
 }

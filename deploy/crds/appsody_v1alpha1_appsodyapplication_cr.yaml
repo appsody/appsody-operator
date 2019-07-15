@@ -9,3 +9,4 @@ spec:
   service:
     type: ClusterIP
     port: 9443
+  expose: true

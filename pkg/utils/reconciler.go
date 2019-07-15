@@ -49,13 +49,14 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 		return fmt.Errorf("is not a %T a runtime.Object", obj)
 	}
 	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.GetClient(), runtimeObj, mutate)
-	if err == nil {
+	if err != nil {
+		return err
 	}
 
 	var gvk schema.GroupVersionKind
 	gvk, err = apiutil.GVKForObject(runtimeObj, r.scheme)
 	if err == nil {
-		log.Info("Reconcile", "Kind", gvk.Kind, "Name", obj.GetName(), "Status", result)
+		log.Info("Reconciled", "Kind", gvk.Kind, "Name", obj.GetName(), "Status", result)
 	}
 
 	return err
@@ -63,7 +64,7 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 
 // DeleteResource deletes kubernetes resource
 func (r *ReconcilerBase) DeleteResource(obj runtime.Object) error {
-	err := r.client.Delete(context.TODO(), obj, nil)
+	err := r.client.Delete(context.TODO(), obj)
 	if err != nil && !apierrors.IsNotFound(err) {
 		log.Error(err, "unable to delete object ", "object", obj)
 		return err

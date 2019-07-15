@@ -22,8 +22,7 @@ type AppsodyApplicationSpec struct {
 	ReadinessProbe      *corev1.Probe                  `json:"readinessProbe,omitempty"`
 	LivenessProbe       *corev1.Probe                  `json:"livenessProbe,omitempty"`
 	Service             AppsodyApplicationService      `json:"service,omitempty"`
-	CreateRoute         bool                           `json:"createRoute,omitempty"`
-	CreateIngress       bool                           `json:"createIngress,omitempty"`
+	Expose              bool                           `json:"expose,omitempty"`
 	EnvFrom             []corev1.EnvFromSource         `json:"envFrom,omitempty"`
 	Env                 []corev1.EnvVar                `json:"env,omitempty"`
 	ServiceAccountName  string                         `json:"serviceAccountName,omitempty"`

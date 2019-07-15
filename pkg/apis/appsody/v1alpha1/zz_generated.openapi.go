@@ -200,13 +200,7 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref common.Referenc
 							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationService"),
 						},
 					},
-					"createRoute": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
-						},
-					},
-					"createIngress": {
+					"expose": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"boolean"},
 							Format: "",

@@ -48,10 +48,6 @@ spec:
                   format: int32
                   type: integer
               type: object
-            createIngress:
-              type: boolean
-            createRoute:
-              type: boolean
             env:
               items:
                 type: object
@@ -60,6 +56,8 @@ spec:
               items:
                 type: object
               type: array
+            expose:
+              type: boolean
             livenessProbe:
               type: object
             pullPolicy:

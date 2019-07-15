@@ -1,11 +1,17 @@
 package utils
 
 import (
+	"fmt"
+	"strings"
+
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
+	extv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 //GenerateDeployment ...
@@ -193,4 +199,65 @@ func GenerateHeadlessSvc(cr *appsodyv1alpha1.AppsodyApplication) *corev1.Service
 		},
 	}
 	return &svc
+}
+
+// GenerateRoute ...
+func GenerateRoute(cr *appsodyv1alpha1.AppsodyApplication) *routev1.Route {
+	weight := int32(100)
+	return &routev1.Route{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "route.openshift.io/v1",
+			Kind:       "Route",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+			Labels:    getLabels(cr),
+		},
+		Spec: routev1.RouteSpec{
+			To: routev1.RouteTargetReference{
+				Kind:   "Service",
+				Name:   cr.Name,
+				Weight: &weight,
+			},
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.FromInt(int(cr.Spec.Service.Port)),
+			},
+		},
+	}
+}
+
+// GenerateIngress ...
+func GenerateIngress(cr *appsodyv1alpha1.AppsodyApplication) *extv1beta1.Ingress {
+	return &extv1beta1.Ingress{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+			Labels:    getLabels(cr),
+		},
+		Spec: extv1beta1.IngressSpec{
+			Rules: []extv1beta1.IngressRule{
+				{
+					IngressRuleValue: extv1beta1.IngressRuleValue{
+						HTTP: &extv1beta1.HTTPIngressRuleValue{
+							Paths: []extv1beta1.HTTPIngressPath{
+								{
+									Path: "/",
+									Backend: extv1beta1.IngressBackend{
+										ServiceName: cr.Name,
+										ServicePort: intstr.FromInt(int(cr.Spec.Service.Port)),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// ErrorIsNoMatchesForKind ...
+func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
+	return strings.HasPrefix(err.Error(), fmt.Sprintf("no matches for kind \"%s\" in version \"%s\"", kind, version))
 }
