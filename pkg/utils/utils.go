@@ -36,6 +36,35 @@ func GenerateDeployment(cr *appsodyv1alpha1.AppsodyApplication) *appsv1.Deployme
 	return &deploy
 }
 
+//GenerateStatefulSet ...
+func GenerateStatefulSet(cr *appsodyv1alpha1.AppsodyApplication) *appsv1.StatefulSet {
+	statefulSet := appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name,
+			Namespace: cr.Namespace,
+			Labels:    getLabels(cr),
+		},
+		Spec: appsv1.StatefulSetSpec{
+			Replicas: cr.Spec.Replicas,
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": cr.Name,
+				},
+			},
+			ServiceName: cr.Name + "-headless",
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      cr.Name,
+					Namespace: cr.Namespace,
+					Labels:    getLabels(cr),
+				},
+				Spec: GeneratePodSpec(cr),
+			},
+		},
+	}
+	return &statefulSet
+}
+
 // GenerateSeviceAccount ...
 func GenerateSeviceAccount(cr *appsodyv1alpha1.AppsodyApplication) *corev1.ServiceAccount {
 
@@ -140,4 +169,28 @@ func GenerateHPA(cr *appsodyv1alpha1.AppsodyApplication) autoscalingv1.Horizonta
 		},
 	}
 	return hpa
+}
+
+// GenerateHeadlessSvc ...
+func GenerateHeadlessSvc(cr *appsodyv1alpha1.AppsodyApplication) *corev1.Service {
+	svc := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cr.Name + "-headless",
+			Namespace: cr.Namespace,
+			Labels:    getLabels(cr),
+		},
+		Spec: corev1.ServiceSpec{
+			ClusterIP: "None",
+			Selector: map[string]string{
+				"app.kubernetes.io/name": cr.Name,
+			},
+			Type: corev1.ServiceTypeClusterIP,
+			Ports: []corev1.ServicePort{
+				{
+					Port: cr.Spec.Service.Port,
+				},
+			},
+		},
+	}
+	return &svc
 }

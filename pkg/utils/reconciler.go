@@ -7,7 +7,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -48,8 +50,14 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 	}
 	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.GetClient(), runtimeObj, mutate)
 	if err == nil {
-		log.Info("Reconcile", "Status", result)
 	}
+
+	var gvk schema.GroupVersionKind
+	gvk, err = apiutil.GVKForObject(runtimeObj, r.scheme)
+	if err == nil {
+		log.Info("Reconcile", "Kind", gvk.Kind, "Name", obj.GetName(), "Status", result)
+	}
+
 	return err
 }
 

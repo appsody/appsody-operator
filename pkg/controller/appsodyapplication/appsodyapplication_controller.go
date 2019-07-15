@@ -105,20 +105,33 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	}
 
-	deploy := appsodyutils.GenerateDeployment(instance)
-	r.CreateOrUpdate(deploy, instance, func() error {
-		deploy.Spec.Replicas = instance.Spec.Replicas
-		deploy.Spec.Template.Spec.Containers[0].Image = instance.Spec.ApplicationImage
-		deploy.Spec.Template.Spec.Containers[0].Resources = instance.Spec.ResourceConstraints
-		deploy.Spec.Template.Spec.Containers[0].ReadinessProbe = instance.Spec.ReadinessProbe
-		deploy.Spec.Template.Spec.Containers[0].LivenessProbe = instance.Spec.LivenessProbe
-		deploy.Spec.Template.Spec.Containers[0].VolumeMounts = instance.Spec.VolumeMounts
-		deploy.Spec.Template.Spec.Containers[0].ImagePullPolicy = instance.Spec.PullPolicy
-		deploy.Spec.Template.Spec.Containers[0].Env = instance.Spec.Env
-		deploy.Spec.Template.Spec.Containers[0].EnvFrom = instance.Spec.EnvFrom
-		deploy.Spec.Template.Spec.Volumes = instance.Spec.Volumes
+	svc := appsodyutils.GenerateHeadlessSvc(instance)
+	r.CreateOrUpdate(svc, instance, func() error {
+		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
+		return nil
+	})
+
+	svc = appsodyutils.GenerateService(instance)
+	r.CreateOrUpdate(svc, instance, func() error {
+		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
+		svc.Spec.Type = instance.Spec.Service.Type
+		return nil
+	})
+
+	statefulSet := appsodyutils.GenerateStatefulSet(instance)
+	r.CreateOrUpdate(statefulSet, instance, func() error {
+		statefulSet.Spec.Replicas = instance.Spec.Replicas
+		statefulSet.Spec.Template.Spec.Containers[0].Image = instance.Spec.ApplicationImage
+		statefulSet.Spec.Template.Spec.Containers[0].Resources = instance.Spec.ResourceConstraints
+		statefulSet.Spec.Template.Spec.Containers[0].ReadinessProbe = instance.Spec.ReadinessProbe
+		statefulSet.Spec.Template.Spec.Containers[0].LivenessProbe = instance.Spec.LivenessProbe
+		statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = instance.Spec.VolumeMounts
+		statefulSet.Spec.Template.Spec.Containers[0].ImagePullPolicy = instance.Spec.PullPolicy
+		statefulSet.Spec.Template.Spec.Containers[0].Env = instance.Spec.Env
+		statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = instance.Spec.EnvFrom
+		statefulSet.Spec.Template.Spec.Volumes = instance.Spec.Volumes
 		if instance.Spec.ServiceAccountName != "" {
-			deploy.Spec.Template.Spec.ServiceAccountName = instance.Spec.ServiceAccountName
+			statefulSet.Spec.Template.Spec.ServiceAccountName = instance.Spec.ServiceAccountName
 		}
 		return nil
 	})
@@ -127,12 +140,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		reqLogger.Error(err, "Failed to create Deployment")
 	}
 
-	svc := appsodyutils.GenerateService(instance)
-	r.CreateOrUpdate(svc, instance, func() error {
-		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
-		svc.Spec.Type = instance.Spec.Service.Type
-		return nil
-	})
 	if err != nil {
 
 		reqLogger.Error(err, "Failed to create Service")
