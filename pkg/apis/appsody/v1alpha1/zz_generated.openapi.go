@@ -18,6 +18,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationService(ref),
 		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref),
 		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStatus(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStorage":     schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStorage(ref),
 	}
 }
 
@@ -249,12 +250,17 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref common.Referenc
 							},
 						},
 					},
+					"storage": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStorage"),
+						},
+					},
 				},
 				Required: []string{"applicationImage"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationAutoScaling", "github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationService", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationAutoScaling", "github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationService", "github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStorage", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
 	}
 }
 
@@ -267,5 +273,37 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStatus(ref common.Refere
 			},
 		},
 		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStorage(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AppsodyApplicationStorage ...",
+				Properties: map[string]spec.Schema{
+					"size": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"mountPath": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"volumeClaimTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/api/core/v1.PersistentVolumeClaim"),
+						},
+					},
+				},
+				Required: []string{"mountPath"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.PersistentVolumeClaim"},
 	}
 }

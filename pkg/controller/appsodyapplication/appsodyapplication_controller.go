@@ -102,26 +102,40 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return nil
 		})
 		if err != nil {
-			reqLogger.Error(err, "Failed to create ServiceAccount")
+			reqLogger.Error(err, "Failed to reconcile ServiceAccount")
+		}
+	} else {
+		serviceAccount := appsodyutils.GenerateSeviceAccount(instance)
+		err = r.DeleteResource(serviceAccount)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete ServiceAccount")
 		}
 	}
 
 	svc := appsodyutils.GenerateHeadlessSvc(instance)
-	r.CreateOrUpdate(svc, instance, func() error {
+	err = r.CreateOrUpdate(svc, instance, func() error {
 		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
+		svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
+
 		return nil
 	})
+	if err != nil {
+		reqLogger.Error(err, "Failed to reconcile headless Service")
+	}
 
 	svc = appsodyutils.GenerateService(instance)
-	r.CreateOrUpdate(svc, instance, func() error {
+	err = r.CreateOrUpdate(svc, instance, func() error {
 		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
 		svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
 		svc.Spec.Type = instance.Spec.Service.Type
 		return nil
 	})
+	if err != nil {
+		reqLogger.Error(err, "Failed to reconcile Service")
+	}
 
 	statefulSet := appsodyutils.GenerateStatefulSet(instance)
-	r.CreateOrUpdate(statefulSet, instance, func() error {
+	err = r.CreateOrUpdate(statefulSet, instance, func() error {
 		statefulSet.Spec.Replicas = instance.Spec.Replicas
 		statefulSet.Spec.Template.Spec.Containers[0].Image = instance.Spec.ApplicationImage
 		statefulSet.Spec.Template.Spec.Containers[0].Resources = instance.Spec.ResourceConstraints
@@ -137,6 +151,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		return nil
 	})
+	if err != nil {
+		reqLogger.Error(err, "Failed to reconcile StatefulSet")
+	}
 
 	if instance.Spec.Expose {
 		route := appsodyutils.GenerateRoute(instance)

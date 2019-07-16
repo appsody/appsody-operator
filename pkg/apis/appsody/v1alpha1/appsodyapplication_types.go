@@ -27,6 +27,7 @@ type AppsodyApplicationSpec struct {
 	Env                 []corev1.EnvVar                `json:"env,omitempty"`
 	ServiceAccountName  string                         `json:"serviceAccountName,omitempty"`
 	Architecture        []string                       `json:"architecture,omitempty"`
+	Storage             AppsodyApplicationStorage      `json:"storage,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -47,6 +48,14 @@ type AppsodyApplicationService struct {
 	Port int32 `json:"port"`
 }
 
+// AppsodyApplicationStorage ...
+// +k8s:openapi-gen=true
+type AppsodyApplicationStorage struct {
+	Size                string                        `json:"size,omitempty"`
+	MountPath           string                        `json:"mountPath"`
+	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
+}
+
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
@@ -57,6 +66,9 @@ type AppsodyApplicationStatus struct {
 // AppsodyApplication is the Schema for the appsodyapplications API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.applicationImage"
+// +kubebuilder:printcolumn:name="Port",type="integer",JSONPath=".spec.service.port"
+// +kubebuilder:printcolumn:name="Exposed",type="boolean",JSONPath=".spec.expose"
 type AppsodyApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

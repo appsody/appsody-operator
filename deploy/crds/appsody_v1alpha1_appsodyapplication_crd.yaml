@@ -3,6 +3,16 @@ kind: CustomResourceDefinition
 metadata:
   name: appsodyapplications.appsody.dev
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.applicationImage
+    name: Image
+    type: string
+  - JSONPath: .spec.service.port
+    name: Port
+    type: integer
+  - JSONPath: .spec.expose
+    name: Exposed
+    type: boolean
   group: appsody.dev
   names:
     kind: AppsodyApplication
@@ -85,6 +95,17 @@ spec:
               type: object
             serviceAccountName:
               type: string
+            storage:
+              properties:
+                mountPath:
+                  type: string
+                size:
+                  type: string
+                volumeClaimTemplate:
+                  type: object
+              required:
+              - mountPath
+              type: object
             volumeMounts:
               items:
                 type: object
