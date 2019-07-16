@@ -10,6 +10,7 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	extv1beta1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -67,6 +68,35 @@ func GenerateStatefulSet(cr *appsodyv1alpha1.AppsodyApplication) *appsv1.Statefu
 				Spec: GeneratePodSpec(cr),
 			},
 		},
+	}
+	if cr.Spec.Storage != nil {
+		if cr.Spec.Storage.VolumeClaimTemplate != nil {
+			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+				*cr.Spec.Storage.VolumeClaimTemplate,
+			}
+		} else {
+
+			storageSize, ok := resource.ParseQuantity(cr.Spec.Storage.Size)
+			if ok != nil {
+				//TODO
+			}
+			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      cr.Name,
+						Namespace: cr.Namespace,
+						Labels:    getLabels(cr),
+					},
+					Spec: corev1.PersistentVolumeClaimSpec{
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceStorage: storageSize,
+							},
+						},
+					},
+				},
+			}
+		}
 	}
 	return &statefulSet
 }

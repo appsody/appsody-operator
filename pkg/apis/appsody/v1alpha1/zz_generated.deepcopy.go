@@ -175,7 +175,11 @@ func (in *AppsodyApplicationSpec) DeepCopyInto(out *AppsodyApplicationSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	in.Storage.DeepCopyInto(&out.Storage)
+	if in.Storage != nil {
+		in, out := &in.Storage, &out.Storage
+		*out = new(AppsodyApplicationStorage)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 

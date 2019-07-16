@@ -27,7 +27,7 @@ type AppsodyApplicationSpec struct {
 	Env                 []corev1.EnvVar                `json:"env,omitempty"`
 	ServiceAccountName  string                         `json:"serviceAccountName,omitempty"`
 	Architecture        []string                       `json:"architecture,omitempty"`
-	Storage             AppsodyApplicationStorage      `json:"storage,omitempty"`
+	Storage             *AppsodyApplicationStorage     `json:"storage,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
