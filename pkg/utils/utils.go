@@ -93,6 +93,9 @@ func GenerateStatefulSet(cr *appsodyv1alpha1.AppsodyApplication) *appsv1.Statefu
 								corev1.ResourceStorage: storageSize,
 							},
 						},
+						AccessModes: []corev1.PersistentVolumeAccessMode{
+							corev1.ReadWriteOnce,
+						},
 					},
 				},
 			}
@@ -186,7 +189,7 @@ func GeneratePodSpec(cr *appsodyv1alpha1.AppsodyApplication) corev1.PodSpec {
 }
 
 // GenerateHPA ...
-func GenerateHPA(cr *appsodyv1alpha1.AppsodyApplication) autoscalingv1.HorizontalPodAutoscaler {
+func GenerateHPA(cr *appsodyv1alpha1.AppsodyApplication) *autoscalingv1.HorizontalPodAutoscaler {
 	hpa := autoscalingv1.HorizontalPodAutoscaler{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cr.Name,
@@ -199,12 +202,12 @@ func GenerateHPA(cr *appsodyv1alpha1.AppsodyApplication) autoscalingv1.Horizonta
 			TargetCPUUtilizationPercentage: cr.Spec.Autoscaling.TargetCPUUtilizationPercentage,
 			ScaleTargetRef: autoscalingv1.CrossVersionObjectReference{
 				APIVersion: "apps/v1",
-				Kind:       "Deployment",
+				Kind:       "StatefulSet",
 				Name:       cr.Name,
 			},
 		},
 	}
-	return hpa
+	return &hpa
 }
 
 // GenerateHeadlessSvc ...
