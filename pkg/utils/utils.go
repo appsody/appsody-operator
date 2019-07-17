@@ -83,7 +83,7 @@ func GenerateStatefulSet(cr *appsodyv1alpha1.AppsodyApplication) *appsv1.Statefu
 			statefulSet.Spec.VolumeClaimTemplates = []corev1.PersistentVolumeClaim{
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      cr.Name,
+						Name:      "pvc",
 						Namespace: cr.Namespace,
 						Labels:    getLabels(cr),
 					},
@@ -104,8 +104,8 @@ func GenerateStatefulSet(cr *appsodyv1alpha1.AppsodyApplication) *appsv1.Statefu
 	return &statefulSet
 }
 
-// GenerateSeviceAccount ...
-func GenerateSeviceAccount(cr *appsodyv1alpha1.AppsodyApplication) *corev1.ServiceAccount {
+// GenerateServiceAccount ...
+func GenerateServiceAccount(cr *appsodyv1alpha1.AppsodyApplication) *corev1.ServiceAccount {
 
 	sa := corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{

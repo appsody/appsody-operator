@@ -94,7 +94,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	if instance.Spec.ServiceAccountName == "" {
-		serviceAccount := appsodyutils.GenerateSeviceAccount(instance)
+		serviceAccount := appsodyutils.GenerateServiceAccount(instance)
 		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
 			if instance.Spec.PullSecret != "" {
 				serviceAccount.ImagePullSecrets[0].Name = instance.Spec.PullSecret
@@ -105,7 +105,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			reqLogger.Error(err, "Failed to reconcile ServiceAccount")
 		}
 	} else {
-		serviceAccount := appsodyutils.GenerateSeviceAccount(instance)
+		serviceAccount := appsodyutils.GenerateServiceAccount(instance)
 		err = r.DeleteResource(serviceAccount)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
@@ -142,6 +142,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		statefulSet.Spec.Template.Spec.Containers[0].ReadinessProbe = instance.Spec.ReadinessProbe
 		statefulSet.Spec.Template.Spec.Containers[0].LivenessProbe = instance.Spec.LivenessProbe
 		statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = instance.Spec.VolumeMounts
+		if instance.Spec.Storage != nil {
+			statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts,
+				corev1.VolumeMount{
+					MountPath: instance.Spec.Storage.MountPath,
+					Name:      "pvc",
+				})
+		}
 		statefulSet.Spec.Template.Spec.Containers[0].ImagePullPolicy = instance.Spec.PullPolicy
 		statefulSet.Spec.Template.Spec.Containers[0].Env = instance.Spec.Env
 		statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = instance.Spec.EnvFrom
@@ -174,7 +181,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	} else {
 		route := appsodyutils.GenerateRoute(instance)
-		r.DeleteResource(route)
+		err = r.DeleteResource(route)
+		if err != nil {
+			log.Error(err, "Failed to delete route")
+		}
 	}
 
 	return reconcile.Result{}, nil
