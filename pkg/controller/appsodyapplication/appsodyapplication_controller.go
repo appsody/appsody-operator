@@ -3,11 +3,14 @@ package appsodyapplication
 import (
 	"context"
 
+	appsv1 "k8s.io/api/apps/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
+	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -93,94 +96,110 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, err
 	}
 
+	defaultMeta := metav1.ObjectMeta{
+		Name:      instance.Name,
+		Namespace: instance.Namespace,
+	}
+
 	if instance.Spec.ServiceAccountName == "" {
-		serviceAccount := appsodyutils.GenerateServiceAccount(instance)
+		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
-			if instance.Spec.PullSecret != "" {
-				serviceAccount.ImagePullSecrets[0].Name = instance.Spec.PullSecret
-			}
+			appsodyutils.CustomizeServiceAccount(serviceAccount, instance)
 			return nil
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile ServiceAccount")
 		}
 	} else {
-		serviceAccount := appsodyutils.GenerateServiceAccount(instance)
+		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(serviceAccount)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
 		}
 	}
 
-	svc := appsodyutils.GenerateHeadlessSvc(instance)
+	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
-		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
-		svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
-
-		return nil
-	})
-	if err != nil {
-		reqLogger.Error(err, "Failed to reconcile headless Service")
-	}
-
-	svc = appsodyutils.GenerateService(instance)
-	err = r.CreateOrUpdate(svc, instance, func() error {
-		svc.Spec.Ports[0].Port = instance.Spec.Service.Port
-		svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
-		svc.Spec.Type = instance.Spec.Service.Type
+		appsodyutils.CustomizeService(svc, instance)
 		return nil
 	})
 	if err != nil {
 		reqLogger.Error(err, "Failed to reconcile Service")
 	}
 
-	statefulSet := appsodyutils.GenerateStatefulSet(instance)
-	err = r.CreateOrUpdate(statefulSet, instance, func() error {
-		statefulSet.Spec.Replicas = instance.Spec.Replicas
-		statefulSet.Spec.Template.Spec.Containers[0].Image = instance.Spec.ApplicationImage
-		statefulSet.Spec.Template.Spec.Containers[0].Resources = instance.Spec.ResourceConstraints
-		statefulSet.Spec.Template.Spec.Containers[0].ReadinessProbe = instance.Spec.ReadinessProbe
-		statefulSet.Spec.Template.Spec.Containers[0].LivenessProbe = instance.Spec.LivenessProbe
-		statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = instance.Spec.VolumeMounts
-		if instance.Spec.Storage != nil {
-			statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts,
-				corev1.VolumeMount{
-					MountPath: instance.Spec.Storage.MountPath,
-					Name:      "pvc",
-				})
-		}
-		statefulSet.Spec.Template.Spec.Containers[0].ImagePullPolicy = instance.Spec.PullPolicy
-		statefulSet.Spec.Template.Spec.Containers[0].Env = instance.Spec.Env
-		statefulSet.Spec.Template.Spec.Containers[0].EnvFrom = instance.Spec.EnvFrom
-		statefulSet.Spec.Template.Spec.Volumes = instance.Spec.Volumes
-		if instance.Spec.ServiceAccountName != "" {
-			statefulSet.Spec.Template.Spec.ServiceAccountName = instance.Spec.ServiceAccountName
-		}
-		return nil
-	})
-	if err != nil {
-		reqLogger.Error(err, "Failed to reconcile StatefulSet")
-	}
+	if instance.Spec.Storage != nil {
 
-	if instance.Spec.Expose {
-		route := appsodyutils.GenerateRoute(instance)
-		err = r.CreateOrUpdate(route, instance, func() error {
-			route.Spec.Port.TargetPort = intstr.FromInt(int(instance.Spec.Service.Port))
-			return nil
-		})
-		if err != nil && appsodyutils.ErrorIsNoMatchesForKind(err, route.Kind, route.APIVersion) {
-			ingress := appsodyutils.GenerateIngress(instance)
-			err = r.CreateOrUpdate(ingress, instance, func() error {
-				ingress.Spec.Rules[0].HTTP.Paths[0].Backend.ServicePort = intstr.FromInt(int(instance.Spec.Service.Port))
+		// Delete Deployment if exists
+		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(deploy)
+
+		if err == nil {
+			svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
+			err = r.CreateOrUpdate(svc, instance, func() error {
+				appsodyutils.CustomizeService(svc, instance)
+				svc.Spec.ClusterIP = corev1.ClusterIPNone
 				return nil
 			})
-
 			if err != nil {
-				log.Error(err, "Failed to create both Route and Ingress on the cluster.")
+				reqLogger.Error(err, "Failed to reconcile headless Service")
+			}
+
+			statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(statefulSet, instance, func() error {
+				statefulSet.Spec.Replicas = instance.Spec.Replicas
+				statefulSet.Spec.ServiceName = instance.Name + "-headless"
+				statefulSet.Spec.Selector = &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app.kubernetes.io/name": instance.Name,
+					},
+				}
+				appsodyutils.CustomizePersistence(statefulSet, instance)
+				appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
+				return nil
+			})
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile StatefulSet")
 			}
 		}
 	} else {
-		route := appsodyutils.GenerateRoute(instance)
+		// Delete StatefulSet if exists
+		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(statefulSet)
+
+		// Delete StatefulSet if exists
+		headlesssvc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
+		err = r.DeleteResource(headlesssvc)
+
+		if err == nil {
+			deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(deploy, instance, func() error {
+				deploy.Spec.Replicas = instance.Spec.Replicas
+				deploy.Spec.Selector = &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app.kubernetes.io/name": instance.Name,
+					},
+				}
+				appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
+				return nil
+			})
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile StatefulSet")
+			}
+		}
+	}
+
+	if instance.Spec.Expose {
+		route := &routev1.Route{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(route, instance, func() error {
+			appsodyutils.CustomizeRoute(route, instance)
+			return nil
+		})
+		if err != nil {
+			log.Error(err, "Failed to create Route")
+		}
+
+	} else {
+		route := &routev1.Route{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(route)
 		if err != nil {
 			log.Error(err, "Failed to delete route")
