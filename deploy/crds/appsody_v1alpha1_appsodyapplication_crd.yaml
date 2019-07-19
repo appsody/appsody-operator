@@ -58,6 +58,8 @@ spec:
                   format: int32
                   type: integer
               type: object
+            createKnativeService:
+              type: boolean
             env:
               items:
                 type: object

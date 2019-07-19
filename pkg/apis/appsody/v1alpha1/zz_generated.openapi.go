@@ -255,6 +255,12 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref common.Referenc
 							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStorage"),
 						},
 					},
+					"createKnativeService": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"boolean"},
+							Format: "",
+						},
+					},
 				},
 				Required: []string{"applicationImage"},
 			},

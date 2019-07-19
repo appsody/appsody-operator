@@ -13,12 +13,16 @@ require (
 	github.com/golang/groupcache v0.0.0-20180924190550-6f2cf27854a4 // indirect
 	github.com/golang/mock v1.2.0 // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
+	github.com/google/go-containerregistry v0.0.0-20190717132004-e8c6a4993fa7 // indirect
 	github.com/google/uuid v1.0.0 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190318015731-ff9851476e98 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
+	github.com/knative/pkg v0.0.0-20190719141030-e4bc08cc8ded // indirect
+	github.com/knative/serving v0.7.1
+	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/operator-framework/operator-sdk v0.8.2-0.20190522220659-031d71ef8154
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
@@ -35,6 +39,7 @@ require (
 	k8s.io/code-generator v0.0.0-20180823001027-3dcf91f64f63
 	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 	k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
+	knative.dev/pkg v0.0.0-20190719141030-e4bc08cc8ded // indirect
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.10
 	sigs.k8s.io/testing_frameworks v0.1.0 // indirect

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -168,4 +170,29 @@ func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1alpha1.AppsodyApplicatio
 		}
 		a.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(a.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution, term)
 	}
+}
+
+// CustomizeKnativeService ...
+func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.AppsodyApplication) {
+	ksvc.Labels = GetLabels(cr)
+	ksvc.Spec.Template.Spec.Containers[0].Name = "app"
+	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
+	ksvc.Spec.Template.Spec.Containers[0].Resources = cr.Spec.ResourceConstraints
+	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
+	ksvc.Spec.Template.Spec.Containers[0].LivenessProbe = cr.Spec.LivenessProbe
+	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = cr.Spec.VolumeMounts
+	ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy = cr.Spec.PullPolicy
+	ksvc.Spec.Template.Spec.Containers[0].Env = cr.Spec.Env
+	ksvc.Spec.Template.Spec.Containers[0].EnvFrom = cr.Spec.EnvFrom
+
+	ksvc.Spec.Template.Spec.Volumes = cr.Spec.Volumes
+
+	if cr.Spec.ServiceAccountName != "" {
+		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Spec.ServiceAccountName
+	} else {
+		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Name
+	}
+
+	ksvc.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyAlways
+	ksvc.Spec.Template.Spec.DNSPolicy = corev1.DNSClusterFirst
 }
