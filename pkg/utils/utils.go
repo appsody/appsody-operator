@@ -75,6 +75,11 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyAp
 	}
 	pts.Spec.RestartPolicy = corev1.RestartPolicyAlways
 	pts.Spec.DNSPolicy = corev1.DNSClusterFirst
+
+	if len(cr.Spec.Architecture) > 0 {
+		pts.Spec.Affinity = &corev1.Affinity{}
+		CustomizeAffinity(pts.Spec.Affinity, cr)
+	}
 }
 
 // CustomizePersistence ...
@@ -117,5 +122,43 @@ func CustomizeServiceAccount(sa *corev1.ServiceAccount, cr *appsodyv1alpha1.Apps
 		})
 	} else {
 		sa.ImagePullSecrets[0].Name = cr.Spec.PullSecret
+	}
+}
+
+// CustomizeAffinity ...
+func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1alpha1.AppsodyApplication) {
+
+	a.NodeAffinity = &corev1.NodeAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+			NodeSelectorTerms: []corev1.NodeSelectorTerm{
+				{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
+						{
+							Operator: corev1.NodeSelectorOpIn,
+							Values:   cr.Spec.Architecture,
+							Key:      "beta.kubernetes.io/arch",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	archs := len(cr.Spec.Architecture)
+	for i := range cr.Spec.Architecture {
+		arch := cr.Spec.Architecture[i]
+		term := corev1.PreferredSchedulingTerm{
+			Weight: int32(archs - i),
+			Preference: corev1.NodeSelectorTerm{
+				MatchExpressions: []corev1.NodeSelectorRequirement{
+					{
+						Operator: corev1.NodeSelectorOpIn,
+						Values:   []string{arch},
+						Key:      "beta.kubernetes.io/arch",
+					},
+				},
+			},
+		}
+		a.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(a.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution, term)
 	}
 }
