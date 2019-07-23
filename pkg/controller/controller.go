@@ -1,6 +1,7 @@
 package controller
 
 import (
+	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -11,6 +12,10 @@ var AddToManagerFuncs []func(manager.Manager) error
 // AddToManager adds all Controllers to the Manager
 func AddToManager(m manager.Manager) error {
 	if err := routev1.AddToScheme(m.GetScheme()); err != nil {
+		return err
+	}
+
+	if err := servingv1beta1.AddToScheme(m.GetScheme()); err != nil {
 		return err
 	}
 

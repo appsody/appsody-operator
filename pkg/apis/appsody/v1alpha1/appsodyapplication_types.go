@@ -10,24 +10,24 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
-	// +kubebuilder:validation:Pattern=.+:.+
-	ApplicationImage    string                         `json:"applicationImage"`
-	Replicas            *int32                         `json:"replicas,omitempty"`
-	Autoscaling         *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy          corev1.PullPolicy              `json:"pullPolicy,omitempty"`
-	PullSecret          string                         `json:"pullSecret,omitempty"`
-	Volumes             []corev1.Volume                `json:"volumes,omitempty"`
-	VolumeMounts        []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
-	ResourceConstraints corev1.ResourceRequirements    `json:"resourceConstraints,omitempty"`
-	ReadinessProbe      *corev1.Probe                  `json:"readinessProbe,omitempty"`
-	LivenessProbe       *corev1.Probe                  `json:"livenessProbe,omitempty"`
-	Service             AppsodyApplicationService      `json:"service,omitempty"`
-	Expose              bool                           `json:"expose,omitempty"`
-	EnvFrom             []corev1.EnvFromSource         `json:"envFrom,omitempty"`
-	Env                 []corev1.EnvVar                `json:"env,omitempty"`
-	ServiceAccountName  string                         `json:"serviceAccountName,omitempty"`
-	Architecture        []string                       `json:"architecture,omitempty"`
-	Storage             *AppsodyApplicationStorage     `json:"storage,omitempty"`
+	ApplicationImage     string                         `json:"applicationImage"`
+	Replicas             *int32                         `json:"replicas,omitempty"`
+	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
+	PullPolicy           corev1.PullPolicy              `json:"pullPolicy,omitempty"`
+	PullSecret           string                         `json:"pullSecret,omitempty"`
+	Volumes              []corev1.Volume                `json:"volumes,omitempty"`
+	VolumeMounts         []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
+	ResourceConstraints  corev1.ResourceRequirements    `json:"resourceConstraints,omitempty"`
+	ReadinessProbe       *corev1.Probe                  `json:"readinessProbe,omitempty"`
+	LivenessProbe        *corev1.Probe                  `json:"livenessProbe,omitempty"`
+	Service              AppsodyApplicationService      `json:"service,omitempty"`
+	Expose               bool                           `json:"expose,omitempty"`
+	EnvFrom              []corev1.EnvFromSource         `json:"envFrom,omitempty"`
+	Env                  []corev1.EnvVar                `json:"env,omitempty"`
+	ServiceAccountName   string                         `json:"serviceAccountName,omitempty"`
+	Architecture         []string                       `json:"architecture,omitempty"`
+	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
+	CreateKnativeService bool                           `json:"createKnativeService,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
