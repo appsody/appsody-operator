@@ -20,8 +20,9 @@ require (
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.8.5 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
-	github.com/knative/pkg v0.0.0-20190719141030-e4bc08cc8ded // indirect
-	github.com/knative/serving v0.7.1
+	github.com/knative/build v0.7.0 // indirect
+	github.com/knative/pkg v0.0.0-20190621200921-9c5d970cbc9e // indirect
+	github.com/knative/serving v0.7.1-0.20190701162519-7ca25646a186
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/openshift/api v3.9.0+incompatible
 	github.com/operator-framework/operator-sdk v0.8.2-0.20190522220659-031d71ef8154
@@ -39,7 +40,7 @@ require (
 	k8s.io/code-generator v0.0.0-20180823001027-3dcf91f64f63
 	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 	k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
-	knative.dev/pkg v0.0.0-20190719141030-e4bc08cc8ded // indirect
+	knative.dev/pkg v0.0.0-20190626215608-1104d6c75533 // indirect
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.10
 	sigs.k8s.io/testing_frameworks v0.1.0 // indirect
@@ -55,6 +56,7 @@ replace (
 
 replace (
 	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.29.0
+	github.com/google/go-cmp => github.com/google/go-cmp v0.3.0
 	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.8.1
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d

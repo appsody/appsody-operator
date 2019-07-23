@@ -10,7 +10,6 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
-	// +kubebuilder:validation:Pattern=.+:.+
 	ApplicationImage     string                         `json:"applicationImage"`
 	Replicas             *int32                         `json:"replicas,omitempty"`
 	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`

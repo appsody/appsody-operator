@@ -3,14 +3,15 @@ package appsodyapplication
 import (
 	"context"
 
-	appsv1 "k8s.io/api/apps/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
+	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
 	routev1 "github.com/openshift/api/route/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -119,15 +120,32 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	if instance.Spec.CreateKnativeService {
-		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
+		ksvc := &servingv1beta1.Service{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(ksvc, instance, func() error {
 			appsodyutils.CustomizeKnativeService(ksvc, instance)
 			return nil
 		})
+
 		if err != nil {
-			reqLogger.Error(err, "Failed to reconcile Service")
+			reqLogger.Error(err, "Failed to reconcile Knative Service")
 		}
+
+		// Clean up non-Knative resources
+		resources := []runtime.Object{
+			&corev1.Service{ObjectMeta: defaultMeta},
+			&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}},
+			&appsv1.Deployment{ObjectMeta: defaultMeta},
+			&appsv1.StatefulSet{ObjectMeta: defaultMeta},
+			&routev1.Route{ObjectMeta: defaultMeta},
+		}
+		r.DeleteResources(resources)
 		return reconcile.Result{}, nil
+	}
+
+	ksvc := &servingv1beta1.Service{ObjectMeta: defaultMeta}
+	err = r.DeleteResource(ksvc)
+	if err != nil {
+		reqLogger.Error(err, "Failed to delete Knative Service")
 	}
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}

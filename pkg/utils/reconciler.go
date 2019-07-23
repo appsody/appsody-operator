@@ -71,3 +71,15 @@ func (r *ReconcilerBase) DeleteResource(obj runtime.Object) error {
 	}
 	return nil
 }
+
+// DeleteResources ...
+func (r *ReconcilerBase) DeleteResources(resources []runtime.Object) error {
+	for i := range resources {
+		err := r.DeleteResource(resources[i])
+		if err != nil {
+			log.Error(err, "unable to delete object ", "object", resources[i])
+			return err
+		}
+	}
+	return nil
+}

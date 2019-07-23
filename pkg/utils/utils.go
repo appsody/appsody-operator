@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -173,9 +173,14 @@ func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1alpha1.AppsodyApplicatio
 }
 
 // CustomizeKnativeService ...
-func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeKnativeService(ksvc *servingv1beta1.Service, cr *appsodyv1alpha1.AppsodyApplication) {
 	ksvc.Labels = GetLabels(cr)
-	ksvc.Spec.Template.Spec.Containers[0].Name = "app"
+
+	if len(ksvc.Spec.Template.Spec.Containers) == 0 {
+		ksvc.Spec.Template.Spec.Containers = append(ksvc.Spec.Template.Spec.Containers, corev1.Container{Name: "user-container"})
+	}
+
+	ksvc.Spec.Template.Spec.Containers[0].Name = "user-container"
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	ksvc.Spec.Template.Spec.Containers[0].Resources = cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
@@ -192,7 +197,4 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 	} else {
 		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Name
 	}
-
-	ksvc.Spec.Template.Spec.RestartPolicy = corev1.RestartPolicyAlways
-	ksvc.Spec.Template.Spec.DNSPolicy = corev1.DNSClusterFirst
 }

@@ -40,7 +40,6 @@ spec:
         spec:
           properties:
             applicationImage:
-              pattern: .+:.+
               type: string
             architecture:
               items:
