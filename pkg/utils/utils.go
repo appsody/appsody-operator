@@ -49,6 +49,9 @@ func CustomizeService(svc *corev1.Service, cr *appsodyv1alpha1.AppsodyApplicatio
 	svc.Spec.Ports[0].Port = cr.Spec.Service.Port
 	svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
 	svc.Spec.Type = cr.Spec.Service.Type
+	svc.Spec.Selector = map[string]string{
+		"app.kubernetes.io/name": cr.Name,
+	}
 }
 
 // CustomizePodSpec ...
@@ -58,6 +61,10 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyAp
 		pts.Spec.Containers = append(pts.Spec.Containers, corev1.Container{})
 	}
 	pts.Spec.Containers[0].Name = "app"
+	if len(pts.Spec.Containers[0].Ports) == 0 {
+		pts.Spec.Containers[0].Ports = append(pts.Spec.Containers[0].Ports, corev1.ContainerPort{})
+	}
+	pts.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	pts.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	pts.Spec.Containers[0].Resources = cr.Spec.ResourceConstraints
 	pts.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
@@ -75,6 +82,11 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyAp
 	}
 	pts.Spec.RestartPolicy = corev1.RestartPolicyAlways
 	pts.Spec.DNSPolicy = corev1.DNSClusterFirst
+
+	if len(cr.Spec.Architecture) > 0 {
+		pts.Spec.Affinity = &corev1.Affinity{}
+		CustomizeAffinity(pts.Spec.Affinity, cr)
+	}
 }
 
 // CustomizePersistence ...
@@ -117,5 +129,43 @@ func CustomizeServiceAccount(sa *corev1.ServiceAccount, cr *appsodyv1alpha1.Apps
 		})
 	} else {
 		sa.ImagePullSecrets[0].Name = cr.Spec.PullSecret
+	}
+}
+
+// CustomizeAffinity ...
+func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1alpha1.AppsodyApplication) {
+
+	a.NodeAffinity = &corev1.NodeAffinity{
+		RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
+			NodeSelectorTerms: []corev1.NodeSelectorTerm{
+				{
+					MatchExpressions: []corev1.NodeSelectorRequirement{
+						{
+							Operator: corev1.NodeSelectorOpIn,
+							Values:   cr.Spec.Architecture,
+							Key:      "beta.kubernetes.io/arch",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	archs := len(cr.Spec.Architecture)
+	for i := range cr.Spec.Architecture {
+		arch := cr.Spec.Architecture[i]
+		term := corev1.PreferredSchedulingTerm{
+			Weight: int32(archs - i),
+			Preference: corev1.NodeSelectorTerm{
+				MatchExpressions: []corev1.NodeSelectorRequirement{
+					{
+						Operator: corev1.NodeSelectorOpIn,
+						Values:   []string{arch},
+						Key:      "beta.kubernetes.io/arch",
+					},
+				},
+			},
+		}
+		a.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution = append(a.NodeAffinity.PreferredDuringSchedulingIgnoredDuringExecution, term)
 	}
 }
