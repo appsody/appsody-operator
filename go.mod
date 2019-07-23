@@ -3,6 +3,7 @@ module github.com/appsody-operator
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.4.9 // indirect
 	github.com/Azure/go-autorest v11.5.2+incompatible // indirect
+	github.com/Jeffail/gabs v1.4.0 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/appsody/appsody v0.0.0-20190719124331-a3d9e23d11e0 // indirect
 	github.com/coreos/prometheus-operator v0.26.0 // indirect

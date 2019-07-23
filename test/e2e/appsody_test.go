@@ -7,6 +7,7 @@ import (
 	"github.com/appsody-operator/pkg/apis"
 	appsody "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
+	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,12 +30,12 @@ func TestAppsodyApplication(t *testing.T) {
 		t.Fatalf("Failed to add CR scheme to framework: %v", err)
 	}
 
-	// t.Run("SimpleTest", )
+	t.Run("AppsodyBasicTest", appsodyBasicTest)
 }
 
 // --- Test Functions ----
 
-func AppsodyBasicTest(t *testing.T, applicationTag string) {
+func appsodyBasicTest(t *testing.T) {
 	ctx := framework.NewTestCtx(t)
 	defer ctx.Cleanup()
 	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
@@ -49,7 +50,14 @@ func AppsodyBasicTest(t *testing.T, applicationTag string) {
 	t.Log("Cluster Resource Initialized")
 
 	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		t.Fatal(err)
+	}
 
+	f := framework.Global
+
+	// create one replica of the operator deployment in current namespace with provided name
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, timeout)
 	if err != nil {
 		t.Fatal(err)
 	}
