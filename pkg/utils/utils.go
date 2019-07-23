@@ -49,6 +49,9 @@ func CustomizeService(svc *corev1.Service, cr *appsodyv1alpha1.AppsodyApplicatio
 	svc.Spec.Ports[0].Port = cr.Spec.Service.Port
 	svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
 	svc.Spec.Type = cr.Spec.Service.Type
+	svc.Spec.Selector = map[string]string{
+		"app.kubernetes.io/name": cr.Name,
+	}
 }
 
 // CustomizePodSpec ...
@@ -58,6 +61,10 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyAp
 		pts.Spec.Containers = append(pts.Spec.Containers, corev1.Container{})
 	}
 	pts.Spec.Containers[0].Name = "app"
+	if len(pts.Spec.Containers[0].Ports) == 0 {
+		pts.Spec.Containers[0].Ports = append(pts.Spec.Containers[0].Ports, corev1.ContainerPort{})
+	}
+	pts.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	pts.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	pts.Spec.Containers[0].Resources = cr.Spec.ResourceConstraints
 	pts.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
