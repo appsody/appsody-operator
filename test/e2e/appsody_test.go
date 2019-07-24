@@ -21,8 +21,7 @@ var (
 func TestAppsodyApplication(t *testing.T) {
 	appsodyApplicationList := &appsody.AppsodyApplicationList{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "AppsodyApplication",
-			APIVersion: "appsody/v1alpha1",
+			Kind: "AppsodyApplication",
 		},
 	}
 	err := framework.AddToFrameworkScheme(apis.AddToScheme, appsodyApplicationList)
@@ -47,17 +46,19 @@ func appsodyBasicTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log("Cluster Resource Initialized")
+	t.Log("Cluster resource intialized.")
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	t.Logf("Namespace: %s", namespace)
+
 	f := framework.Global
 
 	// create one replica of the operator deployment in current namespace with provided name
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, timeout)
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, timeout)
 	if err != nil {
 		t.Fatal(err)
 	}
