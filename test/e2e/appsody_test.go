@@ -8,8 +8,9 @@ import (
 
 	"github.com/appsody-operator/pkg/apis"
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	"github.com/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	"github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -71,26 +72,6 @@ func appsodyBasicTest(t *testing.T) {
 	}
 }
 
-func makeBasicAppsodyApplication(t *testing.T, f *framework.Framework, namespace string, helper int32) *appsodyv1alpha1.AppsodyApplication {
-	return &appsodyv1alpha1.AppsodyApplication{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "AppsodyApplication",
-			APIVersion: "appsody.example.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "example-appsody",
-			Namespace: namespace,
-		},
-		Spec: appsodyv1alpha1.AppsodyApplicationSpec{
-			ApplicationImage: "appsody:v1",
-			Replicas:         &helper,
-			Service: appsodyv1alpha1.AppsodyApplicationService{
-				Port: 8000,
-			},
-		},
-	}
-}
-
 func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -99,8 +80,9 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 
 	helper := int32(3)
 
-	exampleAppsody := makeBasicAppsodyApplication(t, f, namespace, helper)
+	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, namespace, helper)
 
+	// Create application deployment and wait
 	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second * 5, RetryInterval: time.Second * 1})
 	if err != nil {
 		return err
@@ -110,9 +92,10 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 	if err != nil {
 		return err
 	}
-
+	// -- Run all scaling tests below based on the above example deployment of 3 pods ---
+	// update the number of replicas and return if failure occurs
 	if err = appsodyUpdateScaleTest(t, f, namespace, exampleAppsody); err != nil {
-		t.Fatal(err)
+		return err
 	}
 
 	return err
