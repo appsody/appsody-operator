@@ -117,11 +117,13 @@ github.com/joho/godotenv
 # github.com/json-iterator/go v1.1.6
 github.com/json-iterator/go
 # github.com/knative/serving v0.7.1-0.20190701162519-7ca25646a186
-github.com/knative/serving/pkg/apis/serving/v1beta1
+github.com/knative/serving/pkg/apis/serving/v1alpha1
 github.com/knative/serving/pkg/apis/config
-github.com/knative/serving/pkg/apis/serving
-github.com/knative/serving/pkg/apis/autoscaling
 github.com/knative/serving/pkg/apis/networking
+github.com/knative/serving/pkg/apis/networking/v1alpha1
+github.com/knative/serving/pkg/apis/serving
+github.com/knative/serving/pkg/apis/serving/v1beta1
+github.com/knative/serving/pkg/apis/autoscaling
 # github.com/mailru/easyjson v0.0.0-20180823135443-60711f1a8329
 github.com/mailru/easyjson/jlexer
 github.com/mailru/easyjson/jwriter
@@ -341,10 +343,10 @@ k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/runtime/schema
 k8s.io/apimachinery/pkg/api/errors
 k8s.io/apimachinery/pkg/api/resource
+k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/util/intstr
 k8s.io/apimachinery/pkg/util/wait
 k8s.io/apimachinery/pkg/apis/meta/v1/unstructured
-k8s.io/apimachinery/pkg/types
 k8s.io/apimachinery/pkg/api/meta
 k8s.io/apimachinery/pkg/util/runtime
 k8s.io/apimachinery/pkg/conversion
@@ -570,6 +572,7 @@ k8s.io/kube-openapi/pkg/util/sets
 k8s.io/kube-openapi/pkg/util/proto
 # knative.dev/pkg v0.0.0-20190626215608-1104d6c75533
 knative.dev/pkg/apis
+knative.dev/pkg/apis/duck/v1alpha1
 knative.dev/pkg/apis/duck/v1beta1
 knative.dev/pkg/kmeta
 knative.dev/pkg/kmp
