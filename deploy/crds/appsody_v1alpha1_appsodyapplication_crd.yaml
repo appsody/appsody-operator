@@ -96,6 +96,8 @@ spec:
               type: object
             serviceAccountName:
               type: string
+            stack:
+              type: string
             storage:
               properties:
                 mountPath:
@@ -119,6 +121,26 @@ spec:
           - applicationImage
           type: object
         status:
+          properties:
+            conditions:
+              items:
+                properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    format: date-time
+                    type: string
+                  mesage:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                type: object
+              type: array
           type: object
   version: v1alpha1
   versions:
