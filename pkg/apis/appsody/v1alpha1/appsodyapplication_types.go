@@ -28,6 +28,7 @@ type AppsodyApplicationSpec struct {
 	Architecture         []string                       `json:"architecture,omitempty"`
 	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
 	CreateKnativeService bool                           `json:"createKnativeService,omitempty"`
+	Stack                string                         `json:"stack,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -59,7 +60,26 @@ type AppsodyApplicationStorage struct {
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
+	Conditions []AppsodyApplicationStatusCondition `json:"conditions,omitempty"`
 }
+
+// AppsodyApplicationStatusCondition ...
+type AppsodyApplicationStatusCondition struct {
+	LastTransitionTime metav1.Time                           `json:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time                           `json:"lastUpdateTime,omitempty"`
+	Reason             string                                `json:"reason,omitempty"`
+	Message            string                                `json:"mesage,omitempty"`
+	Status             corev1.ConditionStatus                `json:"status,omitempty"`
+	Type               AppsodyApplicationStatusConditionType `json:"type,omitempty"`
+}
+
+// AppsodyApplicationStatusConditionType ...
+type AppsodyApplicationStatusConditionType string
+
+const (
+	// AppsodyApplicationStatusConditionTypeInitialized ...
+	AppsodyApplicationStatusConditionTypeInitialized AppsodyApplicationStatusConditionType = "Initialized"
+)
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 

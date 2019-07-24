@@ -261,6 +261,12 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref common.Referenc
 							Format: "",
 						},
 					},
+					"stack": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
 				},
 				Required: []string{"applicationImage"},
 			},
@@ -275,10 +281,24 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStatus(ref common.Refere
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplicationStatus defines the observed state of AppsodyApplication",
-				Properties:  map[string]spec.Schema{},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStatusCondition"),
+									},
+								},
+							},
+						},
+					},
+				},
 			},
 		},
-		Dependencies: []string{},
+		Dependencies: []string{
+			"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStatusCondition"},
 	}
 }
 
