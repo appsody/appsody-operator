@@ -5,7 +5,8 @@ import (
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
-	servingv1beta1 "github.com/knative/serving/pkg/apis/serving/v1beta1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -120,7 +121,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	if instance.Spec.CreateKnativeService {
-		ksvc := &servingv1beta1.Service{ObjectMeta: defaultMeta}
+		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(ksvc, instance, func() error {
 			appsodyutils.CustomizeKnativeService(ksvc, instance)
 			return nil
@@ -142,7 +143,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, nil
 	}
 
-	ksvc := &servingv1beta1.Service{ObjectMeta: defaultMeta}
+	ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 	err = r.DeleteResource(ksvc)
 	if err != nil {
 		reqLogger.Error(err, "Failed to delete Knative Service")
