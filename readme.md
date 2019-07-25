@@ -22,7 +22,7 @@ Run the following command to install the operator:
 
 ## Overview
 
-The architecture of the Appsody Application Operator follows the basic Controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`.  The 
+The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`.  The 
 
 ![ICP OS](architecture.png)
 
@@ -50,6 +50,26 @@ spec:
 
 ### Application deployment configuration
 
+These are the available keys under the `spec` section of the Custom Resource file.  For the complete OpenAPI v3 representation of these values (including their types, etc), please see [this part](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml#L25) of the Custom Resource Definition.
+
+The only required field is `applicationImage`. 
+
 | Parameter | Description |
 |---|---|
-| `image`   | `pullPolicy` |
+| `applicationImage`   | The absolute name of the image to be deployed, containing the registry and the tag. |
+| `architecture`   | An array of architectures to be considered for deployment.  Their position in the array indicates preference. |
+| `autoscaling.maxReplicas`   | Upper limit for the number of pods that can be set by the autoscaler.  Cannot be lower than the minimum number of replicas.|
+| `autoscaling.minReplicas`   | Lower limit for the number of pods that can be set by the autoscaler.  Can only be 0 if `createKnativeService` is set to true. |
+| `autoscaling.targetCPUUtilizationPercentage`   | Target average CPU utilization (represented as a percentage of requested CPU) over all the pods. |
+| `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
+| `env`   | An array of environment variables following the format of `{name, value}`, where value is a simple string. |
+| `envFrom`   | An array of environment variables following the format of `{name, valueFrom}`, where `valueFrom` is an object containing a property named either `secretKeyRef` or `configMapKeyRef`, which in turn contain the properties name and key. |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
+| ` `   | ` ` |
