@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
-
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -282,5 +281,27 @@ func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1a
 			cr.Spec.Service.Port = 8080
 		}
 	}
+}
 
+// GetCondition ...
+func GetCondition(conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, conditions []appsodyv1alpha1.AppsodyApplicationStatusCondition) appsodyv1alpha1.AppsodyApplicationStatusCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return conditions[i]
+		}
+	}
+	return appsodyv1alpha1.AppsodyApplicationStatusCondition{
+		Type: conditionType,
+	}
+}
+
+// SetCondition ...
+func SetCondition(condition appsodyv1alpha1.AppsodyApplicationStatusCondition, conditions []appsodyv1alpha1.AppsodyApplicationStatusCondition) {
+	for i := range conditions {
+		if conditions[i].Type == condition.Type {
+			conditions[i] = condition
+		}
+	}
+
+	conditions = append(conditions, condition)
 }

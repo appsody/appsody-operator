@@ -79,6 +79,9 @@ type AppsodyApplicationStatusConditionType string
 const (
 	// AppsodyApplicationStatusConditionTypeInitialized ...
 	AppsodyApplicationStatusConditionTypeInitialized AppsodyApplicationStatusConditionType = "Initialized"
+
+	// AppsodyApplicationStatusConditionTypeReconciled ...
+	AppsodyApplicationStatusConditionTypeReconciled AppsodyApplicationStatusConditionType = "Reconciled"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
