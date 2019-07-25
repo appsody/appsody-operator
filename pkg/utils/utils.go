@@ -50,7 +50,7 @@ func CustomizeService(svc *corev1.Service, cr *appsodyv1alpha1.AppsodyApplicatio
 	}
 	svc.Spec.Ports[0].Port = cr.Spec.Service.Port
 	svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
-	svc.Spec.Type = cr.Spec.Service.Type
+	svc.Spec.Type = *cr.Spec.Service.Type
 	svc.Spec.Selector = map[string]string{
 		"app.kubernetes.io/name": cr.Name,
 	}
@@ -68,17 +68,17 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyAp
 	}
 	pts.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	pts.Spec.Containers[0].Image = cr.Spec.ApplicationImage
-	pts.Spec.Containers[0].Resources = cr.Spec.ResourceConstraints
+	pts.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	pts.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
 	pts.Spec.Containers[0].LivenessProbe = cr.Spec.LivenessProbe
 	pts.Spec.Containers[0].VolumeMounts = cr.Spec.VolumeMounts
-	pts.Spec.Containers[0].ImagePullPolicy = cr.Spec.PullPolicy
+	pts.Spec.Containers[0].ImagePullPolicy = *cr.Spec.PullPolicy
 	pts.Spec.Containers[0].Env = cr.Spec.Env
 	pts.Spec.Containers[0].EnvFrom = cr.Spec.EnvFrom
 	pts.Spec.Volumes = cr.Spec.Volumes
 
-	if cr.Spec.ServiceAccountName != "" {
-		pts.Spec.ServiceAccountName = cr.Spec.ServiceAccountName
+	if cr.Spec.ServiceAccountName != nil && *cr.Spec.ServiceAccountName != "" {
+		pts.Spec.ServiceAccountName = *cr.Spec.ServiceAccountName
 	} else {
 		pts.Spec.ServiceAccountName = cr.Name
 	}
@@ -124,13 +124,14 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, cr *appsodyv1alpha1.A
 // CustomizeServiceAccount ...
 func CustomizeServiceAccount(sa *corev1.ServiceAccount, cr *appsodyv1alpha1.AppsodyApplication) {
 	sa.Labels = GetLabels(cr)
-
-	if len(sa.ImagePullSecrets) == 0 {
-		sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{
-			Name: cr.Spec.PullSecret,
-		})
-	} else {
-		sa.ImagePullSecrets[0].Name = cr.Spec.PullSecret
+	if cr.Spec.PullSecret != nil {
+		if len(sa.ImagePullSecrets) == 0 {
+			sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{
+				Name: *cr.Spec.PullSecret,
+			})
+		} else {
+			sa.ImagePullSecrets[0].Name = *cr.Spec.PullSecret
+		}
 	}
 }
 
@@ -185,19 +186,101 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 
 	ksvc.Spec.Template.Spec.Containers[0].Name = "user-container"
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
-	ksvc.Spec.Template.Spec.Containers[0].Resources = cr.Spec.ResourceConstraints
+	ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
 	ksvc.Spec.Template.Spec.Containers[0].LivenessProbe = cr.Spec.LivenessProbe
 	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = cr.Spec.VolumeMounts
-	ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy = cr.Spec.PullPolicy
+	ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy = *cr.Spec.PullPolicy
 	ksvc.Spec.Template.Spec.Containers[0].Env = cr.Spec.Env
 	ksvc.Spec.Template.Spec.Containers[0].EnvFrom = cr.Spec.EnvFrom
 
 	ksvc.Spec.Template.Spec.Volumes = cr.Spec.Volumes
 
-	if cr.Spec.ServiceAccountName != "" {
-		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Spec.ServiceAccountName
+	if cr.Spec.ServiceAccountName != nil && *cr.Spec.ServiceAccountName != "" {
+		ksvc.Spec.Template.Spec.ServiceAccountName = *cr.Spec.ServiceAccountName
 	} else {
 		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Name
 	}
+}
+
+// InitAndValidate ...
+func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1alpha1.AppsodyApplicationSpec) {
+
+	if cr.Spec.PullPolicy == nil {
+		cr.Spec.PullPolicy = defaults.PullPolicy
+		if cr.Spec.PullPolicy == nil {
+			pp := corev1.PullIfNotPresent
+			cr.Spec.PullPolicy = &pp
+		}
+	}
+
+	if cr.Spec.PullSecret == nil {
+		cr.Spec.PullSecret = defaults.PullSecret
+	}
+
+	if cr.Spec.ServiceAccountName == nil {
+		cr.Spec.ServiceAccountName = defaults.ServiceAccountName
+	}
+
+	if cr.Spec.ReadinessProbe == nil {
+		cr.Spec.ReadinessProbe = defaults.ReadinessProbe
+	}
+	if cr.Spec.LivenessProbe == nil {
+		cr.Spec.LivenessProbe = defaults.LivenessProbe
+	}
+	if cr.Spec.Env == nil {
+		cr.Spec.Env = defaults.Env
+	}
+	if cr.Spec.EnvFrom == nil {
+		cr.Spec.EnvFrom = defaults.EnvFrom
+	}
+
+	if cr.Spec.Volumes == nil {
+		cr.Spec.Volumes = defaults.Volumes
+	}
+
+	if cr.Spec.VolumeMounts == nil {
+		cr.Spec.VolumeMounts = defaults.VolumeMounts
+	}
+
+	if cr.Spec.ResourceConstraints == nil {
+		if defaults.ResourceConstraints != nil {
+			cr.Spec.ResourceConstraints = defaults.ResourceConstraints
+		} else {
+			cr.Spec.ResourceConstraints = &corev1.ResourceRequirements{}
+		}
+	}
+
+	if cr.Spec.Autoscaling == nil {
+		cr.Spec.Autoscaling = defaults.Autoscaling
+	}
+
+	if cr.Spec.Expose == nil {
+		cr.Spec.Expose = defaults.Expose
+	}
+
+	if cr.Spec.CreateKnativeService == nil {
+		cr.Spec.CreateKnativeService = defaults.CreateKnativeService
+	}
+
+	if cr.Spec.Service == nil {
+		cr.Spec.Service = defaults.Service
+	}
+
+	if cr.Spec.Service.Type == nil {
+		if defaults.Service.Type != nil {
+			cr.Spec.Service.Type = defaults.Service.Type
+		} else {
+			st := corev1.ServiceTypeClusterIP
+			cr.Spec.Service.Type = &st
+		}
+	}
+	if cr.Spec.Service.Port == 0 {
+		if defaults.Service.Port != 0 {
+			cr.Spec.Service.Port = defaults.Service.Port
+		} else {
+			cr.Spec.Service.Port = 8080
+		}
+	}
+
 }
