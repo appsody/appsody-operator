@@ -12,11 +12,13 @@ Run the following command to install the operator:
 
 * `kubectl apply -f <URL>`
 
+
 ### OLM-assisted installation
 
 *Note:* OLM is labelled as a tech preview for OKD / OpenShift 3.11.  
 
-* install OLM as described in [here](https://github.com/operator-framework/operator-lifecycle-manager/blob/master/Documentation/install/install.md#installing-olm)
+* install OLM as described in [here](https://github.com/operator-framework/operator-lifecycle-manager/blob/master/Documentation/install/install.md#installing-olm).
+* install the operator via this command:
 
 ## Overview
 
@@ -35,7 +37,8 @@ metadata:
   name: example-appsodyapplication
 spec:
   # Add fields here
-  applicationImage: openliberty/open-liberty:javaee8-ubi-min
+  version: 1.0.0
+  applicationImage: quay.io/arthurdm/myApp:1.0
   service:
     type: ClusterIP
     port: 9080
