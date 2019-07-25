@@ -71,9 +71,9 @@ func appsodyBasicTest(t *testing.T) {
 	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
 		t.Fatal(err)
 	}
-	// if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
-	// 	t.Fatal(err)
-	// }
+	if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func appsodyBasicStorageTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
@@ -96,8 +96,7 @@ func appsodyBasicStorageTest(t *testing.T, f *framework.Framework, ctx *framewor
 	if err != nil {
 		return err
 	}
-
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-storage", 1, retryInterval, timeout)
+	err = util.WaitForStatefulSet(t, f.KubeClient, namespace, "example-appsody-storage", 1, retryInterval, timeout)
 	return err
 }
 
