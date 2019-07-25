@@ -11,6 +11,7 @@ import (
 	"github.com/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -54,7 +55,7 @@ func appsodyBasicTest(t *testing.T) {
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Couldn't get namespace: %v", err)
 	}
 
 	t.Logf("Namespace: %s", namespace)
@@ -70,6 +71,35 @@ func appsodyBasicTest(t *testing.T) {
 	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
 		t.Fatal(err)
 	}
+	if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func appsodyBasicStorageTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("could not get namespace: %v", err)
+	}
+
+	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-storage", namespace, 1)
+	exampleAppsody.Spec.Storage = &appsodyv1alpha1.AppsodyApplicationStorage{
+		Size:                "10Mi",
+		MountPath:           "/mnt/data",
+		VolumeClaimTemplate: &corev1.PersistentVolumeClaim{},
+	}
+
+	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{
+		TestContext:   ctx,
+		Timeout:       time.Second * 5,
+		RetryInterval: time.Second * 1,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "example-appsody-storage", 1, time.Second*5, time.Second*30)
+	return err
 }
 
 func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
@@ -80,7 +110,7 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 
 	helper := int32(3)
 
-	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, namespace, helper)
+	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody", namespace, helper)
 
 	// Create application deployment and wait
 	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second * 5, RetryInterval: time.Second * 1})
