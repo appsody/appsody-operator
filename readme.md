@@ -50,26 +50,38 @@ spec:
 
 ### Application deployment configuration
 
-These are the available keys under the `spec` section of the Custom Resource file.  For the complete OpenAPI v3 representation of these values (including their types, etc), please see [this part](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml#L25) of the Custom Resource Definition.
+These are the available keys under the `spec` section of the Custom Resource file.  For the complete OpenAPI v3 representation of these values please see [this part](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml#L25) of the Custom Resource Definition.
 
 The only required field is `applicationImage`. 
 
 | Parameter | Description |
 |---|---|
-| `applicationImage`   | The absolute name of the image to be deployed, containing the registry and the tag. |
-| `architecture`   | An array of architectures to be considered for deployment.  Their position in the array indicates preference. |
-| `autoscaling.maxReplicas`   | Upper limit for the number of pods that can be set by the autoscaler.  Cannot be lower than the minimum number of replicas.|
+| `version` | The version of the deployment. |
+| `stack` | The name of the Appsody Application Stack that produced this application image. |
+| `serviceAccountName` | The name of the OpenShift service account to be used during deployment. |
+| `applicationImage` | The absolute name of the image to be deployed, containing the registry and the tag. |
+| `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent` |
+| `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials |
+| `createAppDefinition` | This boolean toggles the creation of a top-level [Application](https://github.com/kubernetes-sigs/application)|. |
+| `architecture` | An array of architectures to be considered for deployment.  Their position in the array indicates preference. |
+| `service.port` | The port exposed by the container. |
+| `service.type` | |The Kubernetes [type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types) |
+| `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
+| `expose`   | A boolean that toggles the external exposure of this deployment via a Route resource.|
+| `replicas` | The number of desired replica pods that run simultaneously. |
+| `autoscaling.maxReplicas` | Upper limit for the number of pods that can be set by the autoscaler.  Cannot be lower than the minimum number of replicas.|
 | `autoscaling.minReplicas`   | Lower limit for the number of pods that can be set by the autoscaler.  Can only be 0 if `createKnativeService` is set to true. |
 | `autoscaling.targetCPUUtilizationPercentage`   | Target average CPU utilization (represented as a percentage of requested CPU) over all the pods. |
-| `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
+| `resourceConstraints.requests.cpu` | The minimum required CPU core. Specify integers, fractions (e.g. 0.5), or millicore values(e.g. 100m, where 100m is equivalent to .1 core).|
+| `resourceConstraints.requests.memory` | The minimum memory in bytes. Specify integers with one of these suffixes: E, P, T, G, M, K, or power-of-two equivalents: Ei, Pi, Ti, Gi, Mi, Ki.|
+| `resourceConstraints.limits.cpu` | The upper limit of CPU core. Specify integers, fractions (e.g. 0.5), or millicores values(e.g. 100m, where 100m is equivalent to .1 core). |
+| `resourceConstraints.limits.memory` | The memory upper limit in bytes. Specify integers with suffixes: E, P, T, G, M, K, or power-of-two equivalents: Ei, Pi, Ti, Gi, Mi, Ki.|
 | `env`   | An array of environment variables following the format of `{name, value}`, where value is a simple string. |
-| `envFrom`   | An array of environment variables following the format of `{name, valueFrom}`, where `valueFrom` is an object containing a property named either `secretKeyRef` or `configMapKeyRef`, which in turn contain the properties name and key. |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
-| ` `   | ` ` |
+| `envFrom`   | An array of environment variables following the format of `{name, valueFrom}`, where `valueFrom` is YAML object containing a property named either `secretKeyRef` or `configMapKeyRef`, which in turn contain the properties `name` and `key`.|
+| `readinessProbe`   | A YAML object configuring the [Kubernetes readiness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-readiness-probes) that controls when the pod is ready to receive traffic. |
+| `livenessProbe` | A YAML object configuring the [Kubernetes liveness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-a-liveness-http-request) that controls when Kubernetes needs to restart the pod.|
+| `volume` |  |
+| `volumeMounts` |  |
+| `storage.size` |  |
+| `storage.mountPath` |  |
+| `storage.VolumeClaimTemplate` |  |
