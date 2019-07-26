@@ -52,7 +52,7 @@ spec:
 
 These are the available keys under the `spec` section of the Custom Resource file.  For the complete OpenAPI v3 representation of these values please see [this part](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml#L25) of the Custom Resource Definition.
 
-The only required field is `applicationImage`. 
+The required fields are `applicationImage` and `stack`. 
 
 | Parameter | Description |
 |---|---|
