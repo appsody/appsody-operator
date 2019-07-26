@@ -60,12 +60,12 @@ The only required field is `applicationImage`.
 | `stack` | The name of the Appsody Application Stack that produced this application image. |
 | `serviceAccountName` | The name of the OpenShift service account to be used during deployment. |
 | `applicationImage` | The absolute name of the image to be deployed, containing the registry and the tag. |
-| `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent` |
-| `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials |
+| `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
+| `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `createAppDefinition` | This boolean toggles the creation of a top-level [Application](https://github.com/kubernetes-sigs/application)|. |
 | `architecture` | An array of architectures to be considered for deployment.  Their position in the array indicates preference. |
 | `service.port` | The port exposed by the container. |
-| `service.type` | |The Kubernetes [type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types) |
+| `service.type` | |The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
 | `expose`   | A boolean that toggles the external exposure of this deployment via a Route resource.|
 | `replicas` | The number of desired replica pods that run simultaneously. |
