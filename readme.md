@@ -80,8 +80,8 @@ The only required field is `applicationImage`.
 | `envFrom`   | An array of environment variables following the format of `{name, valueFrom}`, where `valueFrom` is YAML object containing a property named either `secretKeyRef` or `configMapKeyRef`, which in turn contain the properties `name` and `key`.|
 | `readinessProbe`   | A YAML object configuring the [Kubernetes readiness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-readiness-probes) that controls when the pod is ready to receive traffic. |
 | `livenessProbe` | A YAML object configuring the [Kubernetes liveness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-a-liveness-http-request) that controls when Kubernetes needs to restart the pod.|
-| `volume` |  |
-| `volumeMounts` |  |
-| `storage.size` |  |
-| `storage.mountPath` |  |
-| `storage.VolumeClaimTemplate` |  |
+| `volume` | A YAML object representing a [pod volume](https://kubernetes.io/docs/concepts/storage/volumes). |
+| `volumeMounts` | A YAML object representing a [pod volumeMount](https://kubernetes.io/docs/concepts/storage/volumes/). |
+| `storage.size` | A convenience field to set the size of the persisted storage. Can be overriden by the `storage.VolumeClaimTemplate` property. |
+| `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
+| `storage.VolumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
