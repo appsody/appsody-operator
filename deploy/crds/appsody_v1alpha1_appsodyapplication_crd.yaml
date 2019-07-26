@@ -91,8 +91,6 @@ spec:
                   type: integer
                 type:
                   type: string
-              required:
-              - port
               type: object
             serviceAccountName:
               type: string
@@ -119,6 +117,7 @@ spec:
               type: array
           required:
           - applicationImage
+          - stack
           type: object
         status:
           properties:
