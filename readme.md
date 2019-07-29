@@ -22,9 +22,9 @@ Run the following command to install the operator:
 
 ## Overview
 
-The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`.  The 
+The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`.   
 
-![ICP OS](architecture.png)
+![Operator Architecture](architecture.png)
 
 ## Application Deployments
 
