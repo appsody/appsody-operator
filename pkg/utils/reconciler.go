@@ -3,10 +3,12 @@ package utils
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -110,13 +112,15 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(ns string) (*corev1.ConfigMap, er
 func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
 	r.GetRecorder().Event(cr, "Warning", "ProcessingError", issue.Error())
 
+	log.Info("ManageError", "errors.ReasonForError(issue)", errors.ReasonForError(issue))
+
 	oldCondition := GetCondition(conditionType, &cr.Status)
 	if oldCondition == nil {
 		oldCondition = &appsodyv1alpha1.AppsodyApplicationStatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
-	// lastUpdate := oldCondition.LastUpdateTime.Time
-	// lastStatus := oldCondition.Status
+	lastUpdate := oldCondition.LastUpdateTime.Time
+	lastStatus := oldCondition.Status
 
 	newCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
 		//LastTransitionTime: ,
@@ -138,19 +142,17 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 		}, nil
 	}
 
-	return reconcile.Result{}, nil
-
-	// var retryInterval time.Duration
-	// if lastUpdate.IsZero() || lastStatus == corev1.ConditionTrue {
-	// 	retryInterval = time.Second
-	// } else {
-	// 	retryInterval = newCondition.LastUpdateTime.Sub(lastUpdate).Round(time.Second)
-	// }
-
-	// return reconcile.Result{
-	// 	RequeueAfter: time.Duration(math.Min(float64(retryInterval.Nanoseconds()*2), float64(time.Hour.Nanoseconds()*6))),
-	// 	Requeue:      true,
-	// }, nil
+	var retryInterval time.Duration
+	if lastUpdate.IsZero() || lastStatus == corev1.ConditionTrue {
+		retryInterval = time.Second
+	} else {
+		retryInterval = newCondition.LastUpdateTime.Sub(lastUpdate).Round(time.Second)
+	}
+	log.Info("ManageError", "retryInterval", retryInterval)
+	return reconcile.Result{
+		RequeueAfter: time.Duration(math.Min(float64(retryInterval.Nanoseconds()*2), float64(time.Hour.Nanoseconds()*6))),
+		Requeue:      true,
+	}, nil
 }
 
 // ManageSuccess ...
