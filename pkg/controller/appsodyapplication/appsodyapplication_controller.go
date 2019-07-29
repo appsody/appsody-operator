@@ -147,12 +147,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile ServiceAccount")
+			return r.ManageError(err, appsodyv1alpha1.AppsodyApplicationStatusConditionTypeReconciled, instance)
 		}
 	} else {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(serviceAccount)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
+			return r.ManageError(err, appsodyv1alpha1.AppsodyApplicationStatusConditionTypeReconciled, instance)
 		}
 	}
 
@@ -192,6 +194,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	})
 	if err != nil {
 		reqLogger.Error(err, "Failed to reconcile Service")
+		return r.ManageError(err, appsodyv1alpha1.AppsodyApplicationStatusConditionTypeReconciled, instance)
 	}
 
 	if instance.Spec.Storage != nil {

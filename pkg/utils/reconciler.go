@@ -3,7 +3,6 @@ package utils
 import (
 	"context"
 	"fmt"
-	"math"
 	"time"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
@@ -111,20 +110,24 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(ns string) (*corev1.ConfigMap, er
 func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
 	r.GetRecorder().Event(cr, "Warning", "ProcessingError", issue.Error())
 
-	condition := GetCondition(conditionType, cr.Status.Conditions)
-	lastUpdate := condition.LastUpdateTime.Time
-	lastStatus := condition.Status
+	oldCondition := GetCondition(conditionType, &cr.Status)
+	if oldCondition == nil {
+		oldCondition = &appsodyv1alpha1.AppsodyApplicationStatusCondition{LastUpdateTime: metav1.Time{}}
+	}
 
-	statusCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
+	// lastUpdate := oldCondition.LastUpdateTime.Time
+	// lastStatus := oldCondition.Status
+
+	newCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
 		//LastTransitionTime: ,
 		LastUpdateTime: metav1.Now(),
 		Reason:         issue.Error(),
 		Type:           conditionType,
 		// Message: ,
-		// Status: ,
+		Status: corev1.ConditionFalse,
 	}
 
-	SetCondition(statusCondition, cr.Status.Conditions)
+	SetCondition(newCondition, &cr.Status)
 
 	err := r.GetClient().Status().Update(context.Background(), cr)
 	if err != nil {
@@ -135,17 +138,19 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 		}, nil
 	}
 
-	var retryInterval time.Duration
-	if lastUpdate.IsZero() || lastStatus == "Success" {
-		retryInterval = time.Second
-	} else {
-		retryInterval = statusCondition.LastUpdateTime.Sub(lastUpdate).Round(time.Second)
-	}
+	return reconcile.Result{}, nil
 
-	return reconcile.Result{
-		RequeueAfter: time.Duration(math.Min(float64(retryInterval.Nanoseconds()*2), float64(time.Hour.Nanoseconds()*6))),
-		Requeue:      true,
-	}, nil
+	// var retryInterval time.Duration
+	// if lastUpdate.IsZero() || lastStatus == corev1.ConditionTrue {
+	// 	retryInterval = time.Second
+	// } else {
+	// 	retryInterval = newCondition.LastUpdateTime.Sub(lastUpdate).Round(time.Second)
+	// }
+
+	// return reconcile.Result{
+	// 	RequeueAfter: time.Duration(math.Min(float64(retryInterval.Nanoseconds()*2), float64(time.Hour.Nanoseconds()*6))),
+	// 	Requeue:      true,
+	// }, nil
 }
 
 // ManageSuccess ...
@@ -155,10 +160,10 @@ func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.AppsodyAppl
 		LastUpdateTime: metav1.Now(),
 		Type:           conditionType,
 		// Message: ,
-		// Status: ,
+		Status: corev1.ConditionTrue,
 	}
 
-	SetCondition(statusCondition, cr.Status.Conditions)
+	SetCondition(statusCondition, &cr.Status)
 	err := r.GetClient().Status().Update(context.Background(), cr)
 	if err != nil {
 		log.Error(err, "Unable to update status")
