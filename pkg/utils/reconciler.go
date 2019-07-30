@@ -112,8 +112,6 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(ns string) (*corev1.ConfigMap, er
 func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
 	r.GetRecorder().Event(cr, "Warning", "ProcessingError", issue.Error())
 
-	log.Info("ManageError", "errors.ReasonForError(issue)", errors.ReasonForError(issue))
-
 	oldCondition := GetCondition(conditionType, &cr.Status)
 	if oldCondition == nil {
 		oldCondition = &appsodyv1alpha1.AppsodyApplicationStatusCondition{LastUpdateTime: metav1.Time{}}
@@ -122,13 +120,19 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 	lastUpdate := oldCondition.LastUpdateTime.Time
 	lastStatus := oldCondition.Status
 
+	// Keep the old `LastTransitionTime` when status has not changed
+	transitionTime := oldCondition.LastTransitionTime
+	if lastStatus == corev1.ConditionTrue {
+		transitionTime = metav1.Now()
+	}
+
 	newCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
-		//LastTransitionTime: ,
-		LastUpdateTime: metav1.Now(),
-		Reason:         issue.Error(),
-		Type:           conditionType,
-		// Message: ,
-		Status: corev1.ConditionFalse,
+		LastTransitionTime: transitionTime,
+		LastUpdateTime:     metav1.Now(),
+		Reason:             string(errors.ReasonForError(issue)),
+		Type:               conditionType,
+		Message:            issue.Error(),
+		Status:             corev1.ConditionFalse,
 	}
 
 	SetCondition(newCondition, &cr.Status)
@@ -140,6 +144,12 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 			RequeueAfter: time.Second,
 			Requeue:      true,
 		}, nil
+	}
+
+	// StatusReasonInvalid means the requested create or update operation cannot be
+	// completed due to invalid data provided as part of the request. Don't retry.
+	if errors.IsInvalid(issue) {
+		return reconcile.Result{}, nil
 	}
 
 	var retryInterval time.Duration
@@ -157,12 +167,24 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 
 // ManageSuccess ...
 func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
+	oldCondition := GetCondition(conditionType, &cr.Status)
+	if oldCondition == nil {
+		oldCondition = &appsodyv1alpha1.AppsodyApplicationStatusCondition{LastUpdateTime: metav1.Time{}}
+	}
+
+	// Keep the old `LastTransitionTime` when status has not changed
+	transitionTime := oldCondition.LastTransitionTime
+	if oldCondition.Status == corev1.ConditionFalse {
+		transitionTime = metav1.Now()
+	}
+
 	statusCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
-		//LastTransitionTime: ,
-		LastUpdateTime: metav1.Now(),
-		Type:           conditionType,
-		// Message: ,
-		Status: corev1.ConditionTrue,
+		LastTransitionTime: transitionTime,
+		LastUpdateTime:     metav1.Now(),
+		Type:               conditionType,
+		Reason:             "",
+		Message:            "",
+		Status:             corev1.ConditionTrue,
 	}
 
 	SetCondition(statusCondition, &cr.Status)

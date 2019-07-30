@@ -3,6 +3,7 @@ package appsodyapplication
 import (
 	"context"
 	"encoding/json"
+	"errors"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
@@ -11,12 +12,14 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -49,8 +52,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	pred := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// Ignore updates to CR status in which case metadata.Generation does not change
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+		},
+	}
+
 	// Watch for changes to primary resource AppsodyApplication
-	err = c.Watch(&source.Kind{Type: &appsodyv1alpha1.AppsodyApplication{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &appsodyv1alpha1.AppsodyApplication{}}, &handler.EnqueueRequestForObject{}, pred)
 	if err != nil {
 		return err
 	}
@@ -105,7 +115,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	instance := &appsodyv1alpha1.AppsodyApplication{}
 	err := r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -114,7 +124,15 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	appsodyutils.InitAndValidate(instance, r.StackDefaults[instance.Spec.Stack])
+	stackDefaults, ok := r.StackDefaults[instance.Spec.Stack]
+
+	if ok {
+		appsodyutils.InitAndValidate(instance, stackDefaults)
+	} else {
+		err = errors.New("Failed to find stack `" + instance.Spec.Stack + "` in the ConfigMap holding default values")
+		return r.ManageError(err, appsodyv1alpha1.AppsodyApplicationStatusConditionTypeReconciled, instance)
+	}
+
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
 		log.Error(err, "Error updating AppsodyApplication")
