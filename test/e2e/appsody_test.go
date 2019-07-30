@@ -74,6 +74,10 @@ func appsodyBasicTest(t *testing.T) {
 	// if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
 	// 	t.Fatal(err)
 	// }
+
+	// if err = appsodyPullPolicyTest(t, f, ctx); err != nil {
+	// 	t.Fatal(err)
+	// }
 }
 
 func appsodyBasicStorageTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
@@ -148,5 +152,66 @@ func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace stri
 	if err != nil {
 		return err
 	}
+	return err
+}
+
+//Expose default is false
+func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("could not get namespace: %v", err)
+	}
+
+	helper := int32(1)
+
+	examplePullPolicyAppsody := util.MakeBasicAppsodyApplication(t, f, "example-pullpolicy-appsody", namespace, helper)
+
+	// Create application deployment and wait
+	err = f.Client.Create(goctx.TODO(), examplePullPolicyAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second * 5, RetryInterval: time.Second * 1})
+	if err != nil {
+		return err
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-pullpolicy-appsody", 1, time.Second*5, time.Second*30)
+	if err != nil {
+		return err
+	}
+
+	examplePullPolicyAppsody.Spec.PullPolicy = "Never"
+
+	err = f.Client.Update(goctx.TODO(), examplePullPolicyAppsody)
+	if err != nil {
+		return err
+	}
+
+	name := examplePullPolicyAppsody.ObjectMeta.Name
+	ns := examplePullPolicyAppsody.ObjectMeta.Namespace
+
+	t.Logf("Waiting until PullPolicy %s is ready", name)
+
+	// err = wait.Poll(retryInterval, timeout, func() (done bool, err error) {
+
+	// 	statefulSet, err := f.KubeClient.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{IncludeUninitialized: true})
+	// 	if err != nil {
+	// 		t.Logf("Got error when getting PullPolicy %s: %s", name, err)
+	// 		return false, err
+	// 	}
+
+	// 	t.Log(statefulSet.CreationTimestamp)
+
+	// 	return false, nil
+	// })
+
+	if err != nil {
+		return err
+	}
+
+	expose, n := f.Client.Get(name, metav1.GetOptions{IncludeUninitialized: true})
+
+	t.Log(examplePullPolicyAppsody.Spec.PullPolicy)
+	t.Log(expose)
+	t.Log(n)
+	t.Fail()
+
 	return err
 }
