@@ -1,3 +1,5 @@
+dist: xenial
+
 language: go
 
 go:
@@ -18,12 +20,11 @@ install:
 
 script: 
   - operator-sdk build appsody-operator
-
-#  - operator-sdk build appsody-operator
+  - ./setup-openshift.sh
 
 # install-minishift: 
-#  - install-minishift.sh
-#  - export PATH=$PATH:/minishift/
+#   - install-minishift.sh
+#   - export PATH=$PATH:/minishift/
 
 
 # jobs:
