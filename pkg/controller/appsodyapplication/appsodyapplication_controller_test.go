@@ -120,7 +120,7 @@ func TestAppsodyControllerServiceAccountHasValue(t *testing.T) {
 
 func TestAppsodyControllerServiceAccountIsNil(t *testing.T) {
 	// set the logger to development mode for verbose logs
-	//logf.SetLogger(logf.ZapLogger(true))
+	logf.SetLogger(logf.ZapLogger(true))
 
 	appsody := &appsodyv1alpha1.AppsodyApplication{
 		ObjectMeta: metav1.ObjectMeta{
