@@ -1,14 +1,11 @@
 package util
 
 import (
-	"bytes"
-	"io"
 	"testing"
 	"time"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -20,7 +17,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 	return &appsodyv1alpha1.AppsodyApplication{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AppsodyApplication",
-			APIVersion: "appsody.example.com/v1alpha1",
+			APIVersion: "appsody.dev/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      n,
@@ -32,26 +29,9 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			Service: &appsodyv1alpha1.AppsodyApplicationService{
 				Port: 9080,
 			},
+			Stack: "microprofile",
 		},
 	}
-}
-
-// GetLogs returns the logs from the given pod (in the server's namespace).
-func GetLogs(f *framework.Framework, app *appsodyv1alpha1.AppsodyApplication, podName string) (string, error) {
-	logsReq := f.KubeClient.CoreV1().Pods(app.ObjectMeta.Namespace).GetLogs(podName, &corev1.PodLogOptions{})
-	podLogs, err := logsReq.Stream()
-	if err != nil {
-		return "", err
-	}
-	defer podLogs.Close()
-
-	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	if err != nil {
-		return "", err
-	}
-	logs := buf.String()
-	return logs, nil
 }
 
 // WaitForStatefulSet : Identical to WaitForDeployment but for StatefulSets.
@@ -60,7 +40,7 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 		statefulset, err := kc.AppsV1().StatefulSets(ns).Get(n, metav1.GetOptions{IncludeUninitialized: true})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				t.Logf("Waiting for availability of %s deployment\n", n)
+				t.Logf("Waiting for availability of %s statefulset\n", n)
 				return false, nil
 			}
 			return false, err
