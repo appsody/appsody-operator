@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -70,4 +72,26 @@ func (r *ReconcilerBase) DeleteResource(obj runtime.Object) error {
 		return err
 	}
 	return nil
+}
+
+// DeleteResources ...
+func (r *ReconcilerBase) DeleteResources(resources []runtime.Object) error {
+	for i := range resources {
+		err := r.DeleteResource(resources[i])
+		if err != nil {
+			log.Error(err, "unable to delete object ", "object", resources[i])
+			return err
+		}
+	}
+	return nil
+}
+
+// GetAppsodyOpConfigMap ...
+func (r *ReconcilerBase) GetAppsodyOpConfigMap(ns string) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: "appsody-operator", Namespace: ns}, configMap)
+	if err != nil {
+		return nil, err
+	}
+	return configMap, nil
 }

@@ -29,7 +29,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 		Spec: appsodyv1alpha1.AppsodyApplicationSpec{
 			ApplicationImage: "openliberty/open-liberty:javaee8-ubi-min",
 			Replicas:         &replicas,
-			Service: appsodyv1alpha1.AppsodyApplicationService{
+			Service: &appsodyv1alpha1.AppsodyApplicationService{
 				Port: 9080,
 			},
 		},

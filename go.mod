@@ -14,12 +14,17 @@ require (
 	github.com/go-logr/zapr v0.1.0 // indirect
 	github.com/go-openapi/spec v0.18.0
 	github.com/golang/mock v1.2.0 // indirect
+	github.com/google/go-containerregistry v0.0.0-20190717132004-e8c6a4993fa7 // indirect
 	github.com/google/uuid v1.0.0 // indirect
 	github.com/googleapis/gnostic v0.2.0 // indirect
 	github.com/gophercloud/gophercloud v0.0.0-20190318015731-ff9851476e98 // indirect
 	github.com/gosuri/uitable v0.0.3 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/imdario/mergo v0.3.6 // indirect
+	github.com/knative/build v0.7.0 // indirect
+	github.com/knative/pkg v0.0.0-20190621200921-9c5d970cbc9e // indirect
+	github.com/knative/serving v0.7.1-0.20190701162519-7ca25646a186
+	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
@@ -36,6 +41,7 @@ require (
 	k8s.io/code-generator v0.0.0-20180823001027-3dcf91f64f63
 	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 	k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
+	knative.dev/pkg v0.0.0-20190626215608-1104d6c75533 // indirect
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.10
 	sigs.k8s.io/testing_frameworks v0.1.0 // indirect
@@ -51,6 +57,7 @@ replace (
 
 replace (
 	github.com/coreos/prometheus-operator => github.com/coreos/prometheus-operator v0.29.0
+	github.com/google/go-cmp => github.com/google/go-cmp v0.3.0
 	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.8.1
 	k8s.io/code-generator => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d

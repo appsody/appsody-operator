@@ -40,7 +40,6 @@ spec:
         spec:
           properties:
             applicationImage:
-              pattern: .+:.+
               type: string
             architecture:
               items:
@@ -58,6 +57,8 @@ spec:
                   format: int32
                   type: integer
               type: object
+            createKnativeService:
+              type: boolean
             env:
               items:
                 type: object
@@ -90,10 +91,10 @@ spec:
                   type: integer
                 type:
                   type: string
-              required:
-              - port
               type: object
             serviceAccountName:
+              type: string
+            stack:
               type: string
             storage:
               properties:
@@ -116,8 +117,29 @@ spec:
               type: array
           required:
           - applicationImage
+          - stack
           type: object
         status:
+          properties:
+            conditions:
+              items:
+                properties:
+                  lastTransitionTime:
+                    format: date-time
+                    type: string
+                  lastUpdateTime:
+                    format: date-time
+                    type: string
+                  mesage:
+                    type: string
+                  reason:
+                    type: string
+                  status:
+                    type: string
+                  type:
+                    type: string
+                type: object
+              type: array
           type: object
   version: v1alpha1
   versions:
