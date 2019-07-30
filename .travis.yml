@@ -20,7 +20,7 @@ install:
 
 script: 
   - operator-sdk build appsody-operator
-  - ./setup-openshift.sh
+  - setup-openshift.sh
 
 # install-minishift: 
 #   - install-minishift.sh
