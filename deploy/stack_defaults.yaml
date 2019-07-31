@@ -6,7 +6,7 @@ data:
        "livenessProbe": {
           "failureThreshold": 3,
           "httpGet": {
-             "path": "/health",
+             "path": "/",
              "port": 9080
           },
           "initialDelaySeconds": 60,
@@ -15,7 +15,7 @@ data:
        "readinessProbe": {
           "failureThreshold": 12,
           "httpGet": {
-             "path": "/health",
+             "path": "/",
               "port": 9080
           },
           "initialDelaySeconds": 30,
