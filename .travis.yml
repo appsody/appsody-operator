@@ -22,6 +22,7 @@ install:
   - tar xvf openshift-origin-client-tools*.tar.gz
 
   - export PATH="$(pwd)":$PATH
+  - sudo ./openshift start
   - oc version
   - oc cluster up
   
