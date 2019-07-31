@@ -3,7 +3,7 @@ package appsodyapplication
 import (
 	"context"
 	"encoding/json"
-	"errors"
+	"fmt"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
@@ -12,7 +12,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -40,7 +40,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetRecorder("appsody-operator")),
+	return &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
 		StackDefaults: map[string]appsodyv1alpha1.AppsodyApplicationSpec{}}
 }
 
@@ -90,8 +90,7 @@ type ReconcileAppsodyApplication struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithValues("Request.Name", request.Name)
 	reqLogger.Info("Reconciling AppsodyApplication")
 
 	if request.Name == "appsody-operator" {
@@ -101,7 +100,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				var defaults appsodyv1alpha1.AppsodyApplicationSpec
 				unerr := json.Unmarshal([]byte(values), &defaults)
 				if unerr != nil {
-					log.Error(unerr, "Failed to parse config map defaults")
+					reqLogger.Error(unerr, "Failed to parse config map defaults")
 				} else {
 					r.StackDefaults[stack] = defaults
 				}
@@ -115,7 +114,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	instance := &appsodyv1alpha1.AppsodyApplication{}
 	err := r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
+		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -129,13 +128,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if ok {
 		appsodyutils.InitAndValidate(instance, stackDefaults)
 	} else {
-		err = errors.New("Failed to find stack `" + instance.Spec.Stack + "` in the ConfigMap holding default values")
+		err = fmt.Errorf("Failed to find stack `%v` in the ConfigMap holding default values", instance.Spec.Stack)
 		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
-		log.Error(err, "Error updating AppsodyApplication")
+		reqLogger.Error(err, "Error updating AppsodyApplication")
 		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
@@ -192,10 +191,21 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return r.ManageSuccess(appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
-	ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
-	err = r.DeleteResource(ksvc)
-	if err != nil {
-		reqLogger.Error(err, "Failed to delete Knative Service")
+	// Check if Knative is supported and delete Knative service if supported
+	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); ok {
+		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(ksvc)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete Knative Service")
+			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+	} else {
+		if err != nil {
+			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
+			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		} else {
+			reqLogger.Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
+		}
 	}
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
@@ -281,23 +291,31 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	}
 
-	if instance.Spec.Expose != nil && *instance.Spec.Expose {
-		route := &routev1.Route{ObjectMeta: defaultMeta}
-		err = r.CreateOrUpdate(route, instance, func() error {
-			appsodyutils.CustomizeRoute(route, instance)
-			return nil
-		})
-		if err != nil {
-			log.Error(err, "Failed to create Route")
-			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String()); ok {
+		if instance.Spec.Expose != nil && *instance.Spec.Expose {
+			route := &routev1.Route{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(route, instance, func() error {
+				appsodyutils.CustomizeRoute(route, instance)
+				return nil
+			})
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile Route")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+			}
+		} else {
+			route := &routev1.Route{ObjectMeta: defaultMeta}
+			err = r.DeleteResource(route)
+			if err != nil {
+				reqLogger.Error(err, "Failed to delete Route")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+			}
 		}
-
 	} else {
-		route := &routev1.Route{ObjectMeta: defaultMeta}
-		err = r.DeleteResource(route)
 		if err != nil {
-			log.Error(err, "Failed to delete Route")
-			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
+			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		} else {
+			reqLogger.Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 		}
 	}
 

@@ -8,12 +8,13 @@ import (
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -24,17 +25,19 @@ import (
 
 // ReconcilerBase base reconsiler with some common behaviour
 type ReconcilerBase struct {
-	client   client.Client
-	scheme   *runtime.Scheme
-	recorder record.EventRecorder
+	client     client.Client
+	scheme     *runtime.Scheme
+	recorder   record.EventRecorder
+	restConfig *rest.Config
 }
 
 //NewReconcilerBase creates a new ReconsilerBase
-func NewReconcilerBase(client client.Client, scheme *runtime.Scheme, recorder record.EventRecorder) ReconcilerBase {
+func NewReconcilerBase(client client.Client, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder) ReconcilerBase {
 	return ReconcilerBase{
-		client:   client,
-		scheme:   scheme,
-		recorder: recorder,
+		client:     client,
+		scheme:     scheme,
+		recorder:   recorder,
+		restConfig: restConfig,
 	}
 }
 
@@ -46,6 +49,11 @@ func (r *ReconcilerBase) GetClient() client.Client {
 // GetRecorder returns the underlying recorder
 func (r *ReconcilerBase) GetRecorder() record.EventRecorder {
 	return r.recorder
+}
+
+// GetDiscoveryClient ...
+func (r *ReconcilerBase) GetDiscoveryClient() (*discovery.DiscoveryClient, error) {
+	return discovery.NewDiscoveryClientForConfig(r.restConfig)
 }
 
 var log = logf.Log.WithName("utils")
@@ -61,7 +69,9 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 	controllerutil.SetControllerReference(owner, obj, r.scheme)
 	runtimeObj, ok := obj.(runtime.Object)
 	if !ok {
-		return fmt.Errorf("is not a %T a runtime.Object", obj)
+		err := fmt.Errorf("%T is not a runtime.Object", obj)
+		log.Error(err, "Failed to convert into runtime.Object")
+		return err
 	}
 	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.GetClient(), runtimeObj, mutate)
 	if err != nil {
@@ -129,7 +139,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 	newCondition := appsodyv1alpha1.StatusCondition{
 		LastTransitionTime: transitionTime,
 		LastUpdateTime:     metav1.Now(),
-		Reason:             string(errors.ReasonForError(issue)),
+		Reason:             string(apierrors.ReasonForError(issue)),
 		Type:               conditionType,
 		Message:            issue.Error(),
 		Status:             corev1.ConditionFalse,
@@ -148,7 +158,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 
 	// StatusReasonInvalid means the requested create or update operation cannot be
 	// completed due to invalid data provided as part of the request. Don't retry.
-	if errors.IsInvalid(issue) {
+	if apierrors.IsInvalid(issue) {
 		return reconcile.Result{}, nil
 	}
 
@@ -197,4 +207,24 @@ func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.StatusCondi
 		}, nil
 	}
 	return reconcile.Result{}, nil
+}
+
+// IsGroupVersionSupported ...
+func (r *ReconcilerBase) IsGroupVersionSupported(groupVersion string) (bool, error) {
+	cli, err := r.GetDiscoveryClient()
+	if err != nil {
+		log.Error(err, "Failed to return a discovery client for the current reconciler")
+		return false, err
+	}
+
+	_, err = cli.ServerResourcesForGroupVersion(groupVersion)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
+
+		return false, err
+	}
+
+	return true, nil
 }
