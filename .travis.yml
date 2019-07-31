@@ -24,7 +24,7 @@ install:
   - sudo mv  oc kubectl  /usr/local/bin/
 
   - oc version
-  - oc cluster up
+  - oc cluster up --insecure-registry
   
 
 
