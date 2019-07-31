@@ -13,22 +13,22 @@ type AppsodyApplicationSpec struct {
 	ApplicationImage     string                         `json:"applicationImage"`
 	Replicas             *int32                         `json:"replicas,omitempty"`
 	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy           corev1.PullPolicy              `json:"pullPolicy,omitempty"`
-	PullSecret           string                         `json:"pullSecret,omitempty"`
+	PullPolicy           *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
+	PullSecret           *string                        `json:"pullSecret,omitempty"`
 	Volumes              []corev1.Volume                `json:"volumes,omitempty"`
 	VolumeMounts         []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
-	ResourceConstraints  corev1.ResourceRequirements    `json:"resourceConstraints,omitempty"`
+	ResourceConstraints  *corev1.ResourceRequirements   `json:"resourceConstraints,omitempty"`
 	ReadinessProbe       *corev1.Probe                  `json:"readinessProbe,omitempty"`
 	LivenessProbe        *corev1.Probe                  `json:"livenessProbe,omitempty"`
-	Service              AppsodyApplicationService      `json:"service,omitempty"`
-	Expose               bool                           `json:"expose,omitempty"`
+	Service              *AppsodyApplicationService     `json:"service,omitempty"`
+	Expose               *bool                          `json:"expose,omitempty"`
 	EnvFrom              []corev1.EnvFromSource         `json:"envFrom,omitempty"`
 	Env                  []corev1.EnvVar                `json:"env,omitempty"`
-	ServiceAccountName   string                         `json:"serviceAccountName,omitempty"`
+	ServiceAccountName   *string                        `json:"serviceAccountName,omitempty"`
 	Architecture         []string                       `json:"architecture,omitempty"`
 	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
-	CreateKnativeService bool                           `json:"createKnativeService,omitempty"`
-	Stack                string                         `json:"stack,omitempty"`
+	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
+	Stack                string                         `json:"stack"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -42,11 +42,11 @@ type AppsodyApplicationAutoScaling struct {
 // AppsodyApplicationService ...
 // +k8s:openapi-gen=true
 type AppsodyApplicationService struct {
-	Type corev1.ServiceType `json:"type,omitempty"`
+	Type *corev1.ServiceType `json:"type,omitempty"`
 
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
-	Port int32 `json:"port"`
+	Port int32 `json:"port,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
@@ -60,25 +60,26 @@ type AppsodyApplicationStorage struct {
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
-	Conditions []AppsodyApplicationStatusCondition `json:"conditions,omitempty"`
+	Conditions []StatusCondition `json:"conditions,omitempty"`
 }
 
-// AppsodyApplicationStatusCondition ...
-type AppsodyApplicationStatusCondition struct {
-	LastTransitionTime metav1.Time                           `json:"lastTransitionTime,omitempty"`
-	LastUpdateTime     metav1.Time                           `json:"lastUpdateTime,omitempty"`
-	Reason             string                                `json:"reason,omitempty"`
-	Message            string                                `json:"mesage,omitempty"`
-	Status             corev1.ConditionStatus                `json:"status,omitempty"`
-	Type               AppsodyApplicationStatusConditionType `json:"type,omitempty"`
+// StatusCondition ...
+// +k8s:openapi-gen=true
+type StatusCondition struct {
+	LastTransitionTime *metav1.Time           `json:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time            `json:"lastUpdateTime,omitempty"`
+	Reason             string                 `json:"reason,omitempty"`
+	Message            string                 `json:"message,omitempty"`
+	Status             corev1.ConditionStatus `json:"status,omitempty"`
+	Type               StatusConditionType    `json:"type,omitempty"`
 }
 
-// AppsodyApplicationStatusConditionType ...
-type AppsodyApplicationStatusConditionType string
+// StatusConditionType ...
+type StatusConditionType string
 
 const (
-	// AppsodyApplicationStatusConditionTypeInitialized ...
-	AppsodyApplicationStatusConditionTypeInitialized AppsodyApplicationStatusConditionType = "Initialized"
+	// StatusConditionTypeReconciled ...
+	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

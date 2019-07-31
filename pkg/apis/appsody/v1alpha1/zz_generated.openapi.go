@@ -115,7 +115,6 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationService(ref common.Refer
 						},
 					},
 				},
-				Required: []string{"port"},
 			},
 		},
 		Dependencies: []string{},
@@ -268,7 +267,7 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref common.Referenc
 						},
 					},
 				},
-				Required: []string{"applicationImage"},
+				Required: []string{"applicationImage", "stack"},
 			},
 		},
 		Dependencies: []string{
@@ -288,7 +287,7 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStatus(ref common.Refere
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStatusCondition"),
+										Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1alpha1.StatusCondition"),
 									},
 								},
 							},
@@ -298,7 +297,7 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStatus(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStatusCondition"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.StatusCondition"},
 	}
 }
 
