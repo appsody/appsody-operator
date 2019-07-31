@@ -23,6 +23,10 @@ install:
   - cd openshift-origin-client*/
   - sudo mv  oc kubectl  /usr/local/bin/
 
+  - sudo sed -i "s/\DOCKER_OPTS=\"/DOCKER_OPTS=\"--insecure-registry=172.16.0.0\/12 /g" /etc/default/docker
+  - sudo cat /etc/default/docker
+  - sudo service docker restart
+
   - oc version
   - oc cluster up --insecure-registry
   
