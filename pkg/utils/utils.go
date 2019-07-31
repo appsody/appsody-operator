@@ -284,7 +284,7 @@ func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1a
 }
 
 // GetCondition ...
-func GetCondition(conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, status *appsodyv1alpha1.AppsodyApplicationStatus) *appsodyv1alpha1.AppsodyApplicationStatusCondition {
+func GetCondition(conditionType appsodyv1alpha1.StatusConditionType, status *appsodyv1alpha1.AppsodyApplicationStatus) *appsodyv1alpha1.StatusCondition {
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == conditionType {
 			return &status.Conditions[i]
@@ -295,7 +295,7 @@ func GetCondition(conditionType appsodyv1alpha1.AppsodyApplicationStatusConditio
 }
 
 // SetCondition ...
-func SetCondition(condition appsodyv1alpha1.AppsodyApplicationStatusCondition, status *appsodyv1alpha1.AppsodyApplicationStatus) {
+func SetCondition(condition appsodyv1alpha1.StatusCondition, status *appsodyv1alpha1.AppsodyApplicationStatus) {
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == condition.Type {
 			status.Conditions[i] = condition

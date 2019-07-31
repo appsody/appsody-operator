@@ -109,12 +109,12 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(ns string) (*corev1.ConfigMap, er
 }
 
 // ManageError ...
-func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.StatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
 	r.GetRecorder().Event(cr, "Warning", "ProcessingError", issue.Error())
 
 	oldCondition := GetCondition(conditionType, &cr.Status)
 	if oldCondition == nil {
-		oldCondition = &appsodyv1alpha1.AppsodyApplicationStatusCondition{LastUpdateTime: metav1.Time{}}
+		oldCondition = &appsodyv1alpha1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	lastUpdate := oldCondition.LastUpdateTime.Time
@@ -126,7 +126,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 		transitionTime = metav1.Now()
 	}
 
-	newCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
+	newCondition := appsodyv1alpha1.StatusCondition{
 		LastTransitionTime: transitionTime,
 		LastUpdateTime:     metav1.Now(),
 		Reason:             string(errors.ReasonForError(issue)),
@@ -158,7 +158,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 	} else {
 		retryInterval = newCondition.LastUpdateTime.Sub(lastUpdate).Round(time.Second)
 	}
-	log.Info("ManageError", "retryInterval", retryInterval)
+
 	return reconcile.Result{
 		RequeueAfter: time.Duration(math.Min(float64(retryInterval.Nanoseconds()*2), float64(time.Hour.Nanoseconds()*6))),
 		Requeue:      true,
@@ -166,10 +166,10 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 }
 
 // ManageSuccess ...
-func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.AppsodyApplicationStatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.StatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
 	oldCondition := GetCondition(conditionType, &cr.Status)
 	if oldCondition == nil {
-		oldCondition = &appsodyv1alpha1.AppsodyApplicationStatusCondition{LastUpdateTime: metav1.Time{}}
+		oldCondition = &appsodyv1alpha1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	// Keep the old `LastTransitionTime` when status has not changed
@@ -178,7 +178,7 @@ func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.AppsodyAppl
 		transitionTime = metav1.Now()
 	}
 
-	statusCondition := appsodyv1alpha1.AppsodyApplicationStatusCondition{
+	statusCondition := appsodyv1alpha1.StatusCondition{
 		LastTransitionTime: transitionTime,
 		LastUpdateTime:     metav1.Now(),
 		Type:               conditionType,
