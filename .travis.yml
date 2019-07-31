@@ -27,7 +27,7 @@ install:
   # - sudo cat /etc/default/docker
   # - sudo service docker restart
 
-  - restart-docker.sh
+  - ./'pwd'/restart-docker.sh
 
   - oc version
   - oc cluster up
