@@ -28,7 +28,7 @@ install:
   - sudo service docker restart
 
   - oc version
-  - oc cluster up --insecure-registry
+  - oc cluster up
   
 
 
