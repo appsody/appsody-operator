@@ -18,9 +18,18 @@ install:
   - rm operator-sdk-$RELEASE_VERSION-x86_64-linux-gnu
   - export GO111MODULE=on
 
+  - wget https:///github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz
+  - tar xvf openshift-origin-client-tools*.tar.gz
+
+  - export PATH="$(pwd)":$PATH
+  - oc version
+  - oc cluster up
+  
+
+
+
 script: 
   - operator-sdk build appsody-operator
-  - setup-openshift.sh
 
 # install-minishift: 
 #   - install-minishift.sh
