@@ -64,11 +64,12 @@ type AppsodyApplicationStatus struct {
 }
 
 // StatusCondition ...
+// +k8s:openapi-gen=true
 type StatusCondition struct {
-	LastTransitionTime metav1.Time            `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime *metav1.Time           `json:"lastTransitionTime,omitempty"`
 	LastUpdateTime     metav1.Time            `json:"lastUpdateTime,omitempty"`
 	Reason             string                 `json:"reason,omitempty"`
-	Message            string                 `json:"mesage,omitempty"`
+	Message            string                 `json:"message,omitempty"`
 	Status             corev1.ConditionStatus `json:"status,omitempty"`
 	Type               StatusConditionType    `json:"type,omitempty"`
 }
