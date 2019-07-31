@@ -29,17 +29,9 @@ install:
   # - sudo systemctl restart docker
 
   # - oc cluster up --skip-registry-check=true
-  
-
-
 
 script: 
   - operator-sdk build appsody-operator
-
-# install-minishift: 
-#   - install-minishift.sh
-#   - export PATH=$PATH:/minishift/
-
 
 # jobs:
 #  include:
