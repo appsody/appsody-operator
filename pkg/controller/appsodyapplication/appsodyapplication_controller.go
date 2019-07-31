@@ -192,7 +192,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	// Check if Knative is supported and delete Knative service if supported
-	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); ok {
+	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
+		r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+	} else if ok {
 		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(ksvc)
 		if err != nil {
@@ -200,12 +203,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 	} else {
-		if err != nil {
-			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
-			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-		} else {
-			reqLogger.Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
-		}
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
 	}
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
@@ -291,7 +289,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	}
 
-	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String()); ok {
+	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String()); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
+		r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+	} else if ok {
 		if instance.Spec.Expose != nil && *instance.Spec.Expose {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(route, instance, func() error {
@@ -311,12 +312,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 		}
 	} else {
-		if err != nil {
-			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
-			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-		} else {
-			reqLogger.Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
-		}
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 	}
 
 	return r.ManageSuccess(appsodyv1alpha1.StatusConditionTypeReconciled, instance)

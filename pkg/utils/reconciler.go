@@ -131,14 +131,15 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 	lastStatus := oldCondition.Status
 
 	// Keep the old `LastTransitionTime` when status has not changed
+	nowTime := metav1.Now()
 	transitionTime := oldCondition.LastTransitionTime
 	if lastStatus == corev1.ConditionTrue {
-		transitionTime = metav1.Now()
+		transitionTime = &nowTime
 	}
 
 	newCondition := appsodyv1alpha1.StatusCondition{
 		LastTransitionTime: transitionTime,
-		LastUpdateTime:     metav1.Now(),
+		LastUpdateTime:     nowTime,
 		Reason:             string(apierrors.ReasonForError(issue)),
 		Type:               conditionType,
 		Message:            issue.Error(),
@@ -183,14 +184,15 @@ func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.StatusCondi
 	}
 
 	// Keep the old `LastTransitionTime` when status has not changed
+	nowTime := metav1.Now()
 	transitionTime := oldCondition.LastTransitionTime
 	if oldCondition.Status == corev1.ConditionFalse {
-		transitionTime = metav1.Now()
+		transitionTime = &nowTime
 	}
 
 	statusCondition := appsodyv1alpha1.StatusCondition{
 		LastTransitionTime: transitionTime,
-		LastUpdateTime:     metav1.Now(),
+		LastUpdateTime:     nowTime,
 		Type:               conditionType,
 		Reason:             "",
 		Message:            "",
