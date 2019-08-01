@@ -23,15 +23,16 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-// ReconcilerBase base reconsiler with some common behaviour
+// ReconcilerBase base reconciler with some common behaviour
 type ReconcilerBase struct {
 	client     client.Client
 	scheme     *runtime.Scheme
 	recorder   record.EventRecorder
 	restConfig *rest.Config
+	discovery  discovery.DiscoveryInterface
 }
 
-//NewReconcilerBase creates a new ReconsilerBase
+//NewReconcilerBase creates a new ReconcilerBase
 func NewReconcilerBase(client client.Client, scheme *runtime.Scheme, restConfig *rest.Config, recorder record.EventRecorder) ReconcilerBase {
 	return ReconcilerBase{
 		client:     client,
@@ -52,8 +53,19 @@ func (r *ReconcilerBase) GetRecorder() record.EventRecorder {
 }
 
 // GetDiscoveryClient ...
-func (r *ReconcilerBase) GetDiscoveryClient() (*discovery.DiscoveryClient, error) {
-	return discovery.NewDiscoveryClientForConfig(r.restConfig)
+func (r *ReconcilerBase) GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
+	if r.discovery == nil {
+		var err error
+		r.discovery, err = discovery.NewDiscoveryClientForConfig(r.restConfig)
+		return r.discovery, err
+	}
+
+	return r.discovery, nil
+}
+
+// SetDiscoveryClient ...
+func (r *ReconcilerBase) SetDiscoveryClient(discovery discovery.DiscoveryInterface) {
+	r.discovery = discovery
 }
 
 var log = logf.Log.WithName("utils")
