@@ -109,9 +109,9 @@ func (r *ReconcilerBase) DeleteResources(resources []runtime.Object) error {
 }
 
 // GetAppsodyOpConfigMap ...
-func (r *ReconcilerBase) GetAppsodyOpConfigMap(ns string) (*corev1.ConfigMap, error) {
+func (r *ReconcilerBase) GetAppsodyOpConfigMap(name string, ns string) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
-	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: "appsody-operator", Namespace: ns}, configMap)
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
 	if err != nil {
 		return nil, err
 	}

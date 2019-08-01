@@ -118,7 +118,21 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, cr *appsodyv1alpha1.A
 
 		}
 		statefulSet.Spec.VolumeClaimTemplates = append(statefulSet.Spec.VolumeClaimTemplates, *pvc)
+		found := false
+		for _, v := range statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts {
+			if v.Name == pvc.Name {
+				found = true
+			}
+		}
+		if !found {
+			vm := corev1.VolumeMount{
+				Name:      pvc.Name,
+				MountPath: cr.Spec.Storage.MountPath,
+			}
+			statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts, vm)
+		}
 	}
+
 }
 
 // CustomizeServiceAccount ...
@@ -190,7 +204,8 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	ksvc.Spec.Template.Spec.Containers[0].Name = "user-container"
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
-	ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
+	// Knative sets its own resource constraints
+	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
 	ksvc.Spec.Template.Spec.Containers[0].LivenessProbe = cr.Spec.LivenessProbe
 	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = cr.Spec.VolumeMounts
@@ -205,6 +220,25 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 	} else {
 		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Name
 	}
+
+	if ksvc.Spec.Template.Spec.Containers[0].LivenessProbe != nil {
+		if ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet != nil {
+			ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.IntOrString{}
+		}
+		if ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.TCPSocket != nil {
+			ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.TCPSocket.Port = intstr.IntOrString{}
+		}
+	}
+
+	if ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe != nil {
+		if ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet != nil {
+			ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.IntOrString{}
+		}
+		if ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket != nil {
+			ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port = intstr.IntOrString{}
+		}
+	}
+
 }
 
 // CustomizeHPA ...
@@ -226,7 +260,7 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1alpha
 }
 
 // InitAndValidate ...
-func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1alpha1.AppsodyApplicationSpec) {
+func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1alpha1.AppsodyApplicationSpec, constants *appsodyv1alpha1.AppsodyApplicationSpec) {
 
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy
@@ -303,6 +337,131 @@ func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1a
 		} else {
 			cr.Spec.Service.Port = 8080
 		}
+	}
+
+	if constants != nil {
+		applyConstants(cr, defaults, constants)
+	}
+}
+
+func applyConstants(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1alpha1.AppsodyApplicationSpec, constants *appsodyv1alpha1.AppsodyApplicationSpec) {
+
+	if constants.Replicas != nil {
+		cr.Spec.Replicas = constants.Replicas
+	}
+
+	if constants.Stack != "" {
+		cr.Spec.Stack = constants.Stack
+	}
+
+	if constants.ApplicationImage != "" {
+		cr.Spec.ApplicationImage = constants.ApplicationImage
+	}
+
+	if constants.PullPolicy != nil {
+		cr.Spec.PullPolicy = constants.PullPolicy
+	}
+
+	if constants.PullSecret != nil {
+		cr.Spec.PullSecret = constants.PullSecret
+	}
+
+	if constants.Expose != nil {
+		cr.Spec.Expose = constants.Expose
+	}
+
+	if constants.CreateKnativeService != nil {
+		cr.Spec.CreateKnativeService = constants.CreateKnativeService
+	}
+
+	if constants.ServiceAccountName != nil {
+		cr.Spec.ServiceAccountName = constants.ServiceAccountName
+	}
+
+	if constants.Architecture != nil {
+		cr.Spec.Architecture = constants.Architecture
+	}
+
+	if constants.ReadinessProbe != nil {
+		cr.Spec.ReadinessProbe = constants.ReadinessProbe
+	}
+
+	if constants.LivenessProbe != nil {
+		cr.Spec.LivenessProbe = constants.LivenessProbe
+	}
+
+	if constants.EnvFrom != nil {
+		for _, v := range constants.EnvFrom {
+
+			found := false
+			for _, v2 := range cr.Spec.EnvFrom {
+				if v2 == v {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.EnvFrom = append(cr.Spec.EnvFrom, v)
+			}
+		}
+	}
+
+	if constants.Env != nil {
+		for _, v := range constants.Env {
+			found := false
+			for _, v2 := range cr.Spec.Env {
+				if v2.Name == v.Name {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.Env = append(cr.Spec.Env, v)
+			}
+		}
+	}
+
+	if constants.Volumes != nil {
+		for _, v := range constants.Volumes {
+			found := false
+			for _, v2 := range cr.Spec.Volumes {
+				if v2.Name == v.Name {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.Volumes = append(cr.Spec.Volumes, v)
+			}
+		}
+	}
+
+	if constants.VolumeMounts != nil {
+		for _, v := range constants.VolumeMounts {
+			found := false
+			for _, v2 := range cr.Spec.VolumeMounts {
+				if v2.Name == v.Name {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.VolumeMounts = append(cr.Spec.VolumeMounts, v)
+			}
+		}
+	}
+
+	if constants.ResourceConstraints != nil {
+		cr.Spec.ResourceConstraints = constants.ResourceConstraints
+	}
+
+	if constants.Service != nil {
+		if constants.Service.Type != nil {
+			cr.Spec.Service.Type = constants.Service.Type
+		}
+		if constants.Service.Port != 0 {
+			cr.Spec.Service.Port = constants.Service.Port
+		}
+	}
+
+	if constants.Autoscaling != nil {
+		cr.Spec.Autoscaling = constants.Autoscaling
 	}
 }
 
