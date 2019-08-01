@@ -50,11 +50,6 @@ func (in *AppsodyApplicationAutoScaling) DeepCopyInto(out *AppsodyApplicationAut
 		*out = new(int32)
 		**out = **in
 	}
-	if in.MaxReplicas != nil {
-		in, out := &in.MaxReplicas, &out.MaxReplicas
-		*out = new(int32)
-		**out = **in
-	}
 	return
 }
 
