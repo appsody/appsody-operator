@@ -11,6 +11,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -286,6 +287,30 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				reqLogger.Error(err, "Failed to reconcile Deployment")
 				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 			}
+		}
+	}
+
+	if instance.Spec.Autoscaling != nil {
+		if instance.Spec.Autoscaling.MaxReplicas == nil {
+			reqLogger.Error(nil, "Required field autoscaling.maxReplicas is not specified. Failed to reconcile HorizontalPodAutoscaler.")
+		} else {
+			hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(hpa, instance, func() error {
+				appsodyutils.CustomizeHPA(hpa, instance)
+				return nil
+			})
+		}
+
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile HorizontalPodAutoscaler")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+	} else {
+		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(hpa)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete HorizontalPodAutoscaler")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 	}
 

@@ -8,6 +8,7 @@ import (
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -199,6 +200,24 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 		ksvc.Spec.Template.Spec.ServiceAccountName = *cr.Spec.ServiceAccountName
 	} else {
 		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Name
+	}
+}
+
+// CustomizeHPA ...
+func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1alpha1.AppsodyApplication) {
+	hpa.Labels = GetLabels(cr)
+
+	hpa.Spec.MaxReplicas = *cr.Spec.Autoscaling.MaxReplicas
+	hpa.Spec.MinReplicas = cr.Spec.Autoscaling.MinReplicas
+	hpa.Spec.TargetCPUUtilizationPercentage = cr.Spec.Autoscaling.TargetCPUUtilizationPercentage
+
+	hpa.Spec.ScaleTargetRef.Name = cr.Name
+	hpa.Spec.ScaleTargetRef.APIVersion = "apps/v1"
+
+	if cr.Spec.Storage != nil {
+		hpa.Spec.ScaleTargetRef.Kind = "StatefulSet"
+	} else {
+		hpa.Spec.ScaleTargetRef.Kind = "Deployment"
 	}
 }
 
