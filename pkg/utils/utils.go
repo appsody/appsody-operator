@@ -184,6 +184,10 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 		ksvc.Spec.Template.Spec.Containers = append(ksvc.Spec.Template.Spec.Containers, corev1.Container{Name: "user-container"})
 	}
 
+	if len(ksvc.Spec.Template.Spec.Containers[0].Ports) == 0 {
+		ksvc.Spec.Template.Spec.Containers[0].Ports = append(ksvc.Spec.Template.Spec.Containers[0].Ports, corev1.ContainerPort{})
+	}
+	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	ksvc.Spec.Template.Spec.Containers[0].Name = "user-container"
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints

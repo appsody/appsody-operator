@@ -49,6 +49,7 @@ spec:
               properties:
                 maxReplicas:
                   format: int32
+                  minimum: 2
                   type: integer
                 minReplicas:
                   format: int32
@@ -130,7 +131,7 @@ spec:
                   lastUpdateTime:
                     format: date-time
                     type: string
-                  mesage:
+                  message:
                     type: string
                   reason:
                     type: string

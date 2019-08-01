@@ -19,6 +19,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationSpec(ref),
 		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStatus(ref),
 		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.AppsodyApplicationStorage":     schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStorage(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1alpha1.StatusCondition":               schema_pkg_apis_appsody_v1alpha1_StatusCondition(ref),
 	}
 }
 
@@ -330,5 +331,53 @@ func schema_pkg_apis_appsody_v1alpha1_AppsodyApplicationStorage(ref common.Refer
 		},
 		Dependencies: []string{
 			"k8s.io/api/core/v1.PersistentVolumeClaim"},
+	}
+}
+
+func schema_pkg_apis_appsody_v1alpha1_StatusCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "StatusCondition ...",
+				Properties: map[string]spec.Schema{
+					"lastTransitionTime": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"lastUpdateTime": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }

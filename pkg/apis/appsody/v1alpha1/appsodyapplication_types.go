@@ -37,7 +37,7 @@ type AppsodyApplicationAutoScaling struct {
 	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
 	MinReplicas                    *int32 `json:"minReplicas,omitempty"`
 
-	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Minimum=2
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 }
 
