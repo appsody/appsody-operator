@@ -14,8 +14,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/discovery"
+	fakediscovery "k8s.io/client-go/discovery/fake"
 	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"k8s.io/client-go/rest"
+	coretesting "k8s.io/client-go/testing"
+	"k8s.io/client-go/tools/record"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -78,7 +83,7 @@ func TestAppsodyController(t *testing.T) {
 	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
 
 	// Create a fake client to mock API calls.
-	cl := fake.NewFakeClient(objs...)
+	cl := fakeclient.NewFakeClient(objs...)
 
 	m := make(map[string]appsodyv1alpha1.AppsodyApplicationSpec)
 	m[stack] = appsodyv1alpha1.AppsodyApplicationSpec{
@@ -88,9 +93,11 @@ func TestAppsodyController(t *testing.T) {
 
 	// Create a ReconcileAppsodyApplication object with the scheme and fake client.
 	r := &ReconcileAppsodyApplication{
-		appsodyutils.NewReconcilerBase(cl, s),
+		appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10)),
 		m,
 	}
+
+	r.SetDiscoveryClient(createFakeDiscoveryClient())
 
 	// Mock request to simulate Reconcile() being called on an event for a
 	// watched resource
@@ -295,4 +302,24 @@ func TestAppsodyController(t *testing.T) {
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, route); err == nil {
 		t.Fatalf("route was not deleted")
 	}
+}
+
+func createFakeDiscoveryClient() discovery.DiscoveryInterface {
+	fakeDiscoveryClient := &fakediscovery.FakeDiscovery{Fake: &coretesting.Fake{}}
+	fakeDiscoveryClient.Resources = []*metav1.APIResourceList{
+		{
+			GroupVersion: routev1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "routes", Namespaced: true, Kind: "Route"},
+			},
+		},
+		{
+			GroupVersion: servingv1alpha1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "services", Namespaced: true, Kind: "Service", SingularName: "service"},
+			},
+		},
+	}
+
+	return fakeDiscoveryClient
 }
