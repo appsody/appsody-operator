@@ -204,7 +204,8 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	ksvc.Spec.Template.Spec.Containers[0].Name = "user-container"
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
-	ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
+	// Knative sets its own resource constraints
+	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
 	ksvc.Spec.Template.Spec.Containers[0].LivenessProbe = cr.Spec.LivenessProbe
 	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = cr.Spec.VolumeMounts
@@ -219,6 +220,25 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 	} else {
 		ksvc.Spec.Template.Spec.ServiceAccountName = cr.Name
 	}
+
+	if ksvc.Spec.Template.Spec.Containers[0].LivenessProbe != nil {
+		if ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet != nil {
+			ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.HTTPGet.Port = intstr.IntOrString{}
+		}
+		if ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.TCPSocket != nil {
+			ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.TCPSocket.Port = intstr.IntOrString{}
+		}
+	}
+
+	if ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe != nil {
+		if ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet != nil {
+			ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port = intstr.IntOrString{}
+		}
+		if ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket != nil {
+			ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port = intstr.IntOrString{}
+		}
+	}
+
 }
 
 // CustomizeHPA ...
