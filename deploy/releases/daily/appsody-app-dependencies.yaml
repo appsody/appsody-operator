@@ -71,6 +71,7 @@ rules:
   - events
   - configmaps
   - secrets
+  - serviceaccounts
   verbs:
   - '*'
 - apiGroups:
@@ -80,6 +81,12 @@ rules:
   - daemonsets
   - replicasets
   - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - autoscaling
+  resources:
+  - horizontalpodautoscalers
   verbs:
   - '*'
 - apiGroups:
@@ -103,6 +110,20 @@ rules:
   - '*'
   verbs:
   - '*'
+- apiGroups:
+  - route.openshift.io
+  attributeRestrictions: null
+  resources:
+  - routes
+  verbs:
+  - '*'  
+- apiGroups:
+  - serving.knative.dev
+  attributeRestrictions: null
+  resources:
+  - services
+  verbs:
+  - '*'  
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
