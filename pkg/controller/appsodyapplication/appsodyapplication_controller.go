@@ -291,15 +291,11 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	if instance.Spec.Autoscaling != nil {
-		if instance.Spec.Autoscaling.MaxReplicas == nil {
-			reqLogger.Error(nil, "Required field autoscaling.maxReplicas is not specified. Failed to reconcile HorizontalPodAutoscaler.")
-		} else {
-			hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
-			err = r.CreateOrUpdate(hpa, instance, func() error {
-				appsodyutils.CustomizeHPA(hpa, instance)
-				return nil
-			})
-		}
+		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(hpa, instance, func() error {
+			appsodyutils.CustomizeHPA(hpa, instance)
+			return nil
+		})
 
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile HorizontalPodAutoscaler")

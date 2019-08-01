@@ -207,7 +207,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1alpha1.AppsodyApplication) {
 	hpa.Labels = GetLabels(cr)
 
-	hpa.Spec.MaxReplicas = *cr.Spec.Autoscaling.MaxReplicas
+	hpa.Spec.MaxReplicas = cr.Spec.Autoscaling.MaxReplicas
 	hpa.Spec.MinReplicas = cr.Spec.Autoscaling.MinReplicas
 	hpa.Spec.TargetCPUUtilizationPercentage = cr.Spec.Autoscaling.TargetCPUUtilizationPercentage
 
