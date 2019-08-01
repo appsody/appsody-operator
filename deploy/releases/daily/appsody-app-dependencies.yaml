@@ -1,0 +1,117 @@
+apiVersion: v1
+data:
+  microprofile: |-
+    {
+       "expose": false,
+       "livenessProbe": {
+          "failureThreshold": 3,
+          "httpGet": {
+             "path": "/",
+             "port": 9080
+          },
+          "initialDelaySeconds": 60,
+          "periodSeconds": 5
+       },
+       "readinessProbe": {
+          "failureThreshold": 12,
+          "httpGet": {
+             "path": "/",
+              "port": 9080
+          },
+          "initialDelaySeconds": 30,
+          "periodSeconds": 5
+       },
+       "resourceConstraints": {
+          "requests": {
+             "cpu": "500m",
+             "memory": "512Mi"
+          }
+       },
+       "service": {
+          "port": 9080,
+          "type": "ClusterIP"
+       }
+    }
+  nodejs: |-
+    {
+       "expose": false,
+       "resourceConstraints": {
+          "requests": {
+             "cpu": "500m",
+             "memory": "256Mi"
+          }
+       },
+       "service": {
+          "port": 3000,
+          "type": "ClusterIP"
+       }
+    }
+kind: ConfigMap
+metadata:
+  name: appsody-operator
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: appsody-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  creationTimestamp: null
+  name: appsody-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - endpoints
+  - persistentvolumeclaims
+  - events
+  - configmaps
+  - secrets
+  verbs:
+  - '*'
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - daemonsets
+  - replicasets
+  - statefulsets
+  verbs:
+  - '*'
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - servicemonitors
+  verbs:
+  - get
+  - create
+- apiGroups:
+  - apps
+  resourceNames:
+  - appsody-operator
+  resources:
+  - deployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - appsody.dev
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: appsody-operator
+subjects:
+- kind: ServiceAccount
+  name: appsody-operator
+roleRef:
+  kind: Role
+  name: appsody-operator
+  apiGroup: rbac.authorization.k8s.io
