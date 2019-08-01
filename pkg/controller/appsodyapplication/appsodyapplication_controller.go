@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
@@ -42,7 +43,7 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
-		StackDefaults: map[string]appsodyv1alpha1.AppsodyApplicationSpec{}}
+		StackDefaults: map[string]appsodyv1alpha1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -66,7 +67,12 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator"}}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -82,7 +88,8 @@ type ReconcileAppsodyApplication struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	appsodyutils.ReconcilerBase
-	StackDefaults map[string]appsodyv1alpha1.AppsodyApplicationSpec
+	StackDefaults  map[string]appsodyv1alpha1.AppsodyApplicationSpec
+	StackConstants map[string]*appsodyv1alpha1.AppsodyApplicationSpec
 }
 
 // Reconcile reads that state of the cluster for a AppsodyApplication object and makes changes based on the state read
@@ -94,9 +101,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	reqLogger := log.WithValues("Request.Name", request.Name)
 	reqLogger.Info("Reconciling AppsodyApplication")
 
-	if request.Name == "appsody-operator" {
-		configMap, err := r.GetAppsodyOpConfigMap(request.Namespace)
+	if strings.HasPrefix(request.Name, "appsody-operator") {
+
+		configMap, err := r.GetAppsodyOpConfigMap("appsody-operator", request.Namespace)
 		if err == nil {
+			for k := range r.StackDefaults {
+				delete(r.StackDefaults, k)
+			}
 			for stack, values := range configMap.Data {
 				var defaults appsodyv1alpha1.AppsodyApplicationSpec
 				unerr := json.Unmarshal([]byte(values), &defaults)
@@ -104,6 +115,21 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 					reqLogger.Error(unerr, "Failed to parse config map defaults")
 				} else {
 					r.StackDefaults[stack] = defaults
+				}
+			}
+		}
+		configMap, err = r.GetAppsodyOpConfigMap("appsody-operator-constants", request.Namespace)
+		if err == nil {
+			for k := range r.StackConstants {
+				delete(r.StackConstants, k)
+			}
+			for stack, values := range configMap.Data {
+				var constants appsodyv1alpha1.AppsodyApplicationSpec
+				unerr := json.Unmarshal([]byte(values), &constants)
+				if unerr != nil {
+					reqLogger.Error(unerr, "Failed to parse config map constants")
+				} else {
+					r.StackConstants[stack] = &constants
 				}
 			}
 		}
@@ -125,9 +151,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, err
 	}
 	stackDefaults, ok := r.StackDefaults[instance.Spec.Stack]
-
 	if ok {
-		appsodyutils.InitAndValidate(instance, stackDefaults)
+		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
 	} else {
 		err = fmt.Errorf("Failed to find stack `%v` in the ConfigMap holding default values", instance.Spec.Stack)
 		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
@@ -230,6 +255,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			err = r.CreateOrUpdate(svc, instance, func() error {
 				appsodyutils.CustomizeService(svc, instance)
 				svc.Spec.ClusterIP = corev1.ClusterIPNone
+				svc.Spec.Type = corev1.ServiceTypeClusterIP
 				return nil
 			})
 			if err != nil {
@@ -246,8 +272,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 						"app.kubernetes.io/name": instance.Name,
 					},
 				}
-				appsodyutils.CustomizePersistence(statefulSet, instance)
 				appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
+				appsodyutils.CustomizePersistence(statefulSet, instance)
 				return nil
 			})
 			if err != nil {
