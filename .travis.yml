@@ -32,6 +32,7 @@ install:
 
 script: 
   - operator-sdk build appsody-operator
+  - go test -v github.com/appsody-operator/pkg/controller/appsodyapplication
 
 # jobs:
 #  include:
