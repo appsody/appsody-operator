@@ -15,8 +15,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -50,19 +52,27 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource AppsodyApplication
-	err = c.Watch(&source.Kind{Type: &appsodyv1alpha1.AppsodyApplication{}}, &handler.EnqueueRequestForObject{})
+	pred := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// Ignore updates to CR status in which case metadata.Generation does not change
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+		},
+	}
+
+	// Watch for changes to primary resource AppsodyApplication
+	err = c.Watch(&source.Kind{Type: &appsodyv1alpha1.AppsodyApplication{}}, &handler.EnqueueRequestForObject{}, pred)
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to secondary resource Pods and requeue the owner AppsodyApplication
-	err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsodyv1alpha1.AppsodyApplication{},
-	})
-	if err != nil {
-		return err
-	}
+	// err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
+	// 	IsController: true,
+	// 	OwnerType:    &appsodyv1alpha1.AppsodyApplication{},
+	// })
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
@@ -179,8 +189,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, nil
 	}
 
-	ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
-	err = r.DeleteResource(ksvc)
+	//ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
+	//err = r.DeleteResource(ksvc)
 	if err != nil {
 		reqLogger.Error(err, "Failed to delete Knative Service")
 	}

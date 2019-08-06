@@ -5,10 +5,4 @@ metadata:
 spec:
   # Add fields here
   applicationImage: openliberty/open-liberty:javaee8-ubi-min
-  service:
-    type: ClusterIP
-    port: 9080
-  expose: true
-  storage:
-    size: 2Gi
-    mountPath: "/etc/websphere"
+  stack: microprofile

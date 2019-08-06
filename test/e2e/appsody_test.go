@@ -11,6 +11,7 @@ import (
 	"github.com/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	k "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -68,10 +69,13 @@ func appsodyBasicTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
+	// if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
+	// 	t.Fatal(err)
+	// }
+	// if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
+	// 	t.Fatal(err)
+	// }
+	if err = appsodyPullSecretTest(t, f, ctx); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -106,21 +110,21 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
 
-	helper := int32(3)
+	helper := int32(1)
 
 	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody", namespace, helper)
 
 	// Create application deployment and wait
-	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second * 5, RetryInterval: time.Second * 1})
+	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second * 10, RetryInterval: time.Second * 10})
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 3, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 1, retryInterval*10, timeout*10)
 	if err != nil {
 		return err
 	}
-	// -- Run all scaling tests below based on the above example deployment of 3 pods ---
+	// -- Run all scaling tests below based on the above example deployment of 1 pods ---
 	// update the number of replicas and return if failure occurs
 	if err = appsodyUpdateScaleTest(t, f, namespace, exampleAppsody); err != nil {
 		return err
@@ -135,17 +139,73 @@ func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace stri
 		return err
 	}
 
-	helper2 := int32(4)
+	helper2 := int32(2)
 	exampleAppsody.Spec.Replicas = &helper2
 	err = f.Client.Update(goctx.TODO(), exampleAppsody)
 	if err != nil {
 		return err
 	}
 
-	// wait for example-memcached to reach 4 replicas
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 4, retryInterval, timeout)
+	// wait for example-memcached to reach 2 replicas
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 2, retryInterval*10, timeout*10)
 	if err != nil {
 		return err
 	}
 	return err
+}
+
+func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return fmt.Errorf("could not get namespace: %v", err)
+	}
+
+	replicas := int32(2)
+	policy := k.PullAlways
+
+	examplePullPolicyAppsody := &appsodyv1alpha1.AppsodyApplication{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "example-appsody-pullpolicy",
+			Namespace: namespace,
+		},
+		Spec: appsodyv1alpha1.AppsodyApplicationSpec{
+			ApplicationImage: "openliberty/open-liberty:javaee8-ubi-min",
+			Replicas:         &replicas,
+			Service: &appsodyv1alpha1.AppsodyApplicationService{
+				Port: 9080,
+			},
+			PullPolicy: &policy,
+			Stack:      "microprofile",
+		},
+	}
+
+	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+	err = f.Client.Create(goctx.TODO(), examplePullPolicyAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
+	if err != nil {
+		return err
+	}
+
+	// wait for example-appsody-pullpolicy to reach 2 replicas
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 2, retryInterval*10, timeout*10)
+	if err != nil {
+		return err
+	}
+
+	name := examplePullPolicyAppsody.ObjectMeta.Name
+	ns := examplePullPolicyAppsody.ObjectMeta.Namespace
+
+	deploy, err := f.KubeClient.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{IncludeUninitialized: true})
+	if err != nil {
+		t.Logf("Got error when getting PullPolicy %s: %s", name, err)
+		return err
+	}
+
+	if deploy.Spec.Template.Spec.Containers[0].ImagePullPolicy == "Always" {
+		return err
+	}
+
+	t.Fail()
+
+	return err
+
 }
