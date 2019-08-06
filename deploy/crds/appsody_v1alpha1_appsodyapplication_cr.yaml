@@ -4,5 +4,5 @@ metadata:
   name: example-appsodyapplication
 spec:
   # Add fields here
-  applicationImage: openliberty/open-liberty:javaee8-ubi-min
-  stack: microprofile
+  applicationImage: openliberty/open-liberty:microprofile-ubi-min
+  stack: java-microprofile
