@@ -91,10 +91,12 @@ func TestAppsodyController(t *testing.T) {
 		Service:            &service,
 	}
 
+	cMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
+
 	// Create a ReconcileAppsodyApplication object with the scheme and fake client.
 	r := &ReconcileAppsodyApplication{
 		appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10)),
-		m,
+		m, cMap,
 	}
 
 	r.SetDiscoveryClient(createFakeDiscoveryClient())

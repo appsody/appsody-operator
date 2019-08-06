@@ -153,9 +153,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	stackDefaults, ok := r.StackDefaults[instance.Spec.Stack]
 	if ok {
 		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+
 	} else {
-		err = fmt.Errorf("Failed to find stack `%v` in the ConfigMap holding default values", instance.Spec.Stack)
-		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		stackDefaults, ok = r.StackDefaults["generic"]
+		if !ok {
+			err = fmt.Errorf("Failed to find stack `%v` in the ConfigMap holding default values", instance.Spec.Stack)
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
 	}
 
 	err = r.GetClient().Update(context.TODO(), instance)
