@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.com/appsody/appsody-operator.svg?branch=master)](https://travis-ci.com/appsody/appsody-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/appsody/appsody-operator)](https://goreportcard.com/report/github.com/appsody/appsody-operator)
+
 # Appsody Application Operator
 
 The Appsody Application Operator has been designed to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) clusters.  The goal of this project is to iterative grow the operator's set of day-2 capabilities.  If there's an certain functionality you would like to see or a bug you would like to report, please use our [issues tab](https://github.com/appsody/appsody-operator/issues) to get in contact with us.
