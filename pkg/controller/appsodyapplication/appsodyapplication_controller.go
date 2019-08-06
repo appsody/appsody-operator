@@ -3,6 +3,8 @@ package appsodyapplication
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
@@ -10,6 +12,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,8 +42,8 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme()),
-		StackDefaults: map[string]appsodyv1alpha1.AppsodyApplicationSpec{}}
+	return &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
+		StackDefaults: map[string]appsodyv1alpha1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -51,7 +54,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+<<<<<<< HEAD
 	// Watch for changes to primary resource AppsodyApplication
+=======
+>>>>>>> origin/master
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
@@ -65,6 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+<<<<<<< HEAD
 	// Watch for changes to secondary resource Pods and requeue the owner AppsodyApplication
 	// err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
 	// 	IsController: true,
@@ -75,10 +82,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// }
 
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{})
+=======
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator"}}}, &handler.EnqueueRequestForObject{})
+>>>>>>> origin/master
 	if err != nil {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -94,7 +105,8 @@ type ReconcileAppsodyApplication struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	appsodyutils.ReconcilerBase
-	StackDefaults map[string]appsodyv1alpha1.AppsodyApplicationSpec
+	StackDefaults  map[string]appsodyv1alpha1.AppsodyApplicationSpec
+	StackConstants map[string]*appsodyv1alpha1.AppsodyApplicationSpec
 }
 
 // Reconcile reads that state of the cluster for a AppsodyApplication object and makes changes based on the state read
@@ -103,23 +115,40 @@ type ReconcileAppsodyApplication struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := log.WithValues("Request.Name", request.Name)
 	reqLogger.Info("Reconciling AppsodyApplication")
 
-	if request.Name == "appsody-operator" {
-		configMap, err := r.GetAppsodyOpConfigMap(request.Namespace)
+	if strings.HasPrefix(request.Name, "appsody-operator") {
+
+		configMap, err := r.GetAppsodyOpConfigMap("appsody-operator", request.Namespace)
 		if err == nil {
+			for k := range r.StackDefaults {
+				delete(r.StackDefaults, k)
+			}
 			for stack, values := range configMap.Data {
 				var defaults appsodyv1alpha1.AppsodyApplicationSpec
 				unerr := json.Unmarshal([]byte(values), &defaults)
 				if unerr != nil {
-					log.Error(unerr, "Failed to parse config map defaults")
+					reqLogger.Error(unerr, "Failed to parse config map defaults")
 				} else {
 					r.StackDefaults[stack] = defaults
 				}
 			}
-
+		}
+		configMap, err = r.GetAppsodyOpConfigMap("appsody-operator-constants", request.Namespace)
+		if err == nil {
+			for k := range r.StackConstants {
+				delete(r.StackConstants, k)
+			}
+			for stack, values := range configMap.Data {
+				var constants appsodyv1alpha1.AppsodyApplicationSpec
+				unerr := json.Unmarshal([]byte(values), &constants)
+				if unerr != nil {
+					reqLogger.Error(unerr, "Failed to parse config map constants")
+				} else {
+					r.StackConstants[stack] = &constants
+				}
+			}
 		}
 		return reconcile.Result{}, nil
 
@@ -138,10 +167,23 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
-	appsodyutils.InitAndValidate(instance, r.StackDefaults[instance.Spec.Stack])
+	stackDefaults, ok := r.StackDefaults[instance.Spec.Stack]
+	if ok {
+		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+
+	} else {
+		stackDefaults, ok = r.StackDefaults["generic"]
+		if !ok {
+			err = fmt.Errorf("Failed to find stack `%v` in the ConfigMap holding default values", instance.Spec.Stack)
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+	}
+
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
-		log.Error(err, "Error updatating AppsodyApplication")
+		reqLogger.Error(err, "Error updating AppsodyApplication")
+		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
 	defaultMeta := metav1.ObjectMeta{
@@ -157,12 +199,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile ServiceAccount")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 	} else {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(serviceAccount)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 	}
 
@@ -175,6 +219,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile Knative Service")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 
 		// Clean up non-Knative resources
@@ -185,14 +230,35 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			&appsv1.StatefulSet{ObjectMeta: defaultMeta},
 			&routev1.Route{ObjectMeta: defaultMeta},
 		}
-		r.DeleteResources(resources)
-		return reconcile.Result{}, nil
+		err = r.DeleteResources(resources)
+		if err != nil {
+			reqLogger.Error(err, "Failed to clean up non-Knative resources")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+
+		return r.ManageSuccess(appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
+<<<<<<< HEAD
 	//ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 	//err = r.DeleteResource(ksvc)
 	if err != nil {
 		reqLogger.Error(err, "Failed to delete Knative Service")
+=======
+	// Check if Knative is supported and delete Knative service if supported
+	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
+		r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+	} else if ok {
+		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(ksvc)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete Knative Service")
+			r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+	} else {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
+>>>>>>> origin/master
 	}
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
@@ -202,23 +268,28 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	})
 	if err != nil {
 		reqLogger.Error(err, "Failed to reconcile Service")
+		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
 	if instance.Spec.Storage != nil {
-
 		// Delete Deployment if exists
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(deploy)
 
-		if err == nil {
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete Deployment")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		} else {
 			svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
 			err = r.CreateOrUpdate(svc, instance, func() error {
 				appsodyutils.CustomizeService(svc, instance)
 				svc.Spec.ClusterIP = corev1.ClusterIPNone
+				svc.Spec.Type = corev1.ServiceTypeClusterIP
 				return nil
 			})
 			if err != nil {
 				reqLogger.Error(err, "Failed to reconcile headless Service")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 			}
 
 			statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
@@ -230,24 +301,32 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 						"app.kubernetes.io/name": instance.Name,
 					},
 				}
-				appsodyutils.CustomizePersistence(statefulSet, instance)
 				appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
+				appsodyutils.CustomizePersistence(statefulSet, instance)
 				return nil
 			})
 			if err != nil {
 				reqLogger.Error(err, "Failed to reconcile StatefulSet")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 			}
 		}
 	} else {
 		// Delete StatefulSet if exists
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(statefulSet)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete Statefulset")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
 
 		// Delete StatefulSet if exists
 		headlesssvc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
 		err = r.DeleteResource(headlesssvc)
 
-		if err == nil {
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete headless Service")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		} else {
 			deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(deploy, instance, func() error {
 				deploy.Spec.Replicas = instance.Spec.Replicas
@@ -260,28 +339,57 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return nil
 			})
 			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile StatefulSet")
+				reqLogger.Error(err, "Failed to reconcile Deployment")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 			}
 		}
 	}
 
-	if instance.Spec.Expose != nil && *instance.Spec.Expose {
-		route := &routev1.Route{ObjectMeta: defaultMeta}
-		err = r.CreateOrUpdate(route, instance, func() error {
-			appsodyutils.CustomizeRoute(route, instance)
+	if instance.Spec.Autoscaling != nil {
+		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(hpa, instance, func() error {
+			appsodyutils.CustomizeHPA(hpa, instance)
 			return nil
 		})
-		if err != nil {
-			log.Error(err, "Failed to create Route")
-		}
 
-	} else {
-		route := &routev1.Route{ObjectMeta: defaultMeta}
-		err = r.DeleteResource(route)
 		if err != nil {
-			log.Error(err, "Failed to delete route")
+			reqLogger.Error(err, "Failed to reconcile HorizontalPodAutoscaler")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+	} else {
+		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(hpa)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete HorizontalPodAutoscaler")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 	}
 
-	return reconcile.Result{}, nil
+	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String()); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
+		r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+	} else if ok {
+		if instance.Spec.Expose != nil && *instance.Spec.Expose {
+			route := &routev1.Route{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(route, instance, func() error {
+				appsodyutils.CustomizeRoute(route, instance)
+				return nil
+			})
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile Route")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+			}
+		} else {
+			route := &routev1.Route{ObjectMeta: defaultMeta}
+			err = r.DeleteResource(route)
+			if err != nil {
+				reqLogger.Error(err, "Failed to delete Route")
+				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+			}
+		}
+	} else {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
+	}
+
+	return r.ManageSuccess(appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 }

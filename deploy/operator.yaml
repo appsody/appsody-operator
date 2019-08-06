@@ -15,8 +15,7 @@ spec:
       serviceAccountName: appsody-operator
       containers:
         - name: appsody-operator
-          # Replace this with the built image name
-          image: REPLACE_IMAGE
+          image: appsody/application-operator:daily
           command:
           - appsody-operator
           imagePullPolicy: Always
