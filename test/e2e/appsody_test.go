@@ -19,7 +19,7 @@ import (
 var (
 	retryInterval        = time.Second * 5
 	operatorTimeout      = time.Minute * 3
-	timeout              = time.Second * 30
+	timeout              = time.Second * 30 * 20
 	cleanupRetryInterval = time.Second * 1
 	cleanupTimeout       = time.Second * 5
 )
@@ -174,7 +174,7 @@ func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.
 			Namespace: namespace,
 		},
 		Spec: appsodyv1alpha1.AppsodyApplicationSpec{
-			ApplicationImage: "openliberty/open-liberty:javaee8-ubi-min",
+			ApplicationImage: "openliberty/open-liberty:microProfile2-ubi-min",
 			Replicas:         &replicas,
 			Service: &appsodyv1alpha1.AppsodyApplicationService{
 				Port: 9080,

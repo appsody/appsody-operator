@@ -54,10 +54,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-<<<<<<< HEAD
-	// Watch for changes to primary resource AppsodyApplication
-=======
->>>>>>> origin/master
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
@@ -71,20 +67,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-<<<<<<< HEAD
-	// Watch for changes to secondary resource Pods and requeue the owner AppsodyApplication
-	// err = c.Watch(&source.Kind{Type: &corev1.Pod{}}, &handler.EnqueueRequestForOwner{
-	// 	IsController: true,
-	// 	OwnerType:    &appsodyv1alpha1.AppsodyApplication{},
-	// })
-	// if err != nil {
-	// 	return err
-	// }
-
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{}}, &handler.EnqueueRequestForObject{})
-=======
 	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator"}}}, &handler.EnqueueRequestForObject{})
->>>>>>> origin/master
 	if err != nil {
 		return err
 	}
@@ -239,12 +222,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return r.ManageSuccess(appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
-<<<<<<< HEAD
-	//ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
-	//err = r.DeleteResource(ksvc)
-	if err != nil {
-		reqLogger.Error(err, "Failed to delete Knative Service")
-=======
 	// Check if Knative is supported and delete Knative service if supported
 	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); err != nil {
 		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
@@ -258,7 +235,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	} else {
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
->>>>>>> origin/master
 	}
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
