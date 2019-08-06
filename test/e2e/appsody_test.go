@@ -69,13 +69,13 @@ func appsodyBasicTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
-	// 	t.Fatal(err)
-	// }
-	// if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
-	// 	t.Fatal(err)
-	// }
-	if err = appsodyPullSecretTest(t, f, ctx); err != nil {
+	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err = appsodyPullPolicyTest(t, f, ctx); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -114,13 +114,15 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 
 	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody", namespace, helper)
 
+	timestamp := time.Now().UTC()
+	t.Logf("%s - Creating basic appsody application for scaling test...", timestamp)
 	// Create application deployment and wait
-	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second * 10, RetryInterval: time.Second * 10})
+	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
 	if err != nil {
 		return err
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 1, retryInterval*10, timeout*10)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 1, retryInterval, timeout)
 	if err != nil {
 		return err
 	}
@@ -129,7 +131,8 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 	if err = appsodyUpdateScaleTest(t, f, namespace, exampleAppsody); err != nil {
 		return err
 	}
-
+	timestamp = time.Now().UTC()
+	t.Logf("%s - Completed basic appsody scale test", timestamp)
 	return err
 }
 
@@ -147,7 +150,7 @@ func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace stri
 	}
 
 	// wait for example-memcached to reach 2 replicas
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 2, retryInterval*10, timeout*10)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 2, retryInterval, timeout)
 	if err != nil {
 		return err
 	}
@@ -159,6 +162,8 @@ func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.
 	if err != nil {
 		return fmt.Errorf("could not get namespace: %v", err)
 	}
+	timestamp := time.Now().UTC()
+	t.Logf("%s - Starting appsody pull policy test...", timestamp)
 
 	replicas := int32(2)
 	policy := k.PullAlways
@@ -186,10 +191,13 @@ func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.
 	}
 
 	// wait for example-appsody-pullpolicy to reach 2 replicas
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 2, retryInterval*10, timeout*10)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 1, retryInterval, timeout)
 	if err != nil {
 		return err
 	}
+
+	timestamp = time.Now().UTC()
+	t.Logf("%s - Deployment created, verifying pull policy...", timestamp)
 
 	name := examplePullPolicyAppsody.ObjectMeta.Name
 	ns := examplePullPolicyAppsody.ObjectMeta.Namespace
