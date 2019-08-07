@@ -6,7 +6,7 @@ data:
        "livenessProbe": {
           "failureThreshold": 3,
           "httpGet": {
-             "path": "/",
+             "path": "/health",
              "port": 9080
           },
           "initialDelaySeconds": 60,
@@ -15,7 +15,7 @@ data:
        "readinessProbe": {
           "failureThreshold": 12,
           "httpGet": {
-             "path": "/",
+             "path": "/health",
               "port": 9080
           },
           "initialDelaySeconds": 30,
@@ -73,7 +73,6 @@ data:
        "service": {
           "port": 3000,
           "type": "ClusterIP"
-
        }
     }
   nodejs-express: |-
