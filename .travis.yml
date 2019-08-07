@@ -31,9 +31,10 @@ install:
   # - oc cluster up --skip-registry-check=true
 
 script: 
-  - operator-sdk build appsody-operator
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - operator-sdk build appsody/application-operator:daily
   - go test -v github.com/appsody-operator/pkg/controller/appsodyapplication
-
+  - if [[ $TRAVIS_BRANCH == 'master' ]]; then docker push appsody/application-operator:daily; fi
 # jobs:
 #  include:
 #    - name: unit test
