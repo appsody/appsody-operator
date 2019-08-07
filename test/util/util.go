@@ -58,3 +58,18 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 	t.Logf("StatefulSet available (%d/%d)\n", replicas, replicas)
 	return nil
 }
+
+func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*framework.TestCtx, error) {
+	ctx := framework.NewTestCtx(t)
+	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
+		TestContext:   ctx,
+		Timeout:       clean,
+		RetryInterval: retryInterval,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	t.Log("Cluster context initialized.")
+	return ctx, nil
+}

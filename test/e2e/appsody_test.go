@@ -19,7 +19,7 @@ import (
 var (
 	retryInterval        = time.Second * 5
 	operatorTimeout      = time.Minute * 3
-	timeout              = time.Second * 30 * 20
+	timeout              = time.Minute * 20
 	cleanupRetryInterval = time.Second * 1
 	cleanupTimeout       = time.Second * 5
 )
@@ -35,24 +35,19 @@ func TestAppsodyApplication(t *testing.T) {
 		t.Fatalf("Failed to add CR scheme to framework: %v", err)
 	}
 
+	t.Run("AppsodyPullPolicyTest", appsodyPullPolicyTest)
 	t.Run("AppsodyBasicTest", appsodyBasicTest)
+	t.Run("AppsodyStorageTest", appsodyBasicStorageTest)
 }
 
 // --- Test Functions ----
 
 func appsodyBasicTest(t *testing.T) {
-	ctx := framework.NewTestCtx(t)
+	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
 	defer ctx.Cleanup()
-	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
-		TestContext:   ctx,
-		Timeout:       cleanupTimeout,
-		RetryInterval: retryInterval,
-	})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	t.Log("Cluster resource intialized.")
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -72,18 +67,20 @@ func appsodyBasicTest(t *testing.T) {
 	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
 		t.Fatal(err)
 	}
-	if err = appsodyBasicStorageTest(t, f, ctx); err != nil {
-		t.Fatal(err)
-	}
-	if err = appsodyPullPolicyTest(t, f, ctx); err != nil {
-		t.Fatal(err)
-	}
 }
 
-func appsodyBasicStorageTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
+func appsodyBasicStorageTest(t *testing.T) {
+	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
+	defer ctx.Cleanup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f := framework.Global
+
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
-		return fmt.Errorf("could not get namespace: %v", err)
+		t.Fatalf("could not get namespace: %v", err)
 	}
 
 	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-storage", namespace, 1)
@@ -98,10 +95,12 @@ func appsodyBasicStorageTest(t *testing.T, f *framework.Framework, ctx *framewor
 		RetryInterval: time.Second * 1,
 	})
 	if err != nil {
-		return err
+		t.Fatal(err)
 	}
 	err = util.WaitForStatefulSet(t, f.KubeClient, namespace, "example-appsody-storage", 1, retryInterval, timeout)
-	return err
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
@@ -157,10 +156,18 @@ func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace stri
 	return err
 }
 
-func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
+func appsodyPullPolicyTest(t *testing.T) {
+
+	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
+	defer ctx.Cleanup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	f := framework.Global
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
-		return fmt.Errorf("could not get namespace: %v", err)
+		t.Fatalf("could not get namespace: %v", err)
 	}
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody pull policy test...", timestamp)
@@ -187,13 +194,13 @@ func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), examplePullPolicyAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
-		return err
+		t.Fatal(err)
 	}
 
 	// wait for example-appsody-pullpolicy to reach 2 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 1, retryInterval, timeout)
 	if err != nil {
-		return err
+		t.Fatal(err)
 	}
 
 	timestamp = time.Now().UTC()
@@ -205,15 +212,11 @@ func appsodyPullPolicyTest(t *testing.T, f *framework.Framework, ctx *framework.
 	deploy, err := f.KubeClient.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{IncludeUninitialized: true})
 	if err != nil {
 		t.Logf("Got error when getting PullPolicy %s: %s", name, err)
-		return err
+		t.Fatal(err)
 	}
 
-	if deploy.Spec.Template.Spec.Containers[0].ImagePullPolicy == "Always" {
-		return err
+	if deploy.Spec.Template.Spec.Containers[0].ImagePullPolicy != "Always" {
+		t.Fatalf("Operator failed to set policy to %s", policy)
 	}
-
-	t.Fail()
-
-	return err
 
 }
