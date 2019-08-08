@@ -89,9 +89,12 @@ const (
 // AppsodyApplication is the Schema for the appsodyapplications API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.applicationImage"
-// +kubebuilder:printcolumn:name="Port",type="integer",JSONPath=".spec.service.port"
-// +kubebuilder:printcolumn:name="Exposed",type="boolean",JSONPath=".spec.expose"
+// +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.applicationImage",priority="0",description="The absolute name of the deployed image containing the registry and the tag"
+// +kubebuilder:printcolumn:name="Exposed",type="boolean",JSONPath=".spec.expose",priority="0",description="Specifies whether deployment is exposed externally via default Route resource"
+// +kubebuilder:printcolumn:name="Reconciled",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].status",priority="0",description="Status of the reconcile condition"
+// +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].reason",priority="1",description="Reason for the failure of reconcile condition"
+// +kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].message",priority="1",description="Failure message from reconcile condition"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority="0",description="Age of the resource"
 type AppsodyApplication struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
