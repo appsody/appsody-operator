@@ -11,10 +11,7 @@ You can install the Appsody Application Operator via a single `kubectl` command 
 
 ### Direct installation
 
-Run the following command to install the operator:  
-
-* `kubectl apply -f <URL>`
-
+Use the instructions for one of the [releases](https://github.com/appsody/appsody-operator/tree/master/deploy/releases) to directly install this Operator into a Kubernetes cluster.
 
 ### OLM-assisted installation
 
