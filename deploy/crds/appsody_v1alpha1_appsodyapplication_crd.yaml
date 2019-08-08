@@ -5,13 +5,11 @@ metadata:
 spec:
   additionalPrinterColumns:
   - JSONPath: .spec.applicationImage
-    description: The absolute name of the deployed image containing the registry and
-      the tag
+    description: Absolute name of the deployed image containing registry and tag
     name: Image
     type: string
   - JSONPath: .spec.expose
     description: Specifies whether deployment is exposed externally via default Route
-      resource
     name: Exposed
     type: boolean
   - JSONPath: .status.conditions[?(@.type=='Reconciled')].status
