@@ -5,14 +5,31 @@ metadata:
 spec:
   additionalPrinterColumns:
   - JSONPath: .spec.applicationImage
+    description: Absolute name of the deployed image containing registry and tag
     name: Image
     type: string
-  - JSONPath: .spec.service.port
-    name: Port
-    type: integer
   - JSONPath: .spec.expose
+    description: Specifies whether deployment is exposed externally via default Route
     name: Exposed
     type: boolean
+  - JSONPath: .status.conditions[?(@.type=='Reconciled')].status
+    description: Status of the reconcile condition
+    name: Reconciled
+    type: string
+  - JSONPath: .status.conditions[?(@.type=='Reconciled')].reason
+    description: Reason for the failure of reconcile condition
+    name: Reason
+    priority: 1
+    type: string
+  - JSONPath: .status.conditions[?(@.type=='Reconciled')].message
+    description: Failure message from reconcile condition
+    name: Message
+    priority: 1
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    description: Age of the resource
+    name: Age
+    type: date
   group: appsody.dev
   names:
     kind: AppsodyApplication
