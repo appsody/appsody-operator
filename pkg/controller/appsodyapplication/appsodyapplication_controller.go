@@ -169,6 +169,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
+	if instance.Generation == 1 {
+		return reconcile.Result{Requeue: true}, nil
+	}
+
 	defaultMeta := metav1.ObjectMeta{
 		Name:      instance.Name,
 		Namespace: instance.Namespace,
@@ -212,6 +216,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			&appsv1.Deployment{ObjectMeta: defaultMeta},
 			&appsv1.StatefulSet{ObjectMeta: defaultMeta},
 			&routev1.Route{ObjectMeta: defaultMeta},
+			&autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta},
 		}
 		err = r.DeleteResources(resources)
 		if err != nil {
