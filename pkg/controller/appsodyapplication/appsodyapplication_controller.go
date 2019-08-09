@@ -260,37 +260,37 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete Deployment")
 			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-		} else {
-			svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
-			err = r.CreateOrUpdate(svc, instance, func() error {
-				appsodyutils.CustomizeService(svc, instance)
-				svc.Spec.ClusterIP = corev1.ClusterIPNone
-				svc.Spec.Type = corev1.ServiceTypeClusterIP
-				return nil
-			})
-			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile headless Service")
-				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-			}
-
-			statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
-			err = r.CreateOrUpdate(statefulSet, instance, func() error {
-				statefulSet.Spec.Replicas = instance.Spec.Replicas
-				statefulSet.Spec.ServiceName = instance.Name + "-headless"
-				statefulSet.Spec.Selector = &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app.kubernetes.io/name": instance.Name,
-					},
-				}
-				appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
-				appsodyutils.CustomizePersistence(statefulSet, instance)
-				return nil
-			})
-			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile StatefulSet")
-				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-			}
 		}
+		svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
+		err = r.CreateOrUpdate(svc, instance, func() error {
+			appsodyutils.CustomizeService(svc, instance)
+			svc.Spec.ClusterIP = corev1.ClusterIPNone
+			svc.Spec.Type = corev1.ServiceTypeClusterIP
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile headless Service")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+
+		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(statefulSet, instance, func() error {
+			statefulSet.Spec.Replicas = instance.Spec.Replicas
+			statefulSet.Spec.ServiceName = instance.Name + "-headless"
+			statefulSet.Spec.Selector = &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": instance.Name,
+				},
+			}
+			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
+			appsodyutils.CustomizePersistence(statefulSet, instance)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile StatefulSet")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+
 	} else {
 		// Delete StatefulSet if exists
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
@@ -307,22 +307,21 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete headless Service")
 			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-		} else {
-			deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
-			err = r.CreateOrUpdate(deploy, instance, func() error {
-				deploy.Spec.Replicas = instance.Spec.Replicas
-				deploy.Spec.Selector = &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app.kubernetes.io/name": instance.Name,
-					},
-				}
-				appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
-				return nil
-			})
-			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile Deployment")
-				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(deploy, instance, func() error {
+			deploy.Spec.Replicas = instance.Spec.Replicas
+			deploy.Spec.Selector = &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": instance.Name,
+				},
 			}
+			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile Deployment")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
 	}
 
