@@ -1,0 +1,40 @@
+apiVersion: appsody.dev/v1alpha1
+kind: AppsodyApplication
+metadata:
+  name: demo-appsodyapplication
+spec:
+  applicationImage: docker-registry.default.svc:5000/demo/appsody-app:1.0.0
+  stack: java-microprofile
+  env:
+    - name: "dbUrl"
+      value: "http://couchdb-svc-couchdb:5984"
+    - name: dbUsername
+      valueFrom:
+        secretKeyRef:
+          name: couchdb-couchdb
+          key: adminUsername
+    - name: dbPassword
+      valueFrom:
+        secretKeyRef:
+          name: couchdb-couchdb
+          key: adminPassword
+  architecture:
+    - amd64
+  expose: true
+  resourceConstraints:
+    limits:
+      memory: 512Mi
+      cpu: 2
+    requests:
+      cpu: 0.5
+  readinessProbe:
+    failureThreshold: 12
+    httpGet:
+      path: /health
+      port: 9080
+    initialDelaySeconds: 5
+    periodSeconds: 2
+  autoscaling:
+    targetCPUUtilizationPercentage: 50
+    minReplicas: 2
+    maxReplicas: 4
