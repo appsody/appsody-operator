@@ -91,6 +91,17 @@ metadata:
   name: appsody-operator
 ---
 apiVersion: v1
+data:
+  java-microprofile: ""
+  java-spring-boot2: ""
+  nodejs: ""
+  nodejs-express: ""
+  swift: ""
+kind: ConfigMap
+metadata:
+  name: appsody-operator-constants
+---
+apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: appsody-operator
