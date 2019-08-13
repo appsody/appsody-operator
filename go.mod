@@ -9,7 +9,7 @@ require (
 	github.com/emicklei/go-restful v2.8.1+incompatible // indirect
 	github.com/go-logr/logr v0.1.0 // indirect
 	github.com/go-logr/zapr v0.1.0 // indirect
-	github.com/go-openapi/spec v0.18.0
+	github.com/go-openapi/spec v0.18.0 // indirect
 	github.com/golang/groupcache v0.0.0-20180924190550-6f2cf27854a4 // indirect
 	github.com/golang/mock v1.2.0 // indirect
 	github.com/google/btree v0.0.0-20180813153112-4030bb1f1f0c // indirect
@@ -44,6 +44,7 @@ require (
 	sigs.k8s.io/controller-runtime v0.1.10
 	sigs.k8s.io/controller-tools v0.1.10
 	sigs.k8s.io/testing_frameworks v0.1.0 // indirect
+	sigs.k8s.io/yaml v1.1.0
 )
 
 // Pinned to kubernetes-1.13.1
