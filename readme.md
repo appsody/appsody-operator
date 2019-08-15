@@ -5,16 +5,15 @@
 
 The Appsody Application Operator has been designed to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) clusters.  The goal of this project is to iterative grow the operator's set of day-2 capabilities.  If there's an certain functionality you would like to see or a bug you would like to report, please use our [issues tab](https://github.com/appsody/appsody-operator/issues) to get in contact with us.
 
+Check out our [demo](demo/README.md) page!
+
 ## Operator Installation
 
 You can install the Appsody Application Operator via a single `kubectl` command or assisted by the [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager).
 
 ### Direct installation
 
-Run the following command to install the operator:  
-
-* `kubectl apply -f <URL>`
-
+Use the instructions for one of the [releases](https://github.com/appsody/appsody-operator/tree/master/deploy/releases) to directly install this Operator into a Kubernetes cluster.
 
 ### OLM-assisted installation
 
@@ -25,7 +24,7 @@ Run the following command to install the operator:
 
 ## Overview
 
-The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`.   
+The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`.
 
 ![Operator Architecture](architecture.png)
 

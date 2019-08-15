@@ -252,7 +252,7 @@ golang.org/x/text/unicode/norm
 golang.org/x/text/secure/bidirule
 golang.org/x/text/unicode/bidi
 golang.org/x/text/width
-# golang.org/x/time v0.0.0-20190308202827-9d24e82272b4
+# golang.org/x/time v0.0.0-20180412165947-fbb02b2291d2
 golang.org/x/time/rate
 # golang.org/x/tools v0.0.0-20190312170243-e65039ee4138
 golang.org/x/tools/imports
@@ -410,7 +410,6 @@ k8s.io/client-go/plugin/pkg/client/auth
 k8s.io/client-go/discovery
 k8s.io/client-go/rest
 k8s.io/client-go/tools/record
-k8s.io/client-go/kubernetes
 k8s.io/client-go/restmapper
 k8s.io/client-go/plugin/pkg/client/auth/azure
 k8s.io/client-go/plugin/pkg/client/auth/gcp
@@ -435,6 +434,22 @@ k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/tools/reference
 k8s.io/client-go/dynamic
 k8s.io/client-go/discovery/cached
+k8s.io/client-go/util/jsonpath
+k8s.io/client-go/tools/auth
+k8s.io/client-go/tools/clientcmd/api/latest
+k8s.io/client-go/util/homedir
+k8s.io/client-go/kubernetes/typed/core/v1
+k8s.io/client-go/kubernetes
+k8s.io/client-go/tools/pager
+k8s.io/client-go/util/buffer
+k8s.io/client-go/util/retry
+k8s.io/client-go/pkg/apis/clientauthentication
+k8s.io/client-go/pkg/apis/clientauthentication/v1alpha1
+k8s.io/client-go/pkg/apis/clientauthentication/v1beta1
+k8s.io/client-go/util/connrotation
+k8s.io/client-go/util/integer
+k8s.io/client-go/third_party/forked/golang/template
+k8s.io/client-go/tools/clientcmd/api/v1
 k8s.io/client-go/kubernetes/typed/admissionregistration/v1alpha1
 k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1
 k8s.io/client-go/kubernetes/typed/apps/v1

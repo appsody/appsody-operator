@@ -2,7 +2,6 @@ package appsodyapplication
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -25,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+	"sigs.k8s.io/yaml"
 )
 
 var log = logf.Log.WithName("controller_appsodyapplication")
@@ -110,7 +110,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 			for stack, values := range configMap.Data {
 				var defaults appsodyv1alpha1.AppsodyApplicationSpec
-				unerr := json.Unmarshal([]byte(values), &defaults)
+				unerr := yaml.Unmarshal([]byte(values), &defaults)
 				if unerr != nil {
 					reqLogger.Error(unerr, "Failed to parse config map defaults")
 				} else {
@@ -125,7 +125,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 			for stack, values := range configMap.Data {
 				var constants appsodyv1alpha1.AppsodyApplicationSpec
-				unerr := json.Unmarshal([]byte(values), &constants)
+				unerr := yaml.Unmarshal([]byte(values), &constants)
 				if unerr != nil {
 					reqLogger.Error(unerr, "Failed to parse config map constants")
 				} else {
@@ -167,6 +167,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if err != nil {
 		reqLogger.Error(err, "Error updating AppsodyApplication")
 		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+	}
+
+	if instance.Generation == 1 {
+		return reconcile.Result{Requeue: true}, nil
 	}
 
 	defaultMeta := metav1.ObjectMeta{
@@ -212,6 +216,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			&appsv1.Deployment{ObjectMeta: defaultMeta},
 			&appsv1.StatefulSet{ObjectMeta: defaultMeta},
 			&routev1.Route{ObjectMeta: defaultMeta},
+			&autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta},
 		}
 		err = r.DeleteResources(resources)
 		if err != nil {
