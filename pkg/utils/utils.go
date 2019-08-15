@@ -20,6 +20,7 @@ func GetLabels(cr *appsodyv1alpha1.AppsodyApplication) map[string]string {
 	labels := map[string]string{
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
+		"app.appsody.dev/stack":        cr.Spec.Stack,
 	}
 	return labels
 }

@@ -49,6 +49,8 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
+
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
