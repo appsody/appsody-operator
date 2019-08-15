@@ -245,6 +245,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
 		appsodyutils.CustomizeService(svc, instance)
+		svc.Annotations = instance.Spec.Service.Annotations
 		return nil
 	})
 	if err != nil {

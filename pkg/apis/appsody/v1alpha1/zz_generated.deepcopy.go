@@ -104,6 +104,13 @@ func (in *AppsodyApplicationService) DeepCopyInto(out *AppsodyApplicationService
 		*out = new(v1.ServiceType)
 		**out = **in
 	}
+	if in.Annotations != nil {
+		in, out := &in.Annotations, &out.Annotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	return
 }
 
