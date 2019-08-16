@@ -88,4 +88,4 @@ data:
       type: ClusterIP
 kind: ConfigMap
 metadata:
-  name: appsody-operator
+  name: appsody-operator-defaults
