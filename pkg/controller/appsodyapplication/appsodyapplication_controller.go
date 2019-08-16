@@ -3,7 +3,11 @@ package appsodyapplication
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
+
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
@@ -42,8 +46,58 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
+	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
 		StackDefaults: map[string]appsodyv1alpha1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}}
+
+	ns, err := k8sutil.GetOperatorNamespace()
+	if ns == "" {
+		ns, err = k8sutil.GetWatchNamespace()
+		if err != nil {
+			log.Error(err, "Failed to find a namespace for operator config maps")
+			os.Exit(1)
+		}
+
+	}
+
+	fData, err := ioutil.ReadFile("deploy/stack_defaults.yaml")
+	if err != nil {
+		log.Error(err, "Failed to read defaults config map from file")
+		os.Exit(1)
+	}
+
+	configMap := &corev1.ConfigMap{}
+	err = yaml.Unmarshal(fData, configMap)
+	if err != nil {
+		log.Error(err, "Failed to parse defaults config map from file")
+		os.Exit(1)
+	}
+	configMap.Namespace = ns
+	err = reconciler.GetClient().Create(context.TODO(), configMap)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		log.Error(err, "Failed to create defaults config map in the cluster")
+		os.Exit(1)
+	}
+
+	fData, err = ioutil.ReadFile("deploy/stack_constants.yaml")
+	if err != nil {
+		log.Error(err, "Failed to read constants config map from file")
+		os.Exit(1)
+	}
+
+	configMap = &corev1.ConfigMap{}
+	err = yaml.Unmarshal(fData, configMap)
+	if err != nil {
+		log.Error(err, "Failed to parse constants config map from file")
+		os.Exit(1)
+	}
+	configMap.Namespace = ns
+	err = reconciler.GetClient().Create(context.TODO(), configMap)
+	if err != nil && !errors.IsAlreadyExists(err) {
+		log.Error(err, "Failed to create constants config map in the cluster")
+		os.Exit(1)
+	}
+
+	return reconciler
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -261,37 +315,37 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete Deployment")
 			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-		} else {
-			svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
-			err = r.CreateOrUpdate(svc, instance, func() error {
-				appsodyutils.CustomizeService(svc, instance)
-				svc.Spec.ClusterIP = corev1.ClusterIPNone
-				svc.Spec.Type = corev1.ServiceTypeClusterIP
-				return nil
-			})
-			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile headless Service")
-				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-			}
-
-			statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
-			err = r.CreateOrUpdate(statefulSet, instance, func() error {
-				statefulSet.Spec.Replicas = instance.Spec.Replicas
-				statefulSet.Spec.ServiceName = instance.Name + "-headless"
-				statefulSet.Spec.Selector = &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app.kubernetes.io/name": instance.Name,
-					},
-				}
-				appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
-				appsodyutils.CustomizePersistence(statefulSet, instance)
-				return nil
-			})
-			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile StatefulSet")
-				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-			}
 		}
+		svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
+		err = r.CreateOrUpdate(svc, instance, func() error {
+			appsodyutils.CustomizeService(svc, instance)
+			svc.Spec.ClusterIP = corev1.ClusterIPNone
+			svc.Spec.Type = corev1.ServiceTypeClusterIP
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile headless Service")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+
+		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(statefulSet, instance, func() error {
+			statefulSet.Spec.Replicas = instance.Spec.Replicas
+			statefulSet.Spec.ServiceName = instance.Name + "-headless"
+			statefulSet.Spec.Selector = &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": instance.Name,
+				},
+			}
+			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
+			appsodyutils.CustomizePersistence(statefulSet, instance)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile StatefulSet")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+
 	} else {
 		// Delete StatefulSet if exists
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
@@ -308,23 +362,23 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete headless Service")
 			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-		} else {
-			deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
-			err = r.CreateOrUpdate(deploy, instance, func() error {
-				deploy.Spec.Replicas = instance.Spec.Replicas
-				deploy.Spec.Selector = &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app.kubernetes.io/name": instance.Name,
-					},
-				}
-				appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
-				return nil
-			})
-			if err != nil {
-				reqLogger.Error(err, "Failed to reconcile Deployment")
-				return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
-			}
 		}
+		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(deploy, instance, func() error {
+			deploy.Spec.Replicas = instance.Spec.Replicas
+			deploy.Spec.Selector = &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"app.kubernetes.io/name": instance.Name,
+				},
+			}
+			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile Deployment")
+			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
+		}
+
 	}
 
 	if instance.Spec.Autoscaling != nil {

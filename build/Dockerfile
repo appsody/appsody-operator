@@ -6,7 +6,8 @@ ENV OPERATOR=/usr/local/bin/appsody-operator \
 
 # install operator binary
 COPY build/_output/bin/appsody-operator ${OPERATOR}
-
+COPY deploy/stack_defaults.yaml deploy/
+COPY deploy/stack_constants.yaml deploy/
 COPY build/bin /usr/local/bin
 RUN  /usr/local/bin/user_setup
 
