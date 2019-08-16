@@ -24,13 +24,6 @@ rules:
   - daemonsets
   - replicasets
   - statefulsets
-  - apiGroups:
-  - apps
-  resources:
-  - deployments
-  - daemonsets
-  - replicasets
-  - statefulsets
   verbs:
   - '*'
 - apiGroups:

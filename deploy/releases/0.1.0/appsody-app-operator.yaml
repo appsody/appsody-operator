@@ -167,14 +167,14 @@ rules:
   resources:
   - routes
   verbs:
-  - '*'  
+  - '*'
 - apiGroups:
   - serving.knative.dev
   attributeRestrictions: null
   resources:
   - services
   verbs:
-  - '*'  
+  - '*'
 ---
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
