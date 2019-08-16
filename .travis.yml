@@ -35,6 +35,6 @@ jobs:
    - name: e2e test
      stage: test
      script: 
-     - chmod ugo+x scripts/test_e2e.sh
+     - chmod ugo+x test_e2e.sh
      - ./test_e2e.sh
 
