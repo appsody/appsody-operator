@@ -67,8 +67,8 @@ The required fields are `applicationImage` and `stack`.
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates preference. |
 | `service.port` | The port exposed by the container. |
-| `service.type` | |The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
-| `service.annotations` | | Annotations to be added to the service. |
+| `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
+| `service.annotations` | Annotations to be added to the service. |
 | `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
 | `expose`   | A boolean that toggles the external exposure of this deployment via a Route resource.|
 | `replicas` | The static number of desired replica pods that run simultaneously. |
