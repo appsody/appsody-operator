@@ -22,6 +22,7 @@ install:
   - tar xvf openshift-origin-client-tools*.tar.gz
   - cd openshift-origin-client*/
   - sudo mv  oc kubectl   /usr/local/bin/
+  - cd ..
 
 # before_script: 
 #   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
