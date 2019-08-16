@@ -85,6 +85,6 @@ The required fields are `applicationImage` and `stack`.
 | `livenessProbe` | A YAML object configuring the [Kubernetes liveness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-a-liveness-http-request) that controls when Kubernetes needs to restart the pod.|
 | `volumes` | A YAML object representing a [pod volume](https://kubernetes.io/docs/concepts/storage/volumes). |
 | `volumeMounts` | A YAML object representing a [pod volumeMount](https://kubernetes.io/docs/concepts/storage/volumes/). |
-| `storage.size` | A convenience field to set the size of the persisted storage. Can be overriden by the `storage.volumeClaimTemplate` property. |
+| `storage.size` | A convenient field to set the size of the persisted storage. Can be overriden by the `storage.volumeClaimTemplate` property. |
 | `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
