@@ -9,6 +9,7 @@ import (
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,52 +27,45 @@ import (
 )
 
 var (
-	serviceType                = corev1.ServiceTypeClusterIP
-	pullPolicy                 = corev1.PullAlways
 	name                       = "app"
 	namespace                  = "appsody"
+	status                     = appsodyv1alpha1.AppsodyApplicationStatus{Conditions: []appsodyv1alpha1.StatusCondition{{Status: corev1.ConditionTrue}}}
 	appImage                   = "my-image"
+	ksvcAppImage               = "ksvc-image"
 	replicas             int32 = 3
+	autoscaling                = &appsodyv1alpha1.AppsodyApplicationAutoScaling{MaxReplicas: 3}
+	pullPolicy                 = corev1.PullAlways
+	serviceType                = corev1.ServiceTypeClusterIP
+	service                    = &appsodyv1alpha1.AppsodyApplicationService{Type: &serviceType, Port: 8443}
+	genService                 = &appsodyv1alpha1.AppsodyApplicationService{Type: &serviceType, Port: 9080}
+	expose                     = true
 	serviceAccountName         = "service-account"
+	volumeCT                   = &corev1.PersistentVolumeClaim{TypeMeta: metav1.TypeMeta{Kind: "StatefulSet"}}
+	storage                    = appsodyv1alpha1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: volumeCT}
 	createKnativeService       = true
-	pullSecret                 = "pass"
-	service                    = appsodyv1alpha1.AppsodyApplicationService{
-		Type: &serviceType,
-		Port: 8443,
-	}
-	storage appsodyv1alpha1.AppsodyApplicationStorage = appsodyv1alpha1.AppsodyApplicationStorage{
-		Size:      "10Mi",
-		MountPath: "/mnt/data",
-		VolumeClaimTemplate: &corev1.PersistentVolumeClaim{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "StatefulSet",
-			},
-		},
-	}
-	expose = true
-	stack  = "microprofile"
+	stack                      = "java-microprofile"
+	genStack                   = "generic"
+	statefulSetSN              = name + "-headless"
+	defaultKSVCName            = "user-container"
 )
 
+type Test struct {
+	test     string
+	expected interface{}
+	actual   interface{}
+}
+
 func TestAppsodyController(t *testing.T) {
-	// set the logger to development mode for verbose logs
+	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
 
-	appsody := &appsodyv1alpha1.AppsodyApplication{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: appsodyv1alpha1.AppsodyApplicationSpec{
-			Stack: stack,
-		},
-	}
+	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack}
+	appsody := createAppsodyApp(name, namespace, spec)
 
-	// objects to track in the fake client
-	objs := []runtime.Object{appsody}
+	// Set objects to track in the fake client and register operator types with the runtime scheme.
+	objs, s := []runtime.Object{appsody}, scheme.Scheme
 
-	// Register operator types with the runtime scheme.
-	s := scheme.Scheme
-
+	// Add third party resrouces to scheme
 	if err := servingv1alpha1.AddToScheme(s); err != nil {
 		t.Fatalf("Unable to add servingv1alpha1 scheme: (%v)", err)
 	}
@@ -85,225 +79,294 @@ func TestAppsodyController(t *testing.T) {
 	// Create a fake client to mock API calls.
 	cl := fakeclient.NewFakeClient(objs...)
 
-	m := make(map[string]appsodyv1alpha1.AppsodyApplicationSpec)
-	m[stack] = appsodyv1alpha1.AppsodyApplicationSpec{
-		ServiceAccountName: &serviceAccountName,
-		Service:            &service,
+	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
+	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{
+		stack:    {ServiceAccountName: &serviceAccountName, Service: service},
+		genStack: {Service: genService},
 	}
+	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
 
-	cMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
-
-	// Create a ReconcileAppsodyApplication object with the scheme and fake client.
-	r := &ReconcileAppsodyApplication{
-		appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10)),
-		m, cMap,
-	}
-
+	// Create a ReconcileAppsodyApplication object
+	r := &ReconcileAppsodyApplication{rb, defaultsMap, constantsMap}
 	r.SetDiscoveryClient(createFakeDiscoveryClient())
 
-	// Mock request to simulate Reconcile() being called on an event for a
-	// watched resource
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      name,
-			Namespace: namespace,
-		},
-	}
-
-	_, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	// Check the result of reconciliation to make sure it has the desired state.
-	// if !res.Requeue {
-	// 	t.Error("reconcile did not requeue request as expected")
-	// }
+	// Mock request to simulate Reconcile being called on an event for a watched resource
+	// then ensure reconcile is successful and does not return an empty result
+	req := createReconcileRequest(name, namespace)
+	res, err := r.Reconcile(req)
+	verifyReconcile(res, err, t)
 
 	// Check if deployment has been created
 	dep := &appsv1.Deployment{}
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, dep); err != nil {
-		t.Fatalf("get deployment: (%v)", err)
+		t.Fatalf("Get Deployment: (%v)", err)
 	}
 
-	// Check if service name is assigned in deployment
-	sa := dep.Spec.Template.Spec.ServiceAccountName
-	if sa != serviceAccountName {
-		t.Errorf("Service account name (%v) was not expected service account name (%s)", sa, serviceAccountName)
+	// Check updated values in deployment
+	depTests := []Test{
+		{"service account name", serviceAccountName, dep.Spec.Template.Spec.ServiceAccountName},
 	}
+	verifyTests("dep", depTests, t)
 
-	// Update appsody with values for statefulset
-	appsody.Spec.Storage = &storage
-	appsody.Spec.Replicas = &replicas
-	appsody.Spec.ApplicationImage = appImage
-	appsody.Spec.PullSecret = &pullSecret
-	if err = r.GetClient().Update(context.TODO(), appsody); err != nil {
-		t.Fatalf("Update appsody: (%v)", err)
-	}
-
+	// Update appsody with values for StatefulSet
 	// Update ServiceAccountName for empty case
 	*r.StackDefaults[stack].ServiceAccountName = ""
+	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{
+		Stack:            stack,
+		Storage:          &storage,
+		Replicas:         &replicas,
+		ApplicationImage: appImage,
+	}
+	updateAppsody(r, appsody, t)
 
+	// Reconcile again to check for the StatefulSet and updated resources
+	res, err = r.Reconcile(req)
+	verifyReconcile(res, err, t)
+
+	// Check if StatefulSet has been created
 	statefulSet := &appsv1.StatefulSet{}
-	if err = r.GetClient().Create(context.TODO(), statefulSet); err != nil {
-		t.Fatalf("create StatefulSet: (%v)", err)
-	}
-
-	// reconcile again to check for the StatefulSet and updates resources
-	res, err := r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	if res != (reconcile.Result{}) {
-		t.Errorf("reconcile did not return an empty result")
-	}
-
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, statefulSet); err != nil {
-		t.Fatalf("get StatefulSet: (%v)", err)
+		t.Fatalf("Get StatefulSet: (%v)", err)
 	}
 
-	// make sure deployment gets deleted since storage is now enabled
+	// Storage is enabled so the deployment should be deleted
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, dep); err == nil {
-		t.Fatalf("deployment was not deleted")
+		t.Fatalf("Deployment was not deleted")
 	}
 
-	// Updated values in StatefulSet
-	size := *statefulSet.Spec.Replicas
-	image := statefulSet.Spec.Template.Spec.Containers[0].Image
-	serviceName := statefulSet.Spec.ServiceName
-	sa = statefulSet.Spec.Template.Spec.ServiceAccountName // should be equal to name
-	// use updated name to agree with how reconcile will update
-	newName := name + "-headless"
-
-	if size != replicas {
-		t.Errorf("Service account name (%v) was not expected service account name (%d)", size, replicas)
+	// Check updated values in StatefulSet
+	ssTests := []Test{
+		{"replicas", replicas, *statefulSet.Spec.Replicas},
+		{"service image name", appImage, statefulSet.Spec.Template.Spec.Containers[0].Image},
+		{"pull policy", name, statefulSet.Spec.Template.Spec.ServiceAccountName},
+		{"service account name", statefulSetSN, statefulSet.Spec.ServiceName},
 	}
+	verifyTests("statefulSet", ssTests, t)
 
-	if image != appImage {
-		t.Errorf("StatefulSet application image (%v) is not the expected application image (%s)", image, appImage)
+	// Enable CreateKnativeService
+	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{
+		Stack:                stack,
+		CreateKnativeService: &createKnativeService,
+		PullPolicy:           &pullPolicy,
+		ApplicationImage:     ksvcAppImage,
 	}
+	updateAppsody(r, appsody, t)
 
-	// check the value is correct when ServiceAccountName is the empty string
-	if sa != name {
-		t.Errorf("Service account name (%v) was not expected service account name (%s)", sa, name)
-	}
+	// Reconcile again to check for the KNativeService and updated resources
+	res, err = r.Reconcile(req)
+	verifyReconcile(res, err, t)
 
-	if serviceName != newName {
-		t.Errorf("ServiceName (%v) was not the expected ServiceName (%s)", serviceName, newName)
-	}
-
-	// enable CreateKnativeService
-	appsody.Spec.CreateKnativeService = &createKnativeService
-	appsody.Spec.PullPolicy = &pullPolicy
-	if err = r.GetClient().Update(context.TODO(), appsody); err != nil {
-		t.Fatalf("Update appsody: (%v)", err)
-	}
-
+	// Create KnativeService
 	ksvc := &servingv1alpha1.Service{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "serving.knative.dev/v1alpha1",
 			Kind:       "Service",
 		},
 	}
-	if err = r.GetClient().Create(context.TODO(), ksvc); err != nil {
-		t.Fatalf("create ksvc: (%v)", err)
-	}
-
-	// reconcile again to check for the kNativeService and updates resources
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	if res != (reconcile.Result{}) {
-		t.Errorf("reconcile did not return an empty result")
-	}
-
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, ksvc); err != nil {
-		t.Fatalf("get StatefulSet: (%v)", err)
+		t.Fatalf("Get KnativeService: (%v)", err)
 	}
 
-	// make sure StatefulSet gets deleted since kNativeService is now enabled
+	// KnativeService is enabled so non-Knative resources should be deleted
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, statefulSet); err == nil {
 		t.Fatalf("StatefulSet was not deleted")
 	}
 
-	dName := "user-container"
-	ksvcName := ksvc.Spec.Template.Spec.Containers[0].Name
-	ksvcImage := ksvc.Spec.Template.Spec.Containers[0].Image
-	ksvcPP := ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy
-	ksvcServiceAccountName := ksvc.Spec.Template.Spec.ServiceAccountName
+	// Check updated values in KnativeService
+	ksvcTests := []Test{
+		{"service name", defaultKSVCName, ksvc.Spec.Template.Spec.Containers[0].Name},
+		{"service image name", ksvcAppImage, ksvc.Spec.Template.Spec.Containers[0].Image},
+		{"pull policy", pullPolicy, ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy},
+		{"service account name", name, ksvc.Spec.Template.Spec.ServiceAccountName},
+	}
+	verifyTests("ksvc", ksvcTests, t)
 
-	if ksvcName != dName {
-		t.Errorf("knative service name (%v) was not expected (%s)", ksvcName, dName)
-	}
-	if ksvcImage != appImage {
-		t.Errorf("knative service image name (%v) was not expected (%s)", ksvcImage, appImage)
-	}
-	if ksvcPP != pullPolicy {
-		t.Errorf("knative service pull policy (%v) was not expected (%s)", ksvcPP, pullPolicy)
-	}
-	if ksvcServiceAccountName != name {
-		t.Errorf("knative service account name (%v) was not expected (%s)", ksvcServiceAccountName, name)
-	}
+	// Disable Knative and enable Expose to test route
+	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack, Expose: &expose}
+	updateAppsody(r, appsody, t)
 
-	// disable knative to test route
-	disable := false
-	appsody.Spec.CreateKnativeService = &disable
-	// enable expose
-	appsody.Spec.Expose = &expose
-	if err = r.GetClient().Update(context.TODO(), appsody); err != nil {
-		t.Fatalf("Update appsody: (%v)", err)
-	}
+	// Reconcile again to check for the route and updated resources
+	res, err = r.Reconcile(req)
+	verifyReconcile(res, err, t)
 
+	// Create Route
 	route := &routev1.Route{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: "route.openshift.io/v1",
-			Kind:       "Route",
-		},
+		TypeMeta: metav1.TypeMeta{APIVersion: "route.openshift.io/v1", Kind: "Route"},
 	}
-	if err = r.GetClient().Create(context.TODO(), route); err != nil {
-		t.Fatalf("create route: (%v)", err)
-	}
-
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
-
-	if res != (reconcile.Result{}) {
-		t.Errorf("reconcile did not return an empty result")
-	}
-
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, route); err != nil {
-		t.Fatalf("get route: (%v)", err)
+		t.Fatalf("Get Route: (%v)", err)
 	}
 
-	routePort := route.Spec.Port.TargetPort
-	if routePort != intstr.FromInt(int(service.Port)) {
-		t.Errorf("RoutePort (%v) is not the port (%d)", routePort, service.Port)
+	// Check updated values in Route
+	routeTests := []Test{{"target port", intstr.FromInt(int(service.Port)), route.Spec.Port.TargetPort}}
+	verifyTests("route", routeTests, t)
+
+	// Disable Route/Expose and enable Autoscaling
+	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{
+		Stack:       stack,
+		Autoscaling: autoscaling,
+	}
+	updateAppsody(r, appsody, t)
+
+	// Reconcile again to check for hpa and updated resources
+	res, err = r.Reconcile(req)
+	verifyReconcile(res, err, t)
+
+	// Create HorizontalPodAutoscaler
+	hpa := &autoscalingv1.HorizontalPodAutoscaler{}
+	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, hpa); err != nil {
+		t.Fatalf("Get HPA: (%v)", err)
 	}
 
-	// disable expose to ensure route becomes deleted
-	appsody.Spec.Expose = &disable
-	if err = r.GetClient().Update(context.TODO(), appsody); err != nil {
-		t.Fatalf("Update appsody: (%v)", err)
+	// Expose is disabled so route should be deleted
+	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, route); err == nil {
+		t.Fatal("Route was not deleted")
 	}
 
-	// reconcile again to check for the kNativeService and updates resources
+	// Check updated values in hpa
+	hpaTests := []Test{{"max replicas", autoscaling.MaxReplicas, hpa.Spec.MaxReplicas}}
+	verifyTests("hpa", hpaTests, t)
+
+	// Remove autoscaling to ensure hpa is deleted
+	// Remove stack: "java-microprofile" from appsody to test "generic" stack
+	appsody.Spec.Autoscaling = nil
+	appsody.Spec.Stack = ""
+	updateAppsody(r, appsody, t)
+
+	res, err = r.Reconcile(req)
+	verifyReconcile(res, err, t)
+
+	// Autoscaling is disabled so hpa should be deleted
+	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, hpa); err == nil {
+		t.Fatal("hpa was not deleted")
+	}
+
+	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, appsody); err != nil {
+		t.Fatalf("Get appsody: (%v)", err)
+	}
+
+	// Check updated values in appsody
+	genStackTests := []Test{{"service port", genService.Port, appsody.Spec.Service.Port}}
+	verifyTests("generic stack", genStackTests, t)
+
+	// Update appsody to ensure it requeues
+	appsody.SetGeneration(1)
+	updateAppsody(r, appsody, t)
+
 	res, err = r.Reconcile(req)
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
 
-	if res != (reconcile.Result{}) {
-		t.Errorf("reconcile did not return an empty result")
+	if !res.Requeue {
+		t.Error("reconcile did not requeue request as expected")
+	}
+}
+
+func TestConfigMapDefaults(t *testing.T) {
+	logf.SetLogger(logf.ZapLogger(true))
+
+	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack, Service: service}
+	appsody := createAppsodyApp(name, namespace, spec)
+
+	objs, s := []runtime.Object{appsody}, scheme.Scheme
+	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	cl := fakeclient.NewFakeClient(objs...)
+
+	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
+	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
+	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
+
+	r := &ReconcileAppsodyApplication{rb, defaultsMap, constantsMap}
+	r.SetDiscoveryClient(createFakeDiscoveryClient())
+
+	// Create request for defaults case
+	req := createReconcileRequest("appsody-operator", namespace)
+
+	// Create configMap for defaults case
+	data := map[string]string{stack: `{"expose":true}`}
+	configMap := createConfigMap("appsody-operator", namespace, data)
+	if err := r.GetClient().Create(context.TODO(), configMap); err != nil {
+		t.Fatalf("Create configMap: (%v)", err)
 	}
 
-	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, route); err == nil {
-		t.Fatalf("route was not deleted")
+	res, err := r.Reconcile(req)
+	verifyReconcile(res, err, t)
+
+	// Update request name
+	req = createReconcileRequest(name, namespace)
+	res, err = r.Reconcile(req)
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
 	}
+
+	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, appsody); err != nil {
+		t.Fatalf("Get appsody: (%v)", err)
+	}
+
+	// Check updated values in appsody
+	configMapDefTests := []Test{{"expose", true, *appsody.Spec.Expose}}
+	verifyTests("configMapDefaults", configMapDefTests, t)
+}
+
+func TestConfigMapConstants(t *testing.T) {
+	logf.SetLogger(logf.ZapLogger(true))
+
+	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack}
+	appsody := createAppsodyApp(name, namespace, spec)
+
+	objs, s := []runtime.Object{appsody}, scheme.Scheme
+	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	cl := fakeclient.NewFakeClient(objs...)
+
+	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
+	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
+	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
+
+	r := &ReconcileAppsodyApplication{rb, defaultsMap, constantsMap}
+	r.SetDiscoveryClient(createFakeDiscoveryClient())
+
+	// Create request for constants case
+	req := createReconcileRequest("appsody-operator-constants", namespace)
+
+	// Expose enabled and port updated to 3000
+	data := map[string]string{stack: `{"expose":true, "service":{"port": 3000,"type": "ClusterIP"}}`}
+	configMap := createConfigMap("appsody-operator-constants", namespace, data)
+
+	if err := r.GetClient().Create(context.TODO(), configMap); err != nil {
+		t.Fatalf("Create configMap: (%v)", err)
+	}
+
+	res, err := r.Reconcile(req)
+	verifyReconcile(res, err, t)
+
+	// Update reconcile request name
+	req = createReconcileRequest(name, namespace)
+	_, err = r.Reconcile(req)
+
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, appsody); err != nil {
+		t.Fatalf("Get appsody: (%v)", err)
+	}
+
+	configMapConstTests := []Test{
+		{"expose", true, *appsody.Spec.Expose},
+		{"service port", int32(3000), appsody.Spec.Service.Port},
+	}
+	verifyTests("configMapConstants", configMapConstTests, t)
+}
+
+// Helper Functions
+func createAppsodyApp(n, ns string, spec appsodyv1alpha1.AppsodyApplicationSpec) *appsodyv1alpha1.AppsodyApplication {
+	app := &appsodyv1alpha1.AppsodyApplication{
+		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},
+		Spec:       spec,
+		Status:     status,
+	}
+	return app
 }
 
 func createFakeDiscoveryClient() discovery.DiscoveryInterface {
@@ -324,4 +387,43 @@ func createFakeDiscoveryClient() discovery.DiscoveryInterface {
 	}
 
 	return fakeDiscoveryClient
+}
+
+func createReconcileRequest(n, ns string) reconcile.Request {
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{Name: n, Namespace: ns},
+	}
+	return req
+}
+
+func createConfigMap(n, ns string, data map[string]string) *corev1.ConfigMap {
+	app := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},
+		Data:       data,
+	}
+	return app
+}
+
+func verifyReconcile(res reconcile.Result, err error, t *testing.T) {
+	if err != nil {
+		t.Fatalf("reconcile: (%v)", err)
+	}
+
+	if res != (reconcile.Result{}) {
+		t.Errorf("reconcile did not return an empty result (%v)", res)
+	}
+}
+
+func verifyTests(n string, tests []Test, t *testing.T) {
+	for _, tt := range tests {
+		if tt.actual != tt.expected {
+			t.Errorf("%s %s test expected: (%v) actual: (%v)", n, tt.test, tt.expected, tt.actual)
+		}
+	}
+}
+
+func updateAppsody(r *ReconcileAppsodyApplication, appsody *appsodyv1alpha1.AppsodyApplication, t *testing.T) {
+	if err := r.GetClient().Update(context.TODO(), appsody); err != nil {
+		t.Fatalf("Update appsody: (%v)", err)
+	}
 }
