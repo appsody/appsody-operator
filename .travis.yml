@@ -24,10 +24,10 @@ install:
   - sudo mv  oc kubectl   /usr/local/bin/
   - cd ..
 
-# before_script: 
+before_script: 
 #   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-#   - operator-sdk build appsody/application-operator:daily
-#   - go test -v github.com/appsody-operator/pkg/controller/appsodyapplication
+  - operator-sdk build appsody/application-operator:daily
+  - go test -v github.com/appsody-operator/pkg/controller/appsodyapplication
 #   - if [[ $TRAVIS_BRANCH == 'master' ]] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker push appsody/application-operator:daily; fi
 
 jobs:
