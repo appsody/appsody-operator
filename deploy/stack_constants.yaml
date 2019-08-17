@@ -5,6 +5,7 @@ data:
   nodejs: ""
   nodejs-express: ""
   swift: ""
+  generic: ""
 kind: ConfigMap
 metadata:
   name: appsody-operator-constants
