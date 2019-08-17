@@ -4,17 +4,15 @@
 
 You can install the Appsody Application Operator by running the following `kubectl` commands:
 
-```bash
-kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
-kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml
-```
+**Important: In the following commands, make sure you replace  `<SPECIFY_OPERATOR_NAMESPACE_HERE>` and `<SPECIFY_WATCH_NAMESPACE_HERE>` with proper values:**
 
-In above `appsody-app-operator.yaml`, the `WATCH_NAMESPACE` environment variable is set to watch all namespaces in the cluster. If you want to watch a specific namespace, then set that namespace (`jane` for example) as following:
+```console
+$ kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
 
-```yaml
-          env:
-            - name: WATCH_NAMESPACE
-              value: jane
+$ OPERATOR_NAMESPACE=`<SPECIFY_OPERATOR_NAMESPACE_HERE>`
+$ WATCH_NAMESPACE=`<SPECIFY_WATCH_NAMESPACE_HERE>`
+
+$ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml | sed -e 's/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/' -e 's/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/' | kubectl apply -f -
 ```
 
 ## Current Limitations:
