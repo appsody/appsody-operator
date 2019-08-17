@@ -62,10 +62,15 @@ func main() {
 
 	printVersion()
 
+	operatorNamespace, err := k8sutil.GetOperatorNamespace()
 	namespace, err := k8sutil.GetWatchNamespace()
+
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
+	}
+	if namespace != operatorNamespace {
+		namespace = ""
 	}
 
 	// Get a config to talk to the apiserver

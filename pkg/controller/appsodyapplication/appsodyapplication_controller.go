@@ -109,7 +109,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+			ns, _ := k8sutil.GetWatchNamespace()
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (ns == "" || e.MetaOld.GetNamespace() == ns)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			ns, _ := k8sutil.GetWatchNamespace()
+			return ns == "" || e.Meta.GetNamespace() == ns
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			ns, _ := k8sutil.GetWatchNamespace()
+			return ns == "" || e.Meta.GetNamespace() == ns
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			ns, _ := k8sutil.GetWatchNamespace()
+			return ns == "" || e.Meta.GetNamespace() == ns
 		},
 	}
 
@@ -153,7 +166,7 @@ type ReconcileAppsodyApplication struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Name", request.Name)
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling AppsodyApplication")
 
 	ns, err := k8sutil.GetOperatorNamespace()
@@ -165,7 +178,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	configMap, err := r.GetAppsodyOpConfigMap("appsody-operator-defaults", ns)
-	if err == nil {
+	if err != nil {
+		log.Info("Failed to find config map defaults in namespace " + ns)
+	} else {
 		if r.lastDefautsRV != configMap.ResourceVersion {
 			for k := range r.StackDefaults {
 				delete(r.StackDefaults, k)
@@ -184,7 +199,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	configMap, err = r.GetAppsodyOpConfigMap("appsody-operator-constants", ns)
-	if err == nil {
+	if err != nil {
+		log.Info("Failed to find config map constants")
+	} else {
 		if r.lastConstantsRV != configMap.ResourceVersion {
 			for k := range r.StackConstants {
 				delete(r.StackConstants, k)
