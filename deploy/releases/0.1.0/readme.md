@@ -1,24 +1,28 @@
-# Appsody Application Operator
+# Appsody Application Operator v0.1.0
 
 ## Operator Installation
 
-You can install the Appsody Application Operator by running the following `kubectl` commands:
+Install the Appsody Application Operator in your cluster by following these steps:
 
-**Important: In the following commands, make sure you replace  `<SPECIFY_OPERATOR_NAMESPACE_HERE>` and `<SPECIFY_WATCH_NAMESPACE_HERE>` with proper values:**
+**Important: In Step 1, ensure that you replace  `<SPECIFY_OPERATOR_NAMESPACE_HERE>` and `<SPECIFY_WATCH_NAMESPACE_HERE>` with proper values:**
 
-If you want to watch all namespaces in the cluster then set `WATCH_NAMESPACE="''"`.
+1. Set operator namespace and the namespace to watch:
 
-```console
-$ kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
+   - To watch all namespaces in the cluster, set `WATCH_NAMESPACE="''"`
 
-$ OPERATOR_NAMESPACE=`<SPECIFY_OPERATOR_NAMESPACE_HERE>`
-$ WATCH_NAMESPACE=`<SPECIFY_WATCH_NAMESPACE_HERE>`
+    ```console
+    $ OPERATOR_NAMESPACE=`<SPECIFY_OPERATOR_NAMESPACE_HERE>`
+    $ WATCH_NAMESPACE=`<SPECIFY_WATCH_NAMESPACE_HERE>`
+    ```
 
-$ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml | sed -e "s/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/" -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
-```
+2. Install Custom Resource Definition (CRD) and operator:
 
+    ```console
+    $ kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
 
+    $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml | sed -e "s/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/" -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
+    ```
 
-## Current Limitations:
+## Current Limitations
 
 - Knative support is limited. Values specified for `autoscaling`, `resources` and `replicas` parameters would not apply for Knative, when enabled using `createKnativeService` parameter.
