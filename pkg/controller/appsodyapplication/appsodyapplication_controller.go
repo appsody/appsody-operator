@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
@@ -56,7 +55,6 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 			log.Error(err, "Failed to find a namespace for operator config maps")
 			os.Exit(1)
 		}
-
 	}
 
 	fData, err := ioutil.ReadFile("deploy/stack_defaults.yaml")
@@ -111,7 +109,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+			ns, _ := k8sutil.GetWatchNamespace()
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (ns == "" || e.MetaOld.GetNamespace() == ns)
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			ns, _ := k8sutil.GetWatchNamespace()
+			return ns == "" || e.Meta.GetNamespace() == ns
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			ns, _ := k8sutil.GetWatchNamespace()
+			return ns == "" || e.Meta.GetNamespace() == ns
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			ns, _ := k8sutil.GetWatchNamespace()
+			return ns == "" || e.Meta.GetNamespace() == ns
 		},
 	}
 
@@ -121,16 +132,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator"}}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
+	/*
+		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator", Namespace: "default"}}}, &handler.EnqueueRequestForObject{})
+		if err != nil {
+			return err
+		}
 
-	err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
+		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
+		if err != nil {
+			return err
+		}
+	*/
 	return nil
 }
 
@@ -142,8 +154,10 @@ type ReconcileAppsodyApplication struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	appsodyutils.ReconcilerBase
-	StackDefaults  map[string]appsodyv1alpha1.AppsodyApplicationSpec
-	StackConstants map[string]*appsodyv1alpha1.AppsodyApplicationSpec
+	StackDefaults   map[string]appsodyv1alpha1.AppsodyApplicationSpec
+	StackConstants  map[string]*appsodyv1alpha1.AppsodyApplicationSpec
+	lastDefautsRV   string
+	lastConstantsRV string
 }
 
 // Reconcile reads that state of the cluster for a AppsodyApplication object and makes changes based on the state read
@@ -152,13 +166,22 @@ type ReconcileAppsodyApplication struct {
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
 func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Name", request.Name)
+	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling AppsodyApplication")
 
-	if strings.HasPrefix(request.Name, "appsody-operator") {
+	ns, err := k8sutil.GetOperatorNamespace()
+	if ns == "" {
+		ns, err = k8sutil.GetWatchNamespace()
+		if err != nil {
+			log.Error(err, "Failed to find a namespace for operator config maps")
+		}
+	}
 
-		configMap, err := r.GetAppsodyOpConfigMap("appsody-operator", request.Namespace)
-		if err == nil {
+	configMap, err := r.GetAppsodyOpConfigMap("appsody-operator-defaults", ns)
+	if err != nil {
+		log.Info("Failed to find config map defaults in namespace " + ns)
+	} else {
+		if r.lastDefautsRV != configMap.ResourceVersion {
 			for k := range r.StackDefaults {
 				delete(r.StackDefaults, k)
 			}
@@ -172,8 +195,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				}
 			}
 		}
-		configMap, err = r.GetAppsodyOpConfigMap("appsody-operator-constants", request.Namespace)
-		if err == nil {
+		r.lastDefautsRV = configMap.ResourceVersion
+	}
+
+	configMap, err = r.GetAppsodyOpConfigMap("appsody-operator-constants", ns)
+	if err != nil {
+		log.Info("Failed to find config map constants")
+	} else {
+		if r.lastConstantsRV != configMap.ResourceVersion {
 			for k := range r.StackConstants {
 				delete(r.StackConstants, k)
 			}
@@ -187,13 +216,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				}
 			}
 		}
-		return reconcile.Result{}, nil
-
+		r.lastConstantsRV = configMap.ResourceVersion
 	}
 
 	// Fetch the AppsodyApplication instance
 	instance := &appsodyv1alpha1.AppsodyApplication{}
-	err := r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
+	err = r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -206,25 +234,34 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 	stackDefaults, ok := r.StackDefaults[instance.Spec.Stack]
 	if ok {
-		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
-
+		_, ok = r.StackConstants[instance.Spec.Stack]
+		if ok {
+			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+		} else {
+			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants["generic"])
+		}
 	} else {
 		stackDefaults, ok = r.StackDefaults["generic"]
 		if !ok {
-			err = fmt.Errorf("Failed to find stack `%v` in the ConfigMap holding default values", instance.Spec.Stack)
+			err = fmt.Errorf("Failed to find stack neither `%v` nor `generic` in the ConfigMap holding default values", instance.Spec.Stack)
 			return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 		}
-		appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+		_, ok = r.StackConstants[instance.Spec.Stack]
+		if ok {
+			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+		} else {
+			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants["generic"])
+		}
 	}
-
+	currentGen := instance.Generation
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
 		reqLogger.Error(err, "Error updating AppsodyApplication")
 		return r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, instance)
 	}
 
-	if instance.Generation == 1 {
-		return reconcile.Result{Requeue: true}, nil
+	if currentGen == 1 {
+		return reconcile.Result{}, nil
 	}
 
 	defaultMeta := metav1.ObjectMeta{
