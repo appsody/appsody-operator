@@ -2,6 +2,7 @@ package appsodyapplication
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
@@ -87,7 +88,7 @@ func TestAppsodyController(t *testing.T) {
 	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
 
 	// Create a ReconcileAppsodyApplication object
-	r := &ReconcileAppsodyApplication{rb, defaultsMap, constantsMap}
+	r := &ReconcileAppsodyApplication{ReconcilerBase: rb, StackDefaults: defaultsMap, StackConstants: constantsMap}
 	r.SetDiscoveryClient(createFakeDiscoveryClient())
 
 	// Mock request to simulate Reconcile being called on an event for a watched resource
@@ -257,13 +258,10 @@ func TestAppsodyController(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reconcile: (%v)", err)
 	}
-
-	if !res.Requeue {
-		t.Error("reconcile did not requeue request as expected")
-	}
 }
 
 func TestConfigMapDefaults(t *testing.T) {
+	os.Setenv("WATCH_NAMESPACE", namespace)
 	logf.SetLogger(logf.ZapLogger(true))
 
 	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack, Service: service}
@@ -277,28 +275,23 @@ func TestConfigMapDefaults(t *testing.T) {
 	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
 	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
 
-	r := &ReconcileAppsodyApplication{rb, defaultsMap, constantsMap}
+	r := &ReconcileAppsodyApplication{ReconcilerBase: rb, StackDefaults: defaultsMap, StackConstants: constantsMap}
 	r.SetDiscoveryClient(createFakeDiscoveryClient())
 
 	// Create request for defaults case
-	req := createReconcileRequest("appsody-operator", namespace)
+	req := createReconcileRequest(name, namespace)
 
 	// Create configMap for defaults case
 	data := map[string]string{stack: `{"expose":true}`}
-	configMap := createConfigMap("appsody-operator", namespace, data)
+	configMap := createConfigMap("appsody-operator-defaults", namespace, data)
+	// this is necessary so we detect the config map has changed
+	configMap.ResourceVersion = "1245332"
 	if err := r.GetClient().Create(context.TODO(), configMap); err != nil {
 		t.Fatalf("Create configMap: (%v)", err)
 	}
 
 	res, err := r.Reconcile(req)
 	verifyReconcile(res, err, t)
-
-	// Update request name
-	req = createReconcileRequest(name, namespace)
-	res, err = r.Reconcile(req)
-	if err != nil {
-		t.Fatalf("reconcile: (%v)", err)
-	}
 
 	if err = r.GetClient().Get(context.TODO(), req.NamespacedName, appsody); err != nil {
 		t.Fatalf("Get appsody: (%v)", err)
@@ -310,6 +303,7 @@ func TestConfigMapDefaults(t *testing.T) {
 }
 
 func TestConfigMapConstants(t *testing.T) {
+	os.Setenv("WATCH_NAMESPACE", namespace)
 	logf.SetLogger(logf.ZapLogger(true))
 
 	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack}
@@ -323,7 +317,7 @@ func TestConfigMapConstants(t *testing.T) {
 	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
 	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
 
-	r := &ReconcileAppsodyApplication{rb, defaultsMap, constantsMap}
+	r := &ReconcileAppsodyApplication{ReconcilerBase: rb, StackDefaults: defaultsMap, StackConstants: constantsMap}
 	r.SetDiscoveryClient(createFakeDiscoveryClient())
 
 	// Create request for constants case
@@ -332,6 +326,8 @@ func TestConfigMapConstants(t *testing.T) {
 	// Expose enabled and port updated to 3000
 	data := map[string]string{stack: `{"expose":true, "service":{"port": 3000,"type": "ClusterIP"}}`}
 	configMap := createConfigMap("appsody-operator-constants", namespace, data)
+	// this is necessary so we detect the config map has changed
+	configMap.ResourceVersion = "1234567"
 
 	if err := r.GetClient().Create(context.TODO(), configMap); err != nil {
 		t.Fatalf("Create configMap: (%v)", err)

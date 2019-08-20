@@ -102,6 +102,10 @@ spec:
               type: object
             service:
               properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  type: object
                 port:
                   format: int32
                   maximum: 65536

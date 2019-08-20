@@ -1,0 +1,152 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[{"apiVersion":"appsody.dev/v1alpha1","kind":"AppsodyApplication","metadata":{"name":"example-appsodyapplication"},"spec":{"applicationImage":"openliberty/open-liberty:microProfile2-ubi-min","stack":"java-microprofile"}}]'
+    capabilities: Basic Install
+  name: appsody-operator.v0.1.0
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: Describes application deployment
+      displayName: Appsody Application
+      kind: AppsodyApplication
+      name: appsodyapplications.appsody.dev
+      version: v1alpha1
+  description: Appsody Operator allows installation of applications created with Appsody
+    Stacks
+  displayName: Appsody Operator
+  icon:
+  - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1Ni43MSA1MC43NSI+PGRlZnM+PHN0eWxlPi5he2lzb2xhdGlvbjppc29sYXRlO30uYntvcGFjaXR5OjAuODt9LmIsLmV7bWl4LWJsZW5kLW1vZGU6bXVsdGlwbHk7fS5je2ZpbGw6I2VkOGUwMDt9LmR7ZmlsbDojYzQzMDJmO30uZXtmaWxsOiNhZjFmNjQ7b3BhY2l0eTowLjg1O308L3N0eWxlPjwvZGVmcz48dGl0bGU+QXNzZXQgMjwvdGl0bGU+PGcgY2xhc3M9ImEiPjxnIGNsYXNzPSJiIj48cGF0aCBjbGFzcz0iYyIgZD0iTTI1Ljg4LjI4Yy0yLjUtLjgxLTUuNTguMTQtOC42MywzLjA2TDMuODcsMTYuMTdDLTIuMjIsMjItMSwyOC44MSw2LjYyLDMxLjI3bDE2LjcsNS40MWM3LjYxLDIuNDYsMTIuNi0yLjMyLDExLjA4LTEwLjYyTDMxLjA4LDcuODJjLS43Ni00LjE1LTIuNjktNi43My01LjItNy41NFoiLz48L2c+PGcgY2xhc3M9ImIiPjxwYXRoIGNsYXNzPSJkIiBkPSJNMzcuOTQsMy4xNEExNS43MywxNS43MywwLDAsMCwzMi41NSw0LjZMMTQuNjYsMTIuNzNjLTQuNTcsMi4wNy03LjMxLDUuMjYtNy43Miw5LS4zOSwzLjUyLDEuNDIsNyw1LjA4LDkuNzRsMTUsMTEuMzFhMTIuMjgsMTIuMjgsMCwwLDAsOC4wNiwyLjhjNC43Ny0uMzEsOC4yOS00LjM1LDkuMi0xMC41M2wyLjg0LTE5LjQ0QzQ4LjEyLDksNDUuNTEsNiw0My44Nyw0Ljc1YTguNzksOC43OSwwLDAsMC01LjkzLTEuNjFaIi8+PC9nPjxwYXRoIGNsYXNzPSJlIiBkPSJNMzMuOCw1MC43MWMtMi45My0uMzMtNS41Ny0yLjM5LTcuNDktNS44OEwxNywyNy44Yy0yLjExLTMuODMtMi4zLTcuNDYtLjU0LTEwLjIyczUuMjEtNC4yNiw5Ljc2LTQuMjhsMjAuMjctLjA3YzQuNTYsMCw3LjkxLDEuNSw5LjQyLDQuMjVzMSw2LjM5LTEuNDUsMTAuMjNMNDMuNDksNDQuOGMtMi40NCwzLjgzLTUuNTgsNS45NC04LjgzLDZBNi4xMiw2LjEyLDAsMCwxLDMzLjgsNTAuNzFaIi8+PC9nPjwvc3ZnPg==
+    mediatype: image/svg+xml
+  install:
+    spec:
+      deployments:
+      - name: appsody-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: appsody-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: appsody-operator
+            spec:
+              containers:
+              - command:
+                - appsody-operator
+                env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: appsody-operator
+                image: appsody/application-operator:daily
+                imagePullPolicy: Always
+                name: appsody-operator
+                resources: {}
+              serviceAccountName: appsody-operator
+      permissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          - services
+          - endpoints
+          - persistentvolumeclaims
+          - events
+          - configmaps
+          - secrets
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          - daemonsets
+          - replicasets
+          - statefulsets
+          verbs:
+          - '*'
+        - apiGroups:
+          - autoscaling
+          resources:
+          - horizontalpodautoscalers
+          verbs:
+          - '*'
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - get
+          - create
+        - apiGroups:
+          - apps
+          resourceNames:
+          - appsody-operator
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - appsody.dev
+          resources:
+          - '*'
+          verbs:
+          - '*'
+        - apiGroups:
+          - route.openshift.io
+          resources:
+          - routes
+          verbs:
+          - '*'
+        - apiGroups:
+          - serving.knative.dev
+          resources:
+          - services
+          verbs:
+          - '*'
+        serviceAccountName: appsody-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - Appsody
+  - Application
+  - Node
+  - Swift
+  - MicroProfile
+  - Spring
+  - Java
+  - Runtime
+  maintainers:
+  - email: dzmitry@ca.ibm.com
+    name: Artur Dzmitryieu
+  - email: navidst@ca.ibm.com
+    name: Navid Shakibapour Tabrizi
+  - email: leocj@ca.ibm.com
+    name: Leo Christy Jesuraj
+  - email: arthurdm@ca.ibm.com
+    name: Arthur De Magalhaes
+  maturity: alpha
+  provider:
+    name: IBM
+  version: 0.1.0
