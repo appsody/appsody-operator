@@ -37,5 +37,5 @@ jobs:
      script: 
      - chmod ugo+x test_e2e.sh
      - ./test_e2e.sh
-     - operator-sdk test local github.com/appsody-operator/test/e2e --namespace myproject
+     - operator-sdk test local github.com/appsody-operator/test/e2e
 
