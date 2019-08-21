@@ -16,7 +16,7 @@ Each instance of `AppsodyApplication` CR represents the application to be deploy
 apiVersion: appsody.dev/v1alpha1
 kind: AppsodyApplication
 metadata:
-  name: example-appsody-app
+  name: my-appsody-app
 spec:
   stack: java-microprofile
   applicationImage: quay.io/my-repo/my-app:1.0
@@ -86,17 +86,47 @@ To be added...
 
 ### Knative support
 
-Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a Knative [`Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of the workload.
+Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a [Knative `Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of a workload.
 
-To create Knative `Service`, set `createKnativeService` to `true`. By setting this, the operator creates a Knative `Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
+To create Knative `Service`, set `createKnativeService` to `true`:
+
+```yaml
+apiVersion: appsody.dev/v1alpha1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  createKnativeService: true
+```
+
+By setting this, the operator creates a Knative `Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
 The CRD fields that are used to populate the Knative `Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `architecture`, `pullSecret` and `pullPolicy`.
+
+For more details on how to configure Knative for tasks such as configuring HTTPS connections and setting up a custom domain, checkout [Knative Documentation](https://knative.dev/docs/serving/).
 
 _This feature is only available if you have Knative installed on your cluster._
 
 ### Exposing service externally
 
-To expose your application externally, set `expose` to `true`. By setting this parameter, the operator creates an unsecured route based on your application service. Setting this parameter is the same as running `oc expose service <service-name>`. To create a secured HTTPS route, see [secured routes](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html#secured-routes) for more information.
+To expose your application externally, set `expose` to `true`:
+
+```yaml
+apiVersion: appsody.dev/v1alpha1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  expose: true
+```
+
+By setting this parameter, the operator creates an unsecured route based on your application service. Setting this parameter is the same as running `oc expose service <service-name>`.
+
+To create a secured HTTPS route, see [secured routes](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html#secured-routes) for more information.
 
 _This feature is only available if you are running on OKD or OpenShift._
 
