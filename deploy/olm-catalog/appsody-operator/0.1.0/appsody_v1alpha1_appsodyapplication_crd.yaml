@@ -57,10 +57,8 @@ spec:
         spec:
           properties:
             applicationImage:
-              description: Image to de
               type: string
             architecture:
-              description: Architecture Preferences
               items:
                 type: string
               type: array
@@ -78,7 +76,6 @@ spec:
                   type: integer
               type: object
             createKnativeService:
-              description: Install Knative Service
               type: boolean
             env:
               items:
@@ -93,23 +90,22 @@ spec:
             livenessProbe:
               type: object
             pullPolicy:
-              description: 'The policy used when pulling the image. One of: Always,
-                Never, and IfNotPresent'
               type: string
             pullSecret:
-              description: If using a registry that requires authentication, the name
-                of the secret containing credentials
               type: string
             readinessProbe:
               type: object
             replicas:
-              description: Number of replicas
               format: int32
               type: integer
             resourceConstraints:
               type: object
             service:
               properties:
+                annotations:
+                  additionalProperties:
+                    type: string
+                  type: object
                 port:
                   format: int32
                   maximum: 65536
@@ -121,7 +117,6 @@ spec:
             serviceAccountName:
               type: string
             stack:
-              description: Appsody Stack
               type: string
             storage:
               properties:
@@ -131,8 +126,6 @@ spec:
                   type: string
                 volumeClaimTemplate:
                   type: object
-              required:
-              - mountPath
               type: object
             volumeMounts:
               items:
