@@ -18,7 +18,8 @@ kind: AppsodyApplication
 metadata:
   name: example-appsody-app
 spec:
-  applicationImage: quay.io/arthurdm/myApp:1.0
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
   service:
     type: ClusterIP
     port: 9080
@@ -69,11 +70,19 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 
 ### Basic usage
 
+To be added...
+
 ### Storage requirements
+
+To be added...
 
 ### Defaults and constants `ConfigMap`s
 
+To be added...
+
 ### Installation mode
+
+To be added...
 
 ### Knative support
 
@@ -81,7 +90,7 @@ Appsody Operator can deploy serverless applications with [Knative](https://knati
 
 To create Knative `Service`, set `createKnativeService` to `true`. By setting this, the operator creates a Knative `Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
-The CRD fields that are used to populate the service resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
+The CRD fields that are used to populate the Knative `Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `architecture`, `pullSecret` and `pullPolicy`.
 
 _This feature is only available if you have Knative installed on your cluster._
 
