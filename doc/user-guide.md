@@ -73,16 +73,24 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 
 ### Defaults and constants `ConfigMap`s
 
+### Installation mode
+
 ### Knative support
+
+Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a Knative [`Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of the workload.
+
+To create Knative `Service`, set `createKnativeService` to `true`. By setting this, the operator creates a Knative `Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
+
+The CRD fields that are used to populate the service resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
 
 _This feature is only available if you have Knative installed on your cluster._
 
 ### Exposing service externally
 
-To expose your application externally, you can set `expose` to `true`. Setting this parameter creates a route basec on the application service. Setting this parameter is the same as running `oc expose service <service-name>`.
+To expose your application externally, set `expose` to `true`. By setting this parameter, the operator creates an unsecured route based on your application service. Setting this parameter is the same as running `oc expose service <service-name>`. To create a secured HTTPS route, see [secured routes](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html#secured-routes) for more information.
 
 _This feature is only available if you are running on OKD or OpenShift._
 
 ### Troubleshooting
 
-Refer to [Troubleshooting](troubleshooting.md) for more information.
+Refer to [Troubleshooting guide](troubleshooting.md) for more information.
