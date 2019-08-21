@@ -121,18 +121,21 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, cr *appsodyv1alpha1.A
 		statefulSet.Spec.VolumeClaimTemplates = append(statefulSet.Spec.VolumeClaimTemplates, *pvc)
 	}
 
-	found := false
-	for _, v := range statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts {
-		if v.Name == statefulSet.Spec.VolumeClaimTemplates[0].Name {
-			found = true
+	if cr.Spec.Storage.MountPath != "" {
+		found := false
+		for _, v := range statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts {
+			if v.Name == statefulSet.Spec.VolumeClaimTemplates[0].Name {
+				found = true
+			}
 		}
-	}
-	if !found {
-		vm := corev1.VolumeMount{
-			Name:      statefulSet.Spec.VolumeClaimTemplates[0].Name,
-			MountPath: cr.Spec.Storage.MountPath,
+
+		if !found {
+			vm := corev1.VolumeMount{
+				Name:      statefulSet.Spec.VolumeClaimTemplates[0].Name,
+				MountPath: cr.Spec.Storage.MountPath,
+			}
+			statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts, vm)
 		}
-		statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts, vm)
 	}
 
 }

@@ -126,8 +126,6 @@ spec:
                   type: string
                 volumeClaimTemplate:
                   type: object
-              required:
-              - mountPath
               type: object
             volumeMounts:
               items:

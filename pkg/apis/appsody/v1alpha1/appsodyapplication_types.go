@@ -57,7 +57,7 @@ type AppsodyApplicationService struct {
 // +k8s:openapi-gen=true
 type AppsodyApplicationStorage struct {
 	Size                string                        `json:"size,omitempty"`
-	MountPath           string                        `json:"mountPath"`
+	MountPath           string                        `json:"mountPath,omitempty"`
 	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
 }
 
