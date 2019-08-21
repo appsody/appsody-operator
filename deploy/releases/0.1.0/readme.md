@@ -1,4 +1,4 @@
-# Appsody Application Operator
+# Appsody Application Operator v0.1.0
 
 ## Operator Installation
 
@@ -18,9 +18,9 @@ Install the Appsody Application Operator in your cluster by following these step
 2. Install Custom Resource Definition (CRD) and operator:
 
     ```console
-    $ kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-crd.yaml
+    $ kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
 
-    $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-operator.yaml | sed -e "s/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/" -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
+    $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml | sed -e "s/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/" -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
     ```
 
 ## Current Limitations
