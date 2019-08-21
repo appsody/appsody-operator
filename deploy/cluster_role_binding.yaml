@@ -5,7 +5,7 @@ metadata:
 subjects:
 - kind: ServiceAccount
   name: appsody-operator
-  namespace: champ
+  namespace: APPSODY_OPERATOR_NAMESPACE
 roleRef:
   kind: ClusterRole
   name: appsody-operator

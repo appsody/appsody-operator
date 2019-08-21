@@ -1,3 +1,4 @@
+# Appsody Operator would create this ConfigMap automatically during installation, so you don't have to apply this manually.
 apiVersion: v1
 data:
   java-microprofile: ""
