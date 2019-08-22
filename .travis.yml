@@ -10,6 +10,12 @@ go_import_path: github.com/appsody/appsody-operator
 services:
   - docker
 
+stages:
+  - name: build
+  - name: unit test
+  - name: e2e test
+  # - name: push
+
 install:
   - export RELEASE_VERSION=v0.10.0
   - wget https://github.com/operator-framework/operator-sdk/releases/download/$RELEASE_VERSION/operator-sdk-$RELEASE_VERSION-x86_64-linux-gnu
@@ -24,18 +30,22 @@ install:
   - sudo mv  oc kubectl   /usr/local/bin/
   - cd ..
 
-before_script: 
-#   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  - operator-sdk build appsody/application-operator:daily
-  - go test -v -mod=vendor github.com/appsody-operator/pkg/controller/appsodyapplication
-#   - if [[ $TRAVIS_BRANCH == 'master' ]] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker push appsody/application-operator:daily; fi
-
 jobs:
  include:
-   - name: e2e test
-     stage: test
-     script: 
-     - chmod ugo+x test_e2e.sh
-     - ./test_e2e.sh
-     - operator-sdk test local github.com/appsody-operator/test/e2e
-
+  - name: build
+    stage: build
+    script:
+    - operator-sdk build appsody/application-operator:daily
+  - name: unit test
+    stage: unit test
+    script:
+    - go test -v -mod=vendor github.com/appsody-operator/pkg/controller/appsodyapplication
+  - name: e2e test
+    stage: e2e test
+    script: 
+    - ./travis/test_e2e.sh
+  # - name: push docker image
+  #   stage: push
+  #   script:
+  #   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  #   - if [[ $TRAVIS_BRANCH == 'master' ]] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker push appsody/application-operator:daily; fi
