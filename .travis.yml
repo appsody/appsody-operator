@@ -15,6 +15,7 @@ stages:
   - name: unit test
   - name: e2e test
   - name: push
+    if: $TRAVIS_PULL_REQUEST = "false"
 
 install:
   - export RELEASE_VERSION=v0.10.0
