@@ -88,7 +88,7 @@ To be added...
 
 Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a [Knative `Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of a workload.
 
-To create Knative `Service`, set `createKnativeService` to `true`:
+To create `Knative Service`, set `createKnativeService` to `true`:
 
 ```yaml
 apiVersion: appsody.dev/v1alpha1
@@ -101,11 +101,11 @@ spec:
   createKnativeService: true
 ```
 
-By setting this, the operator creates a Knative `Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
+By setting this parameter, the operator creates a `Knative Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
-The CRD fields that are used to populate the Knative `Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `architecture`, `pullSecret` and `pullPolicy`.
+The CRD fields that are used to populate the `Knative Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `architecture`, `pullSecret` and `pullPolicy`.
 
-For more details on how to configure Knative for tasks such as configuring HTTPS connections and setting up a custom domain, checkout [Knative Documentation](https://knative.dev/docs/serving/).
+For more details on how to configure Knative for tasks such as enabling HTTPS connections and setting up a custom domain, checkout [Knative Documentation](https://knative.dev/docs/serving/).
 
 _This feature is only available if you have Knative installed on your cluster._
 
