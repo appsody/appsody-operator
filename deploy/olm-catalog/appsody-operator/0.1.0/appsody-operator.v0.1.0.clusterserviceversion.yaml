@@ -34,7 +34,7 @@ spec:
         name: ""
       - kind: StatefulSet
         name: ""
-      - Kind: Service
+      - kind: Service
         name: ""
       - kind: Route
         name: ""
@@ -48,9 +48,9 @@ spec:
         - urn:alm:descriptor:com.tectonic.ui:label
       - description: application image to be installed
         displayName: Application Image
+        path: applicationImage
         x-descriptors:
         - urn:alm:descriptor:com.tectonic.ui:text
-        path: applicationImage
       - description: image pull policy for container image
         displayName: Pull Policy
         path: pullPolicy
@@ -75,17 +75,17 @@ spec:
         displayName: Service Port
         path: service.port
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:number'
+        - urn:alm:descriptor:com.tectonic.ui:number
       - description: type to use for kubernetes service
         displayName: Service Type
         path: service.type
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:text'
+        - urn:alm:descriptor:com.tectonic.ui:text
       - description: horizontal pod autoscaling
         displayName: Autoscaling
         path: autoscaling
         x-descriptors:
-        - 'urn:alm:descriptor:com.tectonic.ui:fieldGroup:label'
+        - urn:alm:descriptor:com.tectonic.ui:fieldGroup:label
       statusDescriptors:  
       - description: status conditions
         displayName: Status conditions
