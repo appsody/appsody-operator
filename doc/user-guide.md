@@ -103,7 +103,7 @@ spec:
 
 By setting this parameter, the operator creates a `Knative Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
-The CRD fields that are used to populate the `Knative Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `architecture`, `pullSecret` and `pullPolicy`.
+The CRD fields that are used to populate the `Knative Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
 
 For more details on how to configure Knative for tasks such as enabling HTTPS connections and setting up a custom domain, checkout [Knative Documentation](https://knative.dev/docs/serving/).
 
