@@ -4,7 +4,7 @@ The Appsody Application Operator can be used to deploy applications created by [
 
 ## Operator installation
 
-Use the instructions for one of the [releases](https://github.com/appsody/appsody-operator/tree/master/deploy/releases) to install the operator into a Kubernetes cluster.
+Use the instructions for one of the [releases](../deploy/releases) to install the operator into a Kubernetes cluster.
 
 ## Overview
 
@@ -33,7 +33,7 @@ spec:
 
 ### Custom Resource Definition (CRD)
 
-The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml#L58).
+The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](../deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml).
 
 Each `AppsodyApplication` CR must specify `applicationImage` and `stack` parameters. Specifying other parameters is optional.
 
@@ -67,22 +67,6 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 | `storage.size` | A convenient field to set the size of the persisted storage. Can be overriden by the `storage.volumeClaimTemplate` property. |
 | `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
-
-### Basic usage
-
-To be added...
-
-### Storage requirements
-
-To be added...
-
-### Defaults and constants `ConfigMap`s
-
-To be added...
-
-### Installation mode
-
-To be added...
 
 ### Knative support
 
@@ -132,4 +116,4 @@ _This feature is only available if you are running on OKD or OpenShift._
 
 ### Troubleshooting
 
-Refer to [Troubleshooting guide](troubleshooting.md) for more information.
+See the [troubleshooting guide](troubleshooting.md) for information on how to investigate and resolve deployment problems.
