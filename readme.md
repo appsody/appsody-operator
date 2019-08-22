@@ -3,7 +3,7 @@
 
 # Appsody Application Operator
 
-The Appsody Application Operator has been designed to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) clusters.  The goal of this project is to iteratively grow the operator's set of day-2 capabilities.
+The Appsody Application Operator can be used to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) or [OpenShift](https://www.openshift.com/) clusters.
 
 Check out our [demo](demo/README.md) page!
 
@@ -11,18 +11,9 @@ If there's a certain functionality you would like to see or a bug you would like
 
 ## Operator Installation
 
-You can install the Appsody Application Operator via a single `kubectl` command or assisted by the [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager).
+You can install the Appsody Application Operator directly via `kubectl` commands or assisted by the [Operator Lifecycle Manager](https://github.com/operator-framework/operator-lifecycle-manager).
 
-### Direct installation
-
-Use the instructions for one of the [releases](https://github.com/appsody/appsody-operator/tree/master/deploy/releases) to directly install this Operator into a Kubernetes cluster.
-
-### OLM-assisted installation
-
-*Note:* OLM is labelled as a tech preview for OKD / OpenShift 3.11.  
-
-* install OLM as described in [here](https://github.com/operator-framework/operator-lifecycle-manager/blob/master/Documentation/install/install.md#installing-olm).
-* install the operator via this command:
+Use the instructions for one of the [releases](deploy/releases) to directly install this Operator into a Kubernetes cluster.
 
 ## Overview
 
@@ -30,6 +21,6 @@ The architecture of the Appsody Application Operator follows the basic controlle
 
 ![Operator Architecture](architecture.png)
 
-## User guide
+## Documentation
 
-For more information on how to use the `AppsodyApplication` operator, see [user guide](doc/user-guide.md).
+For information on how to use the `AppsodyApplication` operator, see the [documentation](doc/).
