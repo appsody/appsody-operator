@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
@@ -41,7 +41,7 @@ func AppsodyBasicStorageTest(t *testing.T) {
 	}
 
 	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-storage", namespace, 1)
-	exampleAppsody.Spec.Storage = &appsodyv1alpha1.AppsodyApplicationStorage{
+	exampleAppsody.Spec.Storage = &appsodyv1beta1.AppsodyApplicationStorage{
 		Size:      "10Mi",
 		MountPath: "/mnt/data",
 	}

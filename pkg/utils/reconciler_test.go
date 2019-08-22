@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -29,7 +29,7 @@ var (
 		Name:      "app",
 		Namespace: "appsody",
 	}
-	spec = appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack}
+	spec = appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 )
 
 func TestGetDiscoveryClient(t *testing.T) {
@@ -37,7 +37,7 @@ func TestGetDiscoveryClient(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
@@ -55,7 +55,7 @@ func TestCreateOrUpdate(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
@@ -74,7 +74,7 @@ func TestDeleteResources(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 
@@ -125,7 +125,7 @@ func TestGetAppsodyOpConfigMap(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
@@ -149,12 +149,12 @@ func TestManageError(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 
-	rec, err := r.ManageError(err, appsodyv1alpha1.StatusConditionTypeReconciled, appsody)
+	rec, err := r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, appsody)
 
 	testME := []Test{
 		{"ManageError Requeue", true, rec.Requeue},
@@ -168,11 +168,11 @@ func TestManageSuccess(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 
-	r.ManageSuccess(appsodyv1alpha1.StatusConditionTypeReconciled, appsody)
+	r.ManageSuccess(appsodyv1beta1.StatusConditionTypeReconciled, appsody)
 
 	testMS := []Test{
 		{"ManageSuccess New Condition Status", corev1.ConditionTrue, appsody.Status.Conditions[0].Status},
@@ -185,7 +185,7 @@ func TestIsGroupVersionSupported(t *testing.T) {
 
 	appsody := createAppsodyApp(name, namespace, spec)
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))

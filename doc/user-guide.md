@@ -13,7 +13,7 @@ The architecture of the Appsody Application Operator follows the basic controlle
 Each instance of `AppsodyApplication` CR represents the application to be deployed on the cluster:
 
 ```yaml
-apiVersion: appsody.dev/v1alpha1
+apiVersion: appsody.dev/v1beta1
 kind: AppsodyApplication
 metadata:
   name: my-appsody-app
@@ -33,7 +33,7 @@ spec:
 
 ### Custom Resource Definition (CRD)
 
-The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1alpha1_appsodyapplication_crd.yaml#L58).
+The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](https://github.com/appsody/appsody-operator/blob/master/deploy/crds/appsody_v1beta1_appsodyapplication_crd.yaml#L58).
 
 Each `AppsodyApplication` CR must specify `applicationImage` and `stack` parameters. Specifying other parameters is optional.
 
@@ -91,7 +91,7 @@ Appsody Operator can deploy serverless applications with [Knative](https://knati
 To create `Knative Service`, set `createKnativeService` to `true`:
 
 ```yaml
-apiVersion: appsody.dev/v1alpha1
+apiVersion: appsody.dev/v1beta1
 kind: AppsodyApplication
 metadata:
   name: my-appsody-app
@@ -114,7 +114,7 @@ _This feature is only available if you have Knative installed on your cluster._
 To expose your application externally, set `expose` to `true`:
 
 ```yaml
-apiVersion: appsody.dev/v1alpha1
+apiVersion: appsody.dev/v1beta1
 kind: AppsodyApplication
 metadata:
   name: my-appsody-app

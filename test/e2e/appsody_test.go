@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/appsody-operator/pkg/apis"
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestAppsodyApplication(t *testing.T) {
-	appsodyApplicationList := &appsodyv1alpha1.AppsodyApplicationList{
+	appsodyApplicationList := &appsodyv1beta1.AppsodyApplicationList{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "AppsodyApplication",
 		},
