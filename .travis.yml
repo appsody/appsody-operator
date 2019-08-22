@@ -14,7 +14,7 @@ stages:
   - name: build
   - name: unit test
   - name: e2e test
-  # - name: push
+  - name: push
 
 install:
   - export RELEASE_VERSION=v0.10.0
@@ -44,8 +44,8 @@ jobs:
     stage: e2e test
     script: 
     - ./travis/test_e2e.sh
-  # - name: push docker image
-  #   stage: push
-  #   script:
-  #   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-  #   - if [[ $TRAVIS_BRANCH == 'master' ]] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker push appsody/application-operator:daily; fi
+  - name: push docker image
+    stage: push
+    script:
+    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - if [[ $TRAVIS_BRANCH == 'master' ]] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker push appsody/application-operator:daily; fi
