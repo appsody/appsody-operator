@@ -47,7 +47,7 @@ If the operator is running fine, check the status of the `AppsodyApplication` Cu
   ```console
   $ oc get appsodyapplication my-appsody-app -o yaml
 
-  apiVersion: appsody.dev/v1alpha1
+  apiVersion: appsody.dev/v1beta1
   kind: AppsodyApplication
   ...
   status:

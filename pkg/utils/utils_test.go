@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -25,7 +25,7 @@ var (
 	expose             = true
 	createKNS          = true
 	targetCPUPer int32 = 30
-	autoscaling        = &appsodyv1alpha1.AppsodyApplicationAutoScaling{
+	autoscaling        = &appsodyv1beta1.AppsodyApplicationAutoScaling{
 		TargetCPUUtilizationPercentage: &targetCPUPer,
 		MinReplicas:                    &replicas,
 		MaxReplicas:                    3,
@@ -36,11 +36,11 @@ var (
 	pullSecret         = "mysecret"
 	serviceAccountName = "service-account"
 	serviceType        = corev1.ServiceTypeClusterIP
-	service            = &appsodyv1alpha1.AppsodyApplicationService{Type: &serviceType, Port: 8443}
+	service            = &appsodyv1beta1.AppsodyApplicationService{Type: &serviceType, Port: 8443}
 	volumeCT           = &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{Name: "pvc", Namespace: namespace},
 		TypeMeta:   metav1.TypeMeta{Kind: "StatefulSet"}}
-	storage        = appsodyv1alpha1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: volumeCT}
+	storage        = appsodyv1beta1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: volumeCT}
 	arch           = []string{"ppc64le"}
 	readinessProbe = &corev1.Probe{
 		Handler: corev1.Handler{
@@ -70,7 +70,7 @@ type Test struct {
 
 func TestCustomizeRoute(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Service: service}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service}
 	route, appsody := &routev1.Route{}, createAppsodyApp(name, namespace, spec)
 
 	CustomizeRoute(route, appsody)
@@ -90,7 +90,7 @@ func TestCustomizeRoute(t *testing.T) {
 func TestCustomizeService(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Service: service}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service}
 	svc, appsody := &corev1.Service{}, createAppsodyApp(name, namespace, spec)
 
 	CustomizeService(svc, appsody)
@@ -107,7 +107,7 @@ func TestCustomizeService(t *testing.T) {
 func TestCustomizePodSpec(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{
+	spec := appsodyv1beta1.AppsodyApplicationSpec{
 		ApplicationImage:    appImage,
 		Service:             service,
 		ResourceConstraints: resourceContraints,
@@ -126,7 +126,7 @@ func TestCustomizePodSpec(t *testing.T) {
 	noPorts := len(pts.Spec.Containers[0].Ports)
 	ptsSAN := pts.Spec.ServiceAccountName
 	// if cond
-	spec = appsodyv1alpha1.AppsodyApplicationSpec{
+	spec = appsodyv1beta1.AppsodyApplicationSpec{
 		ApplicationImage:    appImage,
 		Service:             service,
 		ResourceConstraints: resourceContraints,
@@ -168,7 +168,7 @@ func TestCustomizePodSpec(t *testing.T) {
 func TestCustomizePersistence(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Storage: &storage}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Storage: &storage}
 	statefulSet, appsody := &appsv1.StatefulSet{}, createAppsodyApp(name, namespace, spec)
 	statefulSet.Spec.Template.Spec.Containers = []corev1.Container{{}}
 	statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = []corev1.VolumeMount{}
@@ -178,8 +178,8 @@ func TestCustomizePersistence(t *testing.T) {
 	ssMountPath := statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts[0].MountPath
 
 	//reset
-	storageNilVCT := appsodyv1alpha1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: nil}
-	spec = appsodyv1alpha1.AppsodyApplicationSpec{Storage: &storageNilVCT}
+	storageNilVCT := appsodyv1beta1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: nil}
+	spec = appsodyv1beta1.AppsodyApplicationSpec{Storage: &storageNilVCT}
 	statefulSet, appsody = &appsv1.StatefulSet{}, createAppsodyApp(name, namespace, spec)
 
 	statefulSet.Spec.Template.Spec.Containers = []corev1.Container{{}}
@@ -200,13 +200,13 @@ func TestCustomizePersistence(t *testing.T) {
 func TestCustomizeServiceAccount(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{PullSecret: &pullSecret}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{PullSecret: &pullSecret}
 	sa, appsody := &corev1.ServiceAccount{}, createAppsodyApp(name, namespace, spec)
 	CustomizeServiceAccount(sa, appsody)
 	emptySAIPS := sa.ImagePullSecrets[0].Name
 
 	newSecret := "my-new-secret"
-	spec = appsodyv1alpha1.AppsodyApplicationSpec{PullSecret: &newSecret}
+	spec = appsodyv1beta1.AppsodyApplicationSpec{PullSecret: &newSecret}
 	appsody = createAppsodyApp(name, namespace, spec)
 	CustomizeServiceAccount(sa, appsody)
 
@@ -220,7 +220,7 @@ func TestCustomizeServiceAccount(t *testing.T) {
 func TestCustomizeKnativeService(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{
+	spec := appsodyv1beta1.AppsodyApplicationSpec{
 		ApplicationImage: appImage,
 		Service:          service,
 		LivenessProbe:    livenessProbe,
@@ -242,7 +242,7 @@ func TestCustomizeKnativeService(t *testing.T) {
 	ksvcRPPort := ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port
 	ksvcRPTCP := ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port
 
-	spec = appsodyv1alpha1.AppsodyApplicationSpec{
+	spec = appsodyv1beta1.AppsodyApplicationSpec{
 		ApplicationImage:   appImage,
 		Service:            service,
 		PullPolicy:         &pullPolicy,
@@ -271,12 +271,12 @@ func TestCustomizeKnativeService(t *testing.T) {
 func TestCustomizeHPA(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Autoscaling: autoscaling}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Autoscaling: autoscaling}
 	hpa, appsody := &autoscalingv1.HorizontalPodAutoscaler{}, createAppsodyApp(name, namespace, spec)
 	CustomizeHPA(hpa, appsody)
 	nilSTRKind := hpa.Spec.ScaleTargetRef.Kind
 
-	spec = appsodyv1alpha1.AppsodyApplicationSpec{Autoscaling: autoscaling, Storage: &storage}
+	spec = appsodyv1beta1.AppsodyApplicationSpec{Autoscaling: autoscaling, Storage: &storage}
 	appsody = createAppsodyApp(name, namespace, spec)
 	CustomizeHPA(hpa, appsody)
 	STRKind := hpa.Spec.ScaleTargetRef.Kind
@@ -295,13 +295,13 @@ func TestCustomizeHPA(t *testing.T) {
 
 func TestInitAndValidate(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
-	emptyService := &appsodyv1alpha1.AppsodyApplicationService{Port: 0}
-	appsody := createAppsodyApp(name, namespace, appsodyv1alpha1.AppsodyApplicationSpec{})
-	defaults := appsodyv1alpha1.AppsodyApplicationSpec{
+	emptyService := &appsodyv1beta1.AppsodyApplicationService{Port: 0}
+	appsody := createAppsodyApp(name, namespace, appsodyv1beta1.AppsodyApplicationSpec{})
+	defaults := appsodyv1beta1.AppsodyApplicationSpec{
 		PullSecret: &pullSecret,
 		Service:    emptyService,
 	}
-	constants := &appsodyv1alpha1.AppsodyApplicationSpec{}
+	constants := &appsodyv1beta1.AppsodyApplicationSpec{}
 
 	InitAndValidate(appsody, defaults, constants)
 	defNilPP := *appsody.Spec.PullPolicy
@@ -311,8 +311,8 @@ func TestInitAndValidate(t *testing.T) {
 
 	emptyService.Port = 0
 	emptyService.Type = nil
-	appsody = createAppsodyApp(name, namespace, appsodyv1alpha1.AppsodyApplicationSpec{Service: emptyService})
-	defaults = appsodyv1alpha1.AppsodyApplicationSpec{
+	appsody = createAppsodyApp(name, namespace, appsodyv1beta1.AppsodyApplicationSpec{Service: emptyService})
+	defaults = appsodyv1beta1.AppsodyApplicationSpec{
 		PullPolicy:           &pullPolicy,
 		PullSecret:           &pullSecret,
 		ServiceAccountName:   &serviceAccountName,
@@ -356,10 +356,10 @@ func TestInitAndValidate(t *testing.T) {
 
 func TestApplyConstants(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
-	emptyService := &appsodyv1alpha1.AppsodyApplicationService{Port: 0}
-	appsody := createAppsodyApp(name, namespace, appsodyv1alpha1.AppsodyApplicationSpec{Service: emptyService})
-	defaults := appsodyv1alpha1.AppsodyApplicationSpec{}
-	constants := &appsodyv1alpha1.AppsodyApplicationSpec{
+	emptyService := &appsodyv1beta1.AppsodyApplicationService{Port: 0}
+	appsody := createAppsodyApp(name, namespace, appsodyv1beta1.AppsodyApplicationSpec{Service: emptyService})
+	defaults := appsodyv1beta1.AppsodyApplicationSpec{}
+	constants := &appsodyv1beta1.AppsodyApplicationSpec{
 		Replicas:             &replicas,
 		Stack:                stack,
 		ApplicationImage:     appImage,
@@ -420,15 +420,15 @@ func TestApplyConstants(t *testing.T) {
 
 func TestGetCondition(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
-	status := &appsodyv1alpha1.AppsodyApplicationStatus{
-		Conditions: []appsodyv1alpha1.StatusCondition{
+	status := &appsodyv1beta1.AppsodyApplicationStatus{
+		Conditions: []appsodyv1beta1.StatusCondition{
 			{
 				Status: corev1.ConditionTrue,
-				Type:   appsodyv1alpha1.StatusConditionTypeReconciled,
+				Type:   appsodyv1beta1.StatusConditionTypeReconciled,
 			},
 		},
 	}
-	conditionType := appsodyv1alpha1.StatusConditionTypeReconciled
+	conditionType := appsodyv1beta1.StatusConditionTypeReconciled
 	cond := GetCondition(conditionType, status)
 	testGC := []Test{{"Set status condition", status.Conditions[0].Status, cond.Status}}
 	verifyTests(testGC, t)
@@ -436,14 +436,14 @@ func TestGetCondition(t *testing.T) {
 
 func TestSetCondition(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
-	status := &appsodyv1alpha1.AppsodyApplicationStatus{
-		Conditions: []appsodyv1alpha1.StatusCondition{
-			{Type: appsodyv1alpha1.StatusConditionTypeReconciled},
+	status := &appsodyv1beta1.AppsodyApplicationStatus{
+		Conditions: []appsodyv1beta1.StatusCondition{
+			{Type: appsodyv1beta1.StatusConditionTypeReconciled},
 		},
 	}
-	condition := appsodyv1alpha1.StatusCondition{
+	condition := appsodyv1beta1.StatusCondition{
 		Status: corev1.ConditionTrue,
-		Type:   appsodyv1alpha1.StatusConditionTypeReconciled,
+		Type:   appsodyv1beta1.StatusConditionTypeReconciled,
 	}
 	SetCondition(condition, status)
 	testSC := []Test{{"Set status condition", condition.Status, status.Conditions[0].Status}}
@@ -451,8 +451,8 @@ func TestSetCondition(t *testing.T) {
 }
 
 // Helper Functions
-func createAppsodyApp(n, ns string, spec appsodyv1alpha1.AppsodyApplicationSpec) *appsodyv1alpha1.AppsodyApplication {
-	app := &appsodyv1alpha1.AppsodyApplication{
+func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
+	app := &appsodyv1beta1.AppsodyApplication{
 		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},
 		Spec:       spec,
 	}

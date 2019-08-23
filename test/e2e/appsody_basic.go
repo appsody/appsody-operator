@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
@@ -73,7 +73,7 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 	return err
 }
 
-func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace string, exampleAppsody *appsodyv1alpha1.AppsodyApplication) error {
+func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace string, exampleAppsody *appsodyv1beta1.AppsodyApplication) error {
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody", Namespace: namespace}, exampleAppsody)
 	if err != nil {
 		return err

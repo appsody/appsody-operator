@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	appsodyutils "github.com/appsody-operator/pkg/utils"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -30,19 +30,19 @@ import (
 var (
 	name                       = "app"
 	namespace                  = "appsody"
-	status                     = appsodyv1alpha1.AppsodyApplicationStatus{Conditions: []appsodyv1alpha1.StatusCondition{{Status: corev1.ConditionTrue}}}
+	status                     = appsodyv1beta1.AppsodyApplicationStatus{Conditions: []appsodyv1beta1.StatusCondition{{Status: corev1.ConditionTrue}}}
 	appImage                   = "my-image"
 	ksvcAppImage               = "ksvc-image"
 	replicas             int32 = 3
-	autoscaling                = &appsodyv1alpha1.AppsodyApplicationAutoScaling{MaxReplicas: 3}
+	autoscaling                = &appsodyv1beta1.AppsodyApplicationAutoScaling{MaxReplicas: 3}
 	pullPolicy                 = corev1.PullAlways
 	serviceType                = corev1.ServiceTypeClusterIP
-	service                    = &appsodyv1alpha1.AppsodyApplicationService{Type: &serviceType, Port: 8443}
-	genService                 = &appsodyv1alpha1.AppsodyApplicationService{Type: &serviceType, Port: 9080}
+	service                    = &appsodyv1beta1.AppsodyApplicationService{Type: &serviceType, Port: 8443}
+	genService                 = &appsodyv1beta1.AppsodyApplicationService{Type: &serviceType, Port: 9080}
 	expose                     = true
 	serviceAccountName         = "service-account"
 	volumeCT                   = &corev1.PersistentVolumeClaim{TypeMeta: metav1.TypeMeta{Kind: "StatefulSet"}}
-	storage                    = appsodyv1alpha1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: volumeCT}
+	storage                    = appsodyv1beta1.AppsodyApplicationStorage{Size: "10Mi", MountPath: "/mnt/data", VolumeClaimTemplate: volumeCT}
 	createKnativeService       = true
 	stack                      = "java-microprofile"
 	genStack                   = "generic"
@@ -60,7 +60,7 @@ func TestAppsodyController(t *testing.T) {
 	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 	appsody := createAppsodyApp(name, namespace, spec)
 
 	// Set objects to track in the fake client and register operator types with the runtime scheme.
@@ -75,17 +75,17 @@ func TestAppsodyController(t *testing.T) {
 		t.Fatalf("Unable to add route scheme: (%v)", err)
 	}
 
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 
 	// Create a fake client to mock API calls.
 	cl := fakeclient.NewFakeClient(objs...)
 
 	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
-	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{
+	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{
 		stack:    {ServiceAccountName: &serviceAccountName, Service: service},
 		genStack: {Service: genService},
 	}
-	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
+	constantsMap := map[string]*appsodyv1beta1.AppsodyApplicationSpec{}
 
 	// Create a ReconcileAppsodyApplication object
 	r := &ReconcileAppsodyApplication{ReconcilerBase: rb, StackDefaults: defaultsMap, StackConstants: constantsMap}
@@ -112,7 +112,7 @@ func TestAppsodyController(t *testing.T) {
 	// Update appsody with values for StatefulSet
 	// Update ServiceAccountName for empty case
 	*r.StackDefaults[stack].ServiceAccountName = ""
-	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{
+	appsody.Spec = appsodyv1beta1.AppsodyApplicationSpec{
 		Stack:            stack,
 		Storage:          &storage,
 		Replicas:         &replicas,
@@ -145,7 +145,7 @@ func TestAppsodyController(t *testing.T) {
 	verifyTests("statefulSet", ssTests, t)
 
 	// Enable CreateKnativeService
-	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{
+	appsody.Spec = appsodyv1beta1.AppsodyApplicationSpec{
 		Stack:                stack,
 		CreateKnativeService: &createKnativeService,
 		PullPolicy:           &pullPolicy,
@@ -183,7 +183,7 @@ func TestAppsodyController(t *testing.T) {
 	verifyTests("ksvc", ksvcTests, t)
 
 	// Disable Knative and enable Expose to test route
-	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack, Expose: &expose}
+	appsody.Spec = appsodyv1beta1.AppsodyApplicationSpec{Stack: stack, Expose: &expose}
 	updateAppsody(r, appsody, t)
 
 	// Reconcile again to check for the route and updated resources
@@ -203,7 +203,7 @@ func TestAppsodyController(t *testing.T) {
 	verifyTests("route", routeTests, t)
 
 	// Disable Route/Expose and enable Autoscaling
-	appsody.Spec = appsodyv1alpha1.AppsodyApplicationSpec{
+	appsody.Spec = appsodyv1beta1.AppsodyApplicationSpec{
 		Stack:       stack,
 		Autoscaling: autoscaling,
 	}
@@ -264,16 +264,16 @@ func TestConfigMapDefaults(t *testing.T) {
 	os.Setenv("WATCH_NAMESPACE", namespace)
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack, Service: service}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack, Service: service}
 	appsody := createAppsodyApp(name, namespace, spec)
 
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
-	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
-	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{}
+	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
+	constantsMap := map[string]*appsodyv1beta1.AppsodyApplicationSpec{}
 
 	r := &ReconcileAppsodyApplication{ReconcilerBase: rb, StackDefaults: defaultsMap, StackConstants: constantsMap}
 	r.SetDiscoveryClient(createFakeDiscoveryClient())
@@ -306,16 +306,16 @@ func TestConfigMapConstants(t *testing.T) {
 	os.Setenv("WATCH_NAMESPACE", namespace)
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1alpha1.AppsodyApplicationSpec{Stack: stack}
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 	appsody := createAppsodyApp(name, namespace, spec)
 
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
-	s.AddKnownTypes(appsodyv1alpha1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
 	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
-	defaultsMap := map[string]appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
-	constantsMap := map[string]*appsodyv1alpha1.AppsodyApplicationSpec{stack: {Service: service}}
+	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
+	constantsMap := map[string]*appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
 
 	r := &ReconcileAppsodyApplication{ReconcilerBase: rb, StackDefaults: defaultsMap, StackConstants: constantsMap}
 	r.SetDiscoveryClient(createFakeDiscoveryClient())
@@ -356,8 +356,8 @@ func TestConfigMapConstants(t *testing.T) {
 }
 
 // Helper Functions
-func createAppsodyApp(n, ns string, spec appsodyv1alpha1.AppsodyApplicationSpec) *appsodyv1alpha1.AppsodyApplication {
-	app := &appsodyv1alpha1.AppsodyApplication{
+func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
+	app := &appsodyv1beta1.AppsodyApplication{
 		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},
 		Spec:       spec,
 		Status:     status,
@@ -418,7 +418,7 @@ func verifyTests(n string, tests []Test, t *testing.T) {
 	}
 }
 
-func updateAppsody(r *ReconcileAppsodyApplication, appsody *appsodyv1alpha1.AppsodyApplication, t *testing.T) {
+func updateAppsody(r *ReconcileAppsodyApplication, appsody *appsodyv1beta1.AppsodyApplication, t *testing.T) {
 	if err := r.GetClient().Update(context.TODO(), appsody); err != nil {
 		t.Fatalf("Update appsody: (%v)", err)
 	}

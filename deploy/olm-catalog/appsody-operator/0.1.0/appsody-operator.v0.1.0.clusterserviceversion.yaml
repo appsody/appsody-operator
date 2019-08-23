@@ -8,7 +8,7 @@ metadata:
     containerImage: appsody/application-operator:0.1.0
     createdAt: 2019-08-20T11:12:00Z
     repository: https://github.com/appsody/appsody-operator
-    alm-examples: '[{"apiVersion":"appsody.dev/v1alpha1","kind":"AppsodyApplication","metadata":{"name":"example-appsodyapplication"},"spec":{"applicationImage":"openliberty/open-liberty:microProfile2-ubi-min","stack":"java-microprofile"}}]'
+    alm-examples: '[{"apiVersion":"appsody.dev/v1beta1","kind":"AppsodyApplication","metadata":{"name":"example-appsodyapplication"},"spec":{"applicationImage":"openliberty/open-liberty:microProfile2-ubi-min","stack":"java-microprofile"}}]'
     certified: "false"
     support: Appsody
   name: appsody-operator.v0.1.0
@@ -25,7 +25,7 @@ spec:
   customresourcedefinitions:
     owned:
     - name: appsodyapplications.appsody.dev
-      version: v1alpha1
+      version: v1beta1
       kind: AppsodyApplication
       displayName: Appsody Application
       description: Describes application deployment
@@ -220,7 +220,7 @@ spec:
     name: Leo Christy Jesuraj
   - email: arthurdm@ca.ibm.com
     name: Arthur De Magalhaes
-  maturity: alpha
+  maturity: beta
   provider:
     name: Appsody
   version: 0.1.0
