@@ -86,7 +86,7 @@ Both `stack` and `applicationImage` values are required to be defined in an `App
 
 ### `ServiceAccount` configuration
 
-The operator can creates a `ServiceAccount` resource when deploying an Appsody based application. If `serviceAccountName` is not specified in a CR, the operator creates a service account with the same name as the CR (e.g. `my-appsody-app`) in the namespace the CR is created.
+The operator can create a `ServiceAccount` resource when deploying an Appsody based application. If `serviceAccountName` is not specified in a CR, the operator creates a service account with the same name as the CR (e.g. `my-appsody-app`).
 
 Users can also specify `serviceAccountName` when they want to create a service account manually.
 
