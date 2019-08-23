@@ -68,6 +68,66 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 | `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
 
+### Persistence
+
+Appsody Operator is capable of creating a `StatefulSet` and `PersistentVolumeClaim` for each pod if storage is specified in the `AppsodyApplication` CR.
+
+Users also can provide mount points for their application. There are 2 ways to enable storage.
+
+#### Basic Storage
+
+With the `AppsodyApplication` CR definition below the operator will create  `PersistentVolumeClaim` called `pvc` with the size of `1Gi` and accessMode of `ReadWriteOnce`.
+
+Operator will also create a volume mount for the `StatefulSet` mounting to `/data` folder. You can use `volumeMounts` field instead of `storage.mountPath` if you require to persist more then one folder.
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  storage:
+    size: 1Gi
+    mountPath: "/data"
+```
+
+#### Advanced Storage
+
+Operator allows the user to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`. 
+
+It is also possible to create
+multiple volume mount points for persistent volume using `volumeMounts` field as shown below. You can still use `storage.mountPath` if you require only a single mount point.
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  volumeMounts:
+  - name: pvc
+    mountPath: /data_1
+    subPath: data_1
+  - name: pvc
+    mountPath: /data_2
+    subPath: data_2
+  storage:
+    volumeClaimTemplate:
+      metadata:
+        name: pvc
+      spec:
+        accessModes: 
+        - "ReadWriteMany"
+        storageClassName: 'glusterfs'
+        resources:
+          requests:
+            storage: 1Gi
+```
+
 ### Knative support
 
 Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a [Knative `Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of a workload.
