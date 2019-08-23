@@ -68,6 +68,64 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 | `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
 
+### Basic usage
+
+To deploy a Docker image containing an Appsody based application to a Kubernetes environment you can use the following CR:
+
+ ```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+```
+
+Both `stack` and `applicationImage` values are required to be defined in an `AppsodyApplication` CR. `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to created your application.
+
+### `ServiceAccount` configuration
+
+The operator can creates a `ServiceAccount` resource when deploying an Appsody based application. If `serviceAccountName` is not specified in a CR, the operator creates a service account with the same name as the CR (e.g. `my-appsody-app`) in the namespace the CR is created.
+
+Users can also specify `serviceAccountName` when they want to create a service account manually.
+
+If applications require specific permissions but still want the operator to create a `ServiceAccount`, users can still manually create a role binding to bind a role to the service account created by the operator. To learn more about Role-based access control (RBAC), see Kubernetes [documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+
+### Environment variables
+
+You can set environment variables for your application container. To set environment variables, specify `env` and/or `envFrom` fields in your CR. The environment variables can come directly from key/value pairs, `ConfigMap`s or `Secret`s.
+
+ ```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  env:
+    - name: DB_PORT
+      value: "6379"
+    - name: DB_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: db-credential
+          key: adminUsername
+    - name: DB_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: db-credential
+          key: adminPassword
+  envFrom:
+    - configMapRef:
+        name: env-configmap
+    - secretRef:
+        name: env-secrets
+```
+
+Use `envFrom` to define all data in a `ConfigMap` or a `Secret` as environment variables in a container. Keys from `ConfigMap` or `Secret` resources, become environment variable name in your container.
+
 ### Persistence
 
 Appsody Operator is capable of creating a `StatefulSet` and `PersistentVolumeClaim` for each pod if storage is specified in the `AppsodyApplication` CR.
@@ -76,7 +134,7 @@ Users also can provide mount points for their application. There are 2 ways to e
 
 #### Basic Storage
 
-With the `AppsodyApplication` CR definition below the operator will create  `PersistentVolumeClaim` called `pvc` with the size of `1Gi` and accessMode of `ReadWriteOnce`.
+With the `AppsodyApplication` CR definition below the operator will create `PersistentVolumeClaim` called `pvc` with the size of `1Gi` and `ReadWriteOnce` access mode.
 
 Operator will also create a volume mount for the `StatefulSet` mounting to `/data` folder. You can use `volumeMounts` field instead of `storage.mountPath` if you require to persist more then one folder.
 
@@ -95,10 +153,9 @@ spec:
 
 #### Advanced Storage
 
-Operator allows the user to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`. 
+Operator allows users to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`.
 
-It is also possible to create
-multiple volume mount points for persistent volume using `volumeMounts` field as shown below. You can still use `storage.mountPath` if you require only a single mount point.
+It is also possible to create multiple volume mount points for persistent volume using `volumeMounts` field as shown below. You can still use `storage.mountPath` if you require only a single mount point.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -120,7 +177,7 @@ spec:
       metadata:
         name: pvc
       spec:
-        accessModes: 
+        accessModes:
         - "ReadWriteMany"
         storageClassName: 'glusterfs'
         resources:
