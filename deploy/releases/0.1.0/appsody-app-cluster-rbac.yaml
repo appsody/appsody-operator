@@ -1,13 +1,9 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: appsody-operator
----
+--- 
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: appsody-operator
+  name: appsody-operator-APPSODY_OPERATOR_NAMESPACE
 rules:
 - apiGroups:
   - ""
@@ -72,46 +68,16 @@ rules:
   - services
   verbs:
   - '*'
----  
-kind: RoleBinding
+---
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: appsody-operator
+  name: appsody-operator-APPSODY_OPERATOR_NAMESPACE
 subjects:
 - kind: ServiceAccount
   name: appsody-operator
+  namespace: APPSODY_OPERATOR_NAMESPACE
 roleRef:
-  kind: Role
-  name: appsody-operator
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: appsody-operator
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      name: appsody-operator
-  template:
-    metadata:
-      labels:
-        name: appsody-operator
-    spec:
-      serviceAccountName: appsody-operator
-      containers:
-        - name: appsody-operator
-          image: appsody/application-operator:daily
-          command:
-          - appsody-operator
-          imagePullPolicy: Always
-          env:
-            - name: WATCH_NAMESPACE
-              value: APPSODY_WATCH_NAMESPACE
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: OPERATOR_NAME
-              value: "appsody-operator"
+  kind: ClusterRole
+  name: appsody-operator-APPSODY_OPERATOR_NAMESPACE
+  apiGroup: rbac.authorization.k8s.io  
