@@ -6,6 +6,16 @@ The Appsody Application Operator can be used to deploy applications created by [
 
 Use the instructions for one of the [releases](../deploy/releases) to install the operator into a Kubernetes cluster.
 
+The Appsody Operator can be installed to:
+
+- watch its own namespace
+- watch another namespace
+- watch all namespaces in the cluster
+
+Appropriate cluster role and binding are required to watch another namespace or to watch all namespaces.
+
+_Operator cannot be installed to watch multiple namespaces_
+
 ## Overview
 
 The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating a `AppsodyApplication` custom resource (CR) triggers the Appsody Application Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
@@ -125,6 +135,16 @@ spec:
 ```
 
 Use `envFrom` to define all data in a `ConfigMap` or a `Secret` as environment variables in a container. Keys from `ConfigMap` or `Secret` resources, become environment variable name in your container.
+
+### High Availability
+
+Run multiple instances of your application for high availability using one of the following mechanisms: 
+ - specify a static number of instances to run at all times using `replicas` parameter
+ 
+    _OR_
+
+ - configure auto scaling to create (and delete) instances based on resource consumption using the `autoscaling` parameter.
+      - Parameters `autoscaling.maxReplicas` and `resourceConstraints.requests.cpu` MUST be specified for auto scaling.
 
 ### Persistence
 
