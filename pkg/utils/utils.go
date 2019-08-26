@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -16,7 +16,7 @@ import (
 )
 
 // GetLabels ...
-func GetLabels(cr *appsodyv1alpha1.AppsodyApplication) map[string]string {
+func GetLabels(cr *appsodyv1beta1.AppsodyApplication) map[string]string {
 	labels := map[string]string{
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
@@ -26,7 +26,7 @@ func GetLabels(cr *appsodyv1alpha1.AppsodyApplication) map[string]string {
 }
 
 // CustomizeRoute ...
-func CustomizeRoute(route *routev1.Route, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeRoute(route *routev1.Route, cr *appsodyv1beta1.AppsodyApplication) {
 	route.Labels = GetLabels(cr)
 	route.Spec.To.Kind = "Service"
 	route.Spec.To.Name = cr.Name
@@ -44,7 +44,7 @@ func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
 }
 
 // CustomizeService ...
-func CustomizeService(svc *corev1.Service, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeService(svc *corev1.Service, cr *appsodyv1beta1.AppsodyApplication) {
 	svc.Labels = GetLabels(cr)
 	if len(svc.Spec.Ports) == 0 {
 		svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
@@ -58,7 +58,7 @@ func CustomizeService(svc *corev1.Service, cr *appsodyv1alpha1.AppsodyApplicatio
 }
 
 // CustomizePodSpec ...
-func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1beta1.AppsodyApplication) {
 	pts.Labels = GetLabels(cr)
 	if len(pts.Spec.Containers) == 0 {
 		pts.Spec.Containers = append(pts.Spec.Containers, corev1.Container{})
@@ -93,7 +93,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1alpha1.AppsodyAp
 }
 
 // CustomizePersistence ...
-func CustomizePersistence(statefulSet *appsv1.StatefulSet, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizePersistence(statefulSet *appsv1.StatefulSet, cr *appsodyv1beta1.AppsodyApplication) {
 	if len(statefulSet.Spec.VolumeClaimTemplates) == 0 {
 		var pvc *corev1.PersistentVolumeClaim
 		if cr.Spec.Storage.VolumeClaimTemplate != nil {
@@ -121,24 +121,27 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, cr *appsodyv1alpha1.A
 		statefulSet.Spec.VolumeClaimTemplates = append(statefulSet.Spec.VolumeClaimTemplates, *pvc)
 	}
 
-	found := false
-	for _, v := range statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts {
-		if v.Name == statefulSet.Spec.VolumeClaimTemplates[0].Name {
-			found = true
+	if cr.Spec.Storage.MountPath != "" {
+		found := false
+		for _, v := range statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts {
+			if v.Name == statefulSet.Spec.VolumeClaimTemplates[0].Name {
+				found = true
+			}
 		}
-	}
-	if !found {
-		vm := corev1.VolumeMount{
-			Name:      statefulSet.Spec.VolumeClaimTemplates[0].Name,
-			MountPath: cr.Spec.Storage.MountPath,
+
+		if !found {
+			vm := corev1.VolumeMount{
+				Name:      statefulSet.Spec.VolumeClaimTemplates[0].Name,
+				MountPath: cr.Spec.Storage.MountPath,
+			}
+			statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts, vm)
 		}
-		statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts = append(statefulSet.Spec.Template.Spec.Containers[0].VolumeMounts, vm)
 	}
 
 }
 
 // CustomizeServiceAccount ...
-func CustomizeServiceAccount(sa *corev1.ServiceAccount, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeServiceAccount(sa *corev1.ServiceAccount, cr *appsodyv1beta1.AppsodyApplication) {
 	sa.Labels = GetLabels(cr)
 	if cr.Spec.PullSecret != nil {
 		if len(sa.ImagePullSecrets) == 0 {
@@ -152,7 +155,7 @@ func CustomizeServiceAccount(sa *corev1.ServiceAccount, cr *appsodyv1alpha1.Apps
 }
 
 // CustomizeAffinity ...
-func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1beta1.AppsodyApplication) {
 
 	a.NodeAffinity = &corev1.NodeAffinity{
 		RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
@@ -190,7 +193,7 @@ func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1alpha1.AppsodyApplicatio
 }
 
 // CustomizeKnativeService ...
-func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.AppsodyApplication) {
 	ksvc.Labels = GetLabels(cr)
 
 	if ksvc.Spec.Template == nil {
@@ -244,7 +247,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1alpha1.
 }
 
 // CustomizeHPA ...
-func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1alpha1.AppsodyApplication) {
+func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1beta1.AppsodyApplication) {
 	hpa.Labels = GetLabels(cr)
 
 	hpa.Spec.MaxReplicas = cr.Spec.Autoscaling.MaxReplicas
@@ -262,7 +265,7 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1alpha
 }
 
 // InitAndValidate ...
-func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1alpha1.AppsodyApplicationSpec, constants *appsodyv1alpha1.AppsodyApplicationSpec) {
+func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1beta1.AppsodyApplicationSpec, constants *appsodyv1beta1.AppsodyApplicationSpec) {
 
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy
@@ -346,7 +349,7 @@ func InitAndValidate(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1a
 	}
 }
 
-func applyConstants(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1alpha1.AppsodyApplicationSpec, constants *appsodyv1alpha1.AppsodyApplicationSpec) {
+func applyConstants(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1beta1.AppsodyApplicationSpec, constants *appsodyv1beta1.AppsodyApplicationSpec) {
 
 	if constants.Replicas != nil {
 		cr.Spec.Replicas = constants.Replicas
@@ -468,7 +471,7 @@ func applyConstants(cr *appsodyv1alpha1.AppsodyApplication, defaults appsodyv1al
 }
 
 // GetCondition ...
-func GetCondition(conditionType appsodyv1alpha1.StatusConditionType, status *appsodyv1alpha1.AppsodyApplicationStatus) *appsodyv1alpha1.StatusCondition {
+func GetCondition(conditionType appsodyv1beta1.StatusConditionType, status *appsodyv1beta1.AppsodyApplicationStatus) *appsodyv1beta1.StatusCondition {
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == conditionType {
 			return &status.Conditions[i]
@@ -479,7 +482,7 @@ func GetCondition(conditionType appsodyv1alpha1.StatusConditionType, status *app
 }
 
 // SetCondition ...
-func SetCondition(condition appsodyv1alpha1.StatusCondition, status *appsodyv1alpha1.AppsodyApplicationStatus) {
+func SetCondition(condition appsodyv1beta1.StatusCondition, status *appsodyv1beta1.AppsodyApplicationStatus) {
 	for i := range status.Conditions {
 		if status.Conditions[i].Type == condition.Type {
 			status.Conditions[i] = condition

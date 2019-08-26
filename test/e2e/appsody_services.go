@@ -9,7 +9,7 @@ import (
 
 	k "sigs.k8s.io/controller-runtime/pkg/client"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody-operator/test/util"
 
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
@@ -37,7 +37,7 @@ func AppsodyServicesTest(t *testing.T) {
 
 	serviceType := corev1.ServiceTypeClusterIP
 
-	service := appsodyv1alpha1.AppsodyApplicationService{
+	service := appsodyv1beta1.AppsodyApplicationService{
 		Port: 9080,
 		Type: &serviceType,
 	}
@@ -114,7 +114,7 @@ func AppsodyServicesTest(t *testing.T) {
 
 }
 
-func verifyClusterIP(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.AppsodyApplication, l labels.Set) error {
+func verifyClusterIP(t *testing.T, f *framework.Framework, app *appsodyv1beta1.AppsodyApplication, l labels.Set) error {
 	services := &corev1.ServiceList{}
 	selec := l.AsSelector()
 	options := k.ListOptions{LabelSelector: selec}
@@ -132,7 +132,7 @@ func verifyClusterIP(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.
 	return nil
 }
 
-func verifyNodePort(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.AppsodyApplication, l labels.Set) error {
+func verifyNodePort(t *testing.T, f *framework.Framework, app *appsodyv1beta1.AppsodyApplication, l labels.Set) error {
 	services := &corev1.ServiceList{}
 	selec := l.AsSelector()
 	options := k.ListOptions{LabelSelector: selec}
@@ -150,7 +150,7 @@ func verifyNodePort(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.A
 	return nil
 }
 
-func verifyLoadBalancer(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.AppsodyApplication, l labels.Set) error {
+func verifyLoadBalancer(t *testing.T, f *framework.Framework, app *appsodyv1beta1.AppsodyApplication, l labels.Set) error {
 	services := &corev1.ServiceList{}
 	selec := l.AsSelector()
 	options := k.ListOptions{LabelSelector: selec}

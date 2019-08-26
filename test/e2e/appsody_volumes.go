@@ -9,7 +9,7 @@ import (
 
 	k "sigs.k8s.io/controller-runtime/pkg/client"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody-operator/test/util"
 
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
@@ -73,7 +73,7 @@ func AppsodyVolumesTest(t *testing.T) {
 
 }
 
-func verifyVolumes(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.AppsodyApplication, l labels.Set) error {
+func verifyVolumes(t *testing.T, f *framework.Framework, app *appsodyv1beta1.AppsodyApplication, l labels.Set) error {
 	pods := &corev1.PodList{}
 	selec := l.AsSelector()
 	options := k.ListOptions{LabelSelector: selec}

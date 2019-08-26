@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,12 +147,12 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(name string, ns string) (*corev1.
 }
 
 // ManageError ...
-func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.StatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1beta1.StatusConditionType, cr *appsodyv1beta1.AppsodyApplication) (reconcile.Result, error) {
 	r.GetRecorder().Event(cr, "Warning", "ProcessingError", issue.Error())
 
 	oldCondition := GetCondition(conditionType, &cr.Status)
 	if oldCondition == nil {
-		oldCondition = &appsodyv1alpha1.StatusCondition{LastUpdateTime: metav1.Time{}}
+		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	lastUpdate := oldCondition.LastUpdateTime.Time
@@ -165,7 +165,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 		transitionTime = &nowTime
 	}
 
-	newCondition := appsodyv1alpha1.StatusCondition{
+	newCondition := appsodyv1beta1.StatusCondition{
 		LastTransitionTime: transitionTime,
 		LastUpdateTime:     nowTime,
 		Reason:             string(apierrors.ReasonForError(issue)),
@@ -205,10 +205,10 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1alpha1.
 }
 
 // ManageSuccess ...
-func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.StatusConditionType, cr *appsodyv1alpha1.AppsodyApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1beta1.StatusConditionType, cr *appsodyv1beta1.AppsodyApplication) (reconcile.Result, error) {
 	oldCondition := GetCondition(conditionType, &cr.Status)
 	if oldCondition == nil {
-		oldCondition = &appsodyv1alpha1.StatusCondition{LastUpdateTime: metav1.Time{}}
+		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	// Keep the old `LastTransitionTime` when status has not changed
@@ -218,7 +218,7 @@ func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1alpha1.StatusCondi
 		transitionTime = &nowTime
 	}
 
-	statusCondition := appsodyv1alpha1.StatusCondition{
+	statusCondition := appsodyv1beta1.StatusCondition{
 		LastTransitionTime: transitionTime,
 		LastUpdateTime:     nowTime,
 		Type:               conditionType,

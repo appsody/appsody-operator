@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,20 +13,20 @@ import (
 )
 
 // MakeBasicAppsodyApplication : Create a simple Appsody App with provided number of replicas.
-func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string, ns string, replicas int32) *appsodyv1alpha1.AppsodyApplication {
-	return &appsodyv1alpha1.AppsodyApplication{
+func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string, ns string, replicas int32) *appsodyv1beta1.AppsodyApplication {
+	return &appsodyv1beta1.AppsodyApplication{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AppsodyApplication",
-			APIVersion: "appsody.dev/v1alpha1",
+			APIVersion: "appsody.dev/v1beta1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      n,
 			Namespace: ns,
 		},
-		Spec: appsodyv1alpha1.AppsodyApplicationSpec{
+		Spec: appsodyv1beta1.AppsodyApplicationSpec{
 			ApplicationImage: "openliberty/open-liberty:microProfile2-ubi-min",
 			Replicas:         &replicas,
-			Service: &appsodyv1alpha1.AppsodyApplicationService{
+			Service: &appsodyv1beta1.AppsodyApplicationService{
 				Port: 9080,
 			},
 			Stack: "java-microprofile",

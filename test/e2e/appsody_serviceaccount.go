@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	appsodyv1alpha1 "github.com/appsody-operator/pkg/apis/appsody/v1alpha1"
+	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
@@ -54,7 +54,7 @@ func AppsodyServiceAccountTest(t *testing.T) {
 	}
 }
 
-func verifyServiceAccount(t *testing.T, f *framework.Framework, app *appsodyv1alpha1.AppsodyApplication) error {
+func verifyServiceAccount(t *testing.T, f *framework.Framework, app *appsodyv1beta1.AppsodyApplication) error {
 	name := app.ObjectMeta.Name
 	ns := app.ObjectMeta.Namespace
 
