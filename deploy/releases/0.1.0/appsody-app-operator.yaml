@@ -4,7 +4,7 @@ metadata:
   name: appsody-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   creationTimestamp: null
   name: appsody-operator
@@ -73,16 +73,15 @@ rules:
   verbs:
   - '*'
 ---
-kind: ClusterRoleBinding
+kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: appsody-operator
 subjects:
 - kind: ServiceAccount
   name: appsody-operator
-  namespace: APPSODY_OPERATOR_NAMESPACE
 roleRef:
-  kind: ClusterRole
+  kind: Role
   name: appsody-operator
   apiGroup: rbac.authorization.k8s.io
 ---  
