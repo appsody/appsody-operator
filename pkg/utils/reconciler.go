@@ -102,9 +102,25 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 // DeleteResource deletes kubernetes resource
 func (r *ReconcilerBase) DeleteResource(obj runtime.Object) error {
 	err := r.client.Delete(context.TODO(), obj)
-	if err != nil && !apierrors.IsNotFound(err) {
-		log.Error(err, "Unable to delete object ", "object", obj)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			log.Error(err, "Unable to delete object ", "object", obj)
+			return err
+		}
+		return nil
+	}
+
+	metaObj, ok := obj.(metav1.Object)
+	if !ok {
+		err := fmt.Errorf("%T is not a runtime.Object", obj)
+		log.Error(err, "Failed to convert into runtime.Object")
 		return err
+	}
+
+	var gvk schema.GroupVersionKind
+	gvk, err = apiutil.GVKForObject(obj, r.scheme)
+	if err == nil {
+		log.Info("Reconciled", "Kind", gvk.Kind, "Name", metaObj.GetName(), "Status", "deleted")
 	}
 	return nil
 }

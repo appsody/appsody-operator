@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+  java-microprofile: ""
+  java-spring-boot2: ""
+  nodejs: ""
+  nodejs-express: ""
+  swift: ""
+  generic: ""
+kind: ConfigMap
+metadata:
+  name: appsody-operator-constants

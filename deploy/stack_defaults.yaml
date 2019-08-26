@@ -1,131 +1,91 @@
 apiVersion: v1
 data:
   java-microprofile: |-
-    {
-       "expose": false,
-       "livenessProbe": {
-          "failureThreshold": 3,
-          "httpGet": {
-             "path": "/health",
-             "port": 9080
-          },
-          "initialDelaySeconds": 60,
-          "periodSeconds": 5
-       },
-       "readinessProbe": {
-          "failureThreshold": 12,
-          "httpGet": {
-             "path": "/health",
-              "port": 9080
-          },
-          "initialDelaySeconds": 30,
-          "periodSeconds": 5
-       },
-       "resourceConstraints": {
-          "requests": {
-             "memory": "512Mi"
-          }
-       },
-       "service": {
-          "port": 9080,
-          "type": "ClusterIP"
-       }
-    }
+    expose: false
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /health
+        port: 9080
+      initialDelaySeconds: 60
+      periodSeconds: 5
+    readinessProbe:
+      failureThreshold: 12
+      httpGet:
+        path: /health
+        port: 9080
+      initialDelaySeconds: 30
+      periodSeconds: 5
+    resourceConstraints:
+      requests:
+        memory: 512Mi
+    service:
+      port: 9080
+      type: ClusterIP
   java-spring-boot2: |-
-    {
-       "expose": false,
-       "livenessProbe": {
-          "failureThreshold": 3,
-          "httpGet": {
-             "path": "/actuator/liveness",
-             "port": 8080
-          },
-          "initialDelaySeconds": 60,
-          "periodSeconds": 5
-       },
-       "readinessProbe": {
-          "failureThreshold": 12,
-          "httpGet": {
-             "path": "/actuator/health",
-              "port": 8080
-          },
-          "initialDelaySeconds": 30,
-          "periodSeconds": 5
-       },
-       "resourceConstraints": {
-          "requests": {
-             "memory": "512Mi"
-          }
-       },
-       "service": {
-          "port": 8080,
-          "type": "ClusterIP"
-       }
-    }    
+    expose: false
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /actuator/liveness
+        port: 8080
+      initialDelaySeconds: 60
+      periodSeconds: 5
+    readinessProbe:
+      failureThreshold: 12
+      httpGet:
+        path: /actuator/health
+        port: 8080
+      initialDelaySeconds: 30
+      periodSeconds: 5
+    resourceConstraints:
+      requests:
+        memory: 512Mi
+    service:
+      port: 8080
+      type: ClusterIP
   nodejs: |-
-    {
-       "expose": false,
-       "resourceConstraints": {
-          "requests": {
-             "memory": "256Mi"
-          }
-       },
-       "service": {
-          "port": 3000,
-          "type": "ClusterIP"
-       }
-    }
+    expose: false
+    resourceConstraints:
+      requests:
+        memory: 256Mi
+    service:
+      port: 3000
+      type: ClusterIP
   nodejs-express: |-
-    {
-       "expose": false,
-       "resourceConstraints": {
-          "requests": {
-             "memory": "256Mi"
-          }
-       },
-       "livenessProbe": {
-          "failureThreshold": 3,
-          "httpGet": {
-             "path": "/live",
-             "port": 3000
-          },
-          "initialDelaySeconds": 60,
-          "periodSeconds": 5
-       },
-       "readinessProbe": {
-          "failureThreshold": 12,
-          "httpGet": {
-             "path": "/ready",
-              "port": 3000
-          },
-          "initialDelaySeconds": 30,
-          "periodSeconds": 5
-       },       
-       "service": {
-          "port": 3000,
-          "type": "ClusterIP"
-       }
-    }
+    expose: false
+    livenessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /live
+        port: 3000
+      initialDelaySeconds: 60
+      periodSeconds: 5
+    readinessProbe:
+      failureThreshold: 12
+      httpGet:
+        path: /ready
+        port: 3000
+      initialDelaySeconds: 30
+      periodSeconds: 5
+    resourceConstraints:
+      requests:
+        memory: 256Mi
+    service:
+      port: 3000
+      type: ClusterIP
   swift: |-
-    {
-       "expose": false,
-       "resourceConstraints": {
-          "requests": {
-             "memory": "256Mi"
-          }
-       },
-       "service": {
-          "port": 8080,
-          "type": "ClusterIP"
-       }
-    }
+    expose: false
+    resourceConstraints:
+      requests:
+        memory: 256Mi
+    service:
+      port: 8080
+      type: ClusterIP
   generic: |-
-    {
-       "service": {
-          "port": 3000,
-          "type": "ClusterIP"
-       }
-    }    
+    service:
+      port: 3000
+      type: ClusterIP
 kind: ConfigMap
 metadata:
-  name: appsody-operator
+  name: appsody-operator-defaults
