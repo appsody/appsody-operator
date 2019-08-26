@@ -21,6 +21,11 @@ func TestAppsodyApplication(t *testing.T) {
 		t.Fatalf("Failed to add CR scheme to framework: %v", err)
 	}
 
+	t.Run("AppsodyServicesTest", tests.AppsodyServicesTest)
+	t.Run("AppsodyPullSecretTest", tests.AppsodyPullSecretTest)
+	t.Run("AppsodyVolumesTest", tests.AppsodyVolumesTest)
+	t.Run("AppsodyResourcesTest", tests.AppsodyResourcesTest)
+	t.Run("AppsodyServiceAccountTest", tests.AppsodyServiceAccountTest)
 	t.Run("AppsodyPullPolicyTest", tests.AppsodyPullPolicyTest)
 	t.Run("AppsodyBasicTest", tests.AppsodyBasicTest)
 	t.Run("AppsodyStorageTest", tests.AppsodyBasicStorageTest)
