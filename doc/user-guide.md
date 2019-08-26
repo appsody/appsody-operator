@@ -231,6 +231,89 @@ To create a secured HTTPS route, see [secured routes](https://docs.openshift.com
 
 _This feature is only available if you are running on OKD or OpenShift._
 
+
+### Operator Configuration
+
+When started operator creates 2 `ConfigMap` objects that contain values for invdividual stacks in `AppsodyApplication`
+
+#### Stack Defaults ConfigMap
+
+[`appsody-operator-defaults`](../deploy/stack_defaults.yaml) ConfigMap contains the default values for each stack.
+When users do not provide values inside their `AppsodyApplication` resource operator will look up default values inside
+this [stack defaults map](../deploy/stack_defaults.yaml).
+
+Input resource:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+```
+
+Since in the `AppsodyApplicaiton` resource service `port` and `type` are not set, they will be looked up in the defaults config map and added to the resource.
+and will be set according to `stack` field. If the `appsody-operator-defaults` doesn't have the `stack` with particular name defined operator will use `generic` stack default values.
+
+After defaults are applied:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  ....
+  service:
+    port: 9080
+    type: ClusterIP  
+```
+ 
+#### Stack Constants ConfigMap
+
+[`appsody-operator-constants`](../deploy/stack_constants.yaml) ConfigMap contains the constant values for each stack. This values will always be used over the ones
+that users provide. This can be used to limit user ability to control certain fields such as `expose`.
+It also provides ability to set environment variables that are always required.
+
+Input resource:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  expose: true
+  env:
+  -  name: DB_URL
+     value: url
+```
+
+After constants are applied:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  ....
+  expose: false
+  env:
+  -  name: VENDOR
+     value: COMPANY
+  -  name: DB_URL
+     value: url     
+```
+
 ### Troubleshooting
 
 See the [troubleshooting guide](troubleshooting.md) for information on how to investigate and resolve deployment problems.
