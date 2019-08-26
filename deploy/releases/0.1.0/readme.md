@@ -49,7 +49,7 @@ To uninstall the operator, run commands from Step 2.3 and then Step 2.2 (if appl
 
 To delete the CRD, run command from Step 1, but after replacing `kubectl apply` with `kubectl delete`.
 
-_Deleting the CRD will also delete all AppsodyApplication in the cluster_
+_Deleting the CRD will also delete all `AppsodyApplication` in the cluster_
 
 ## Current Limitations
 
