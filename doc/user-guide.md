@@ -1,6 +1,6 @@
-# Appsody Application Operator
+# Appsody Operator
 
-The Appsody Application Operator can be used to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) or [OpenShift](https://www.openshift.com/) clusters.
+The Appsody Operator can be used to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) or [OpenShift](https://www.openshift.com/) clusters.
 
 ## Operator installation
 
@@ -14,11 +14,11 @@ The Appsody Operator can be installed to:
 
 Appropriate cluster role and binding are required to watch another namespace or to watch all namespaces.
 
-_Operator cannot be installed to watch multiple namespaces_
+_Limitation: Operator cannot be installed to watch multiple namespaces_
 
 ## Overview
 
-The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating a `AppsodyApplication` custom resource (CR) triggers the Appsody Application Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
+The architecture of the Appsody Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating a `AppsodyApplication` custom resource (CR) triggers the Appsody Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
 
 Each instance of `AppsodyApplication` CR represents the application to be deployed on the cluster:
 
@@ -39,7 +39,7 @@ spec:
     mountPath: "/logs"
 ```
 
-## `AppsodyApplication` configuration
+## Configuration
 
 ### Custom Resource Definition (CRD)
 
@@ -94,7 +94,7 @@ spec:
 
 Both `stack` and `applicationImage` values are required to be defined in an `AppsodyApplication` CR. `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to created your application.
 
-### `ServiceAccount` configuration
+### Service account
 
 The operator can create a `ServiceAccount` resource when deploying an Appsody based application. If `serviceAccountName` is not specified in a CR, the operator creates a service account with the same name as the CR (e.g. `my-appsody-app`).
 
@@ -136,7 +136,7 @@ spec:
 
 Use `envFrom` to define all data in a `ConfigMap` or a `Secret` as environment variables in a container. Keys from `ConfigMap` or `Secret` resources, become environment variable name in your container.
 
-### High Availability
+### High availability
 
 Run multiple instances of your application for high availability using one of the following mechanisms: 
  - specify a static number of instances to run at all times using `replicas` parameter
@@ -152,7 +152,7 @@ Appsody Operator is capable of creating a `StatefulSet` and `PersistentVolumeCla
 
 Users also can provide mount points for their application. There are 2 ways to enable storage.
 
-#### Basic Storage
+#### Basic storage
 
 With the `AppsodyApplication` CR definition below the operator will create `PersistentVolumeClaim` called `pvc` with the size of `1Gi` and `ReadWriteOnce` access mode.
 
@@ -171,7 +171,7 @@ spec:
     mountPath: "/data"
 ```
 
-#### Advanced Storage
+#### Advanced storage
 
 Operator allows users to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`.
 
@@ -254,12 +254,11 @@ _This feature is only available if you are running on OKD or OpenShift._
 
 ### Operator Configuration
 
-When started operator creates 2 `ConfigMap` objects that contain values for invdividual stacks in `AppsodyApplication`
+When the operator starts, it creates two `ConfigMap` objects that contain default and constant values for individual stacks in `AppsodyApplication`.
 
-#### Stack Defaults ConfigMap
+#### Stack defaults
 
-[`appsody-operator-defaults`](../deploy/stack_defaults.yaml) ConfigMap contains the default values for each stack.
-When users do not provide values inside their `AppsodyApplication` resource operator will look up default values inside
+ConfigMap [`appsody-operator-defaults`](../deploy/stack_defaults.yaml) contains the default values for each stack. When users do not provide values inside their `AppsodyApplication` resource, the operator will look up default values inside
 this [stack defaults map](../deploy/stack_defaults.yaml).
 
 Input resource:
