@@ -40,16 +40,16 @@ _Limitation: Operator cannot be installed to watch multiple namespaces_
     2.3. Install the operator:
 
     ```console
-    $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-operator.yaml | sed -e "s/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/" -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
+    $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-operator.yaml | sed -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
     ```
 
 ## Uninstallation
 
-To uninstall the operator, run commands from Step 2.3 and then Step 2.2 (if applicable), but after replacing `kubectl apply` with `kubectl delete`.
+To uninstall the operator, run commands from Step 2.3 first and then Step 2.2 (if applicable), but after replacing `kubectl apply` with `kubectl delete`.
 
 To delete the CRD, run command from Step 1, but after replacing `kubectl apply` with `kubectl delete`.
 
-_Deleting the CRD will also delete all AppsodyApplication in the cluster_
+_Deleting the CRD will also delete all `AppsodyApplication` in the cluster_
 
 ## Current Limitations
 
