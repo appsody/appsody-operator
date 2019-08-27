@@ -8,8 +8,8 @@ import (
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
-	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
-	appsodyutils "github.com/appsody-operator/pkg/utils"
+	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 
 	routev1 "github.com/openshift/api/route/v1"

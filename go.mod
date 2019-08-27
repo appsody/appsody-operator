@@ -1,4 +1,4 @@
-module github.com/appsody-operator
+module github.com/appsody/appsody-operator
 
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.4.9 // indirect

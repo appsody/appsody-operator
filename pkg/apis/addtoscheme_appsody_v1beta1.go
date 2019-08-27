@@ -1,7 +1,7 @@
 package apis
 
 import (
-	"github.com/appsody-operator/pkg/apis/appsody/v1beta1"
+	"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 )
 
 func init() {
