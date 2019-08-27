@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
-	"github.com/appsody-operator/test/util"
+	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	"github.com/appsody/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	"k8s.io/apimachinery/pkg/types"

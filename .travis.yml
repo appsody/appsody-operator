@@ -35,7 +35,7 @@ jobs:
   - name: unit test
     stage: unit test
     script:
-    - go test -v -mod=vendor github.com/appsody-operator/pkg/controller/appsodyapplication
+    - go test -v -mod=vendor github.com/appsody/appsody-operator/pkg/controller/appsodyapplication
   - name: e2e test
     stage: e2e test
     script: 

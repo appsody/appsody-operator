@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
+	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
