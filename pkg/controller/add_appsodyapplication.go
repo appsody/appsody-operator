@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/appsody-operator/pkg/controller/appsodyapplication"
+	"github.com/appsody/appsody-operator/pkg/controller/appsodyapplication"
 )
 
 func init() {

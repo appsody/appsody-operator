@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	appsodyv1beta1 "github.com/appsody-operator/pkg/apis/appsody/v1beta1"
-	appsodyutils "github.com/appsody-operator/pkg/utils"
+	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"

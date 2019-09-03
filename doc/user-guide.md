@@ -1,14 +1,24 @@
-# Appsody Application Operator
+# Appsody Operator
 
-The Appsody Application Operator can be used to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) or [OpenShift](https://www.openshift.com/) clusters.
+The Appsody Operator can be used to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) or [OpenShift](https://www.openshift.com/) clusters.
 
 ## Operator installation
 
 Use the instructions for one of the [releases](../deploy/releases) to install the operator into a Kubernetes cluster.
 
+The Appsody Operator can be installed to:
+
+- watch its own namespace
+- watch another namespace
+- watch all namespaces in the cluster
+
+Appropriate cluster role and binding are required to watch another namespace or to watch all namespaces.
+
+_Limitation: Operator cannot be installed to watch multiple namespaces_
+
 ## Overview
 
-The architecture of the Appsody Application Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating a `AppsodyApplication` custom resource (CR) triggers the Appsody Application Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
+The architecture of the Appsody Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating a `AppsodyApplication` custom resource (CR) triggers the Appsody Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
 
 Each instance of `AppsodyApplication` CR represents the application to be deployed on the cluster:
 
@@ -29,7 +39,7 @@ spec:
     mountPath: "/logs"
 ```
 
-## `AppsodyApplication` configuration
+## Configuration
 
 ### Custom Resource Definition (CRD)
 
@@ -84,7 +94,7 @@ spec:
 
 Both `stack` and `applicationImage` values are required to be defined in an `AppsodyApplication` CR. `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to created your application.
 
-### `ServiceAccount` configuration
+### Service account
 
 The operator can create a `ServiceAccount` resource when deploying an Appsody based application. If `serviceAccountName` is not specified in a CR, the operator creates a service account with the same name as the CR (e.g. `my-appsody-app`).
 
@@ -126,13 +136,23 @@ spec:
 
 Use `envFrom` to define all data in a `ConfigMap` or a `Secret` as environment variables in a container. Keys from `ConfigMap` or `Secret` resources, become environment variable name in your container.
 
+### High availability
+
+Run multiple instances of your application for high availability using one of the following mechanisms: 
+ - specify a static number of instances to run at all times using `replicas` parameter
+ 
+    _OR_
+
+ - configure auto scaling to create (and delete) instances based on resource consumption using the `autoscaling` parameter.
+      - Parameters `autoscaling.maxReplicas` and `resourceConstraints.requests.cpu` MUST be specified for auto scaling.
+
 ### Persistence
 
 Appsody Operator is capable of creating a `StatefulSet` and `PersistentVolumeClaim` for each pod if storage is specified in the `AppsodyApplication` CR.
 
 Users also can provide mount points for their application. There are 2 ways to enable storage.
 
-#### Basic Storage
+#### Basic storage
 
 With the `AppsodyApplication` CR definition below the operator will create `PersistentVolumeClaim` called `pvc` with the size of `1Gi` and `ReadWriteOnce` access mode.
 
@@ -151,7 +171,7 @@ spec:
     mountPath: "/data"
 ```
 
-#### Advanced Storage
+#### Advanced storage
 
 Operator allows users to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`.
 
@@ -230,6 +250,88 @@ By setting this parameter, the operator creates an unsecured route based on your
 To create a secured HTTPS route, see [secured routes](https://docs.openshift.com/container-platform/3.11/architecture/networking/routes.html#secured-routes) for more information.
 
 _This feature is only available if you are running on OKD or OpenShift._
+
+
+### Operator Configuration
+
+When the operator starts, it creates two `ConfigMap` objects that contain default and constant values for individual stacks in `AppsodyApplication`.
+
+#### Stack defaults
+
+ConfigMap [`appsody-operator-defaults`](../deploy/stack_defaults.yaml) contains the default values for each stack. When users do not provide values inside their `AppsodyApplication` resource, the operator will look up default values inside
+this [stack defaults map](../deploy/stack_defaults.yaml).
+
+Input resource:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+```
+
+Since in the `AppsodyApplicaiton` resource service `port` and `type` are not set, they will be looked up in the defaults config map and added to the resource.
+and will be set according to `stack` field. If the `appsody-operator-defaults` doesn't have the `stack` with particular name defined operator will use `generic` stack default values.
+
+After defaults are applied:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  ....
+  service:
+    port: 9080
+    type: ClusterIP  
+```
+ 
+#### Stack Constants ConfigMap
+
+[`appsody-operator-constants`](../deploy/stack_constants.yaml) ConfigMap contains the constant values for each stack. This values will always be used over the ones
+that users provide. This can be used to limit user ability to control certain fields such as `expose`.
+It also provides ability to set environment variables that are always required.
+
+Input resource:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  expose: true
+  env:
+  -  name: DB_URL
+     value: url
+```
+
+After constants are applied:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  ....
+  expose: false
+  env:
+  -  name: VENDOR
+     value: COMPANY
+  -  name: DB_URL
+     value: url     
+```
 
 ### Troubleshooting
 
