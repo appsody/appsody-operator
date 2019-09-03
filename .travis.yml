@@ -5,10 +5,17 @@ language: go
 go:
   - 1.12.x
 
+env:
+  - GO111MODULE=on
+
 go_import_path: github.com/appsody/appsody-operator
 
 services:
   - docker
+
+cache:
+  directories:
+    - vendor 
 
 stages:
   - name: build
@@ -16,33 +23,19 @@ stages:
   - name: e2e test
   - name: push
 
-install:
-  - export RELEASE_VERSION=v0.10.0
-  - wget https://github.com/operator-framework/operator-sdk/releases/download/$RELEASE_VERSION/operator-sdk-$RELEASE_VERSION-x86_64-linux-gnu
-  - chmod +x operator-sdk-$RELEASE_VERSION-x86_64-linux-gnu
-  - sudo cp operator-sdk-$RELEASE_VERSION-x86_64-linux-gnu /usr/local/bin/operator-sdk
-  - rm operator-sdk-$RELEASE_VERSION-x86_64-linux-gnu
-  - export GO111MODULE=on
-
-  - wget https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz
-  - tar xvf openshift-origin-client-tools*.tar.gz
-  - cd openshift-origin-client*/
-  - sudo mv  oc kubectl   /usr/local/bin/
-  - cd ..
-
 jobs:
  include:
   - name: unit test
     stage: unit test
     script:
-    - go test -v -mod=vendor github.com/appsody/appsody-operator/pkg/controller/appsodyapplication
+    - make unit-test
   - name: e2e test
     stage: e2e test
     script: 
-    - ./travis/test_e2e.sh
+    - make setup-cluster
   - name: push docker image
     stage: build and push
     script:
-    - operator-sdk build appsody/application-operator:daily
+    - make build-image
     - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
-    - if [[ $TRAVIS_BRANCH == 'master' ]] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then docker push appsody/application-operator:daily; fi
+    - make push-image
