@@ -28,5 +28,6 @@ func TestAppsodyApplication(t *testing.T) {
 	t.Run("AppsodyServiceAccountTest", AppsodyServiceAccountTest)
 	t.Run("AppsodyServicesTest", AppsodyServicesTest)
 	t.Run("AppsodyVolumesTest", AppsodyVolumesTest)
+	t.Run("AppsodyAutoScalingTest", AppsodyAutoScalingTest)
 
 }
