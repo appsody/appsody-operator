@@ -43,7 +43,7 @@ func AppsodyPullPolicyTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// wait for example-appsody-pullpolicy to reach 1 replicas
+	// wait for example-appsody-pullpolicy to reach 2 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 1, retryInterval, timeout)
 	if err != nil {
 		t.Fatal(err)
