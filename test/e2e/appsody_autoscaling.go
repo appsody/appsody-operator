@@ -87,12 +87,6 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	options2 := k.ListOptions{FieldSelector: selec}
 	hpa = getHPA(hpa, t, f, options2)
 
-	for i := 0; i < len(hpa.Items); i++ {
-		t.Log(hpa.Items[i].Spec.MaxReplicas)
-		t.Log(*hpa.Items[i].Spec.MinReplicas)
-		t.Log(*hpa.Items[i].Spec.TargetCPUUtilizationPercentage)
-	}
-
 	updateTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
 	minMaxTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
 	minBoundaryTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
@@ -184,15 +178,9 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	hpa = getHPA(hpa, t, f, options2)
 
-	for i := 0; i < len(hpa.Items); i++ {
-		t.Log(hpa.Items[i].Spec.MaxReplicas)
-		t.Log(*hpa.Items[i].Spec.MinReplicas)
-		t.Log(*hpa.Items[i].Spec.TargetCPUUtilizationPercentage)
-	}
-
 	err = checkValues(hpa, t, 4, 5, 30)
 	if err != nil {
-		t.Log("There should be an update since the values have been updated.")
+		t.Log("Error: There should be an update since the values have been updated.")
 		t.Fail()
 	}
 	t.Log("Values updated to new values successfully")
@@ -223,15 +211,9 @@ func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	hpa = getHPA(hpa, t, f, options2)
 
-	for i := 0; i < len(hpa.Items); i++ {
-		t.Log(hpa.Items[i].Spec.MaxReplicas)
-		t.Log(*hpa.Items[i].Spec.MinReplicas)
-		t.Log(*hpa.Items[i].Spec.TargetCPUUtilizationPercentage)
-	}
-
 	err = checkValues(hpa, t, 4, 5, 30)
 	if err != nil {
-		t.Log("There should be no update since the minReplicas are greater than the maxReplicas")
+		t.Log("Error: There should be no update since the minReplicas are greater than the maxReplicas")
 		t.Fail()
 	}
 	t.Log("There is no update, due to the minReplicas being greater than the maxReplicas. The values remain the same")
@@ -265,7 +247,8 @@ func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *a
 
 	err = checkValues(hpa, t, 4, 5, 30)
 	if err != nil {
-		t.Log("There should be no update since the minReplicas are updated to a value less than 1")
+		t.Log("Error: There should be no update since the minReplicas are updated to a value less than 1")
+		t.Fail()
 	}
 	t.Log("There is no update, due to the minReplicas being less than 1. The values remain the same")
 }
