@@ -46,6 +46,7 @@ func AppsodyBasicStorageTest(t *testing.T) {
 		MountPath: "/mnt/data",
 	}
 
+	// create resource
 	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{
 		TestContext:   ctx,
 		Timeout:       time.Second * 5,
