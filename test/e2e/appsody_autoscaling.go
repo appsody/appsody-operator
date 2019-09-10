@@ -90,7 +90,7 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	updateTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
 	minMaxTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
 	minBoundaryTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
-	incorrectFieldsTest(t, f)
+	//incorrectFieldsTest(t, f)
 }
 
 func getAppsodyApplicationList(apps *appsodyv1beta1.AppsodyApplicationList, t *testing.T, f *framework.Framework, options k.ListOptions) *appsodyv1beta1.AppsodyApplicationList {
