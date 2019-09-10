@@ -9,6 +9,7 @@ import (
 	"github.com/appsody/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -46,7 +47,6 @@ func AppsodyBasicStorageTest(t *testing.T) {
 		MountPath: "/mnt/data",
 	}
 
-	// create resource
 	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{
 		TestContext:   ctx,
 		Timeout:       time.Second * 5,
@@ -59,4 +59,33 @@ func AppsodyBasicStorageTest(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// verify that removing the storage config returns it to a deployment not a stateful set
+	if err = updateStorageTest(t, f, ctx, exampleAppsody); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func updateStorageTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx, app *appsodyv1beta1.AppsodyApplication) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return err
+	}
+
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-storage", Namespace: namespace}, app)
+	if err != nil {
+		return err
+	}
+	// remove storage definition to return it to a deployment
+	app.Spec.Storage = nil
+
+	err = f.Client.Update(goctx.TODO(), app)
+	if err != nil {
+		return err
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-storage", 1, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
+	return nil
 }
