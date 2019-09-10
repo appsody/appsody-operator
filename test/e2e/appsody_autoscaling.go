@@ -90,7 +90,7 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	updateTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
 	minMaxTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
 	minBoundaryTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
-	//incorrectFieldsTest(t, f)
+	incorrectFieldsTest(t, f, ctx)
 }
 
 func getAppsodyApplicationList(apps *appsodyv1beta1.AppsodyApplicationList, t *testing.T, f *framework.Framework, options k.ListOptions) *appsodyv1beta1.AppsodyApplicationList {
@@ -254,13 +254,7 @@ func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *a
 }
 
 // When the mandatory fields for autoscaling are not set
-func incorrectFieldsTest(t *testing.T, f *framework.Framework) {
-
-	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
-	if err != nil {
-		t.Fatal(err)
-	}
+func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) {
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
