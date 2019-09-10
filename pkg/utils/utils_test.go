@@ -57,7 +57,7 @@ var (
 	volume      = corev1.Volume{Name: "appsody-volume"}
 	volumeMount = corev1.VolumeMount{Name: volumeCT.Name, MountPath: storage.MountPath}
 	resLimits   = map[corev1.ResourceName]resource.Quantity{
-		corev1.ResourceCPU: resource.Quantity{},
+		corev1.ResourceCPU: {},
 	}
 	resourceContraints = &corev1.ResourceRequirements{Limits: resLimits}
 )

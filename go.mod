@@ -41,12 +41,10 @@ require (
 	k8s.io/api v0.0.0-20190222213804-5cb15d344471
 	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
 	k8s.io/client-go v2.0.0-alpha.0.0.20181126152608-d082d5923d3c+incompatible
-	k8s.io/code-generator v0.0.0-20180823001027-3dcf91f64f63
-	k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 	k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
 	knative.dev/pkg v0.0.0-20190626215608-1104d6c75533 // indirect
 	sigs.k8s.io/controller-runtime v0.1.10
-	sigs.k8s.io/controller-tools v0.1.10
+	sigs.k8s.io/controller-tools v0.1.10 // indirect
 	sigs.k8s.io/testing_frameworks v0.1.0 // indirect
 	sigs.k8s.io/yaml v1.1.0
 )
