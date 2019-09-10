@@ -33,6 +33,7 @@ jobs:
     stage: e2e test
     script: 
     - make setup-cluster
+    - make test-e2e
   - name: push docker image
     stage: build and push
     script:
