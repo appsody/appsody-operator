@@ -24,12 +24,12 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			Namespace: ns,
 		},
 		Spec: appsodyv1beta1.AppsodyApplicationSpec{
-			ApplicationImage: "openliberty/open-liberty:microProfile2-ubi-min",
+			ApplicationImage: "navidsh/demo-day",
 			Replicas:         &replicas,
 			Service: &appsodyv1beta1.AppsodyApplicationService{
-				Port: 9080,
+				Port: 3000,
 			},
-			Stack: "java-microprofile",
+			Stack: "nodejs-express",
 		},
 	}
 }
