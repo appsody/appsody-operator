@@ -6,14 +6,22 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 )
 
 // MakeBasicAppsodyApplication : Create a simple Appsody App with provided number of replicas.
 func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string, ns string, replicas int32) *appsodyv1beta1.AppsodyApplication {
+	probe := corev1.Handler{
+		HTTPGet: &corev1.HTTPGetAction{
+			Path: "/",
+			Port: intstr.FromInt(3000),
+		},
+	}
 	return &appsodyv1beta1.AppsodyApplication{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AppsodyApplication",
@@ -28,6 +36,22 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			Replicas:         &replicas,
 			Service: &appsodyv1beta1.AppsodyApplicationService{
 				Port: 3000,
+			},
+			ReadinessProbe: &corev1.Probe{
+				Handler:             probe,
+				InitialDelaySeconds: 1, // minor adjustment
+				TimeoutSeconds:      1,
+				PeriodSeconds:       5,
+				SuccessThreshold:    1,
+				FailureThreshold:    16,
+			},
+			LivenessProbe: &corev1.Probe{
+				Handler:             probe,
+				InitialDelaySeconds: 4, // minor adjustment
+				TimeoutSeconds:      1,
+				PeriodSeconds:       5,
+				SuccessThreshold:    1,
+				FailureThreshold:    6,
 			},
 			Stack: "nodejs-express",
 		},
