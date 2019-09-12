@@ -23,6 +23,5 @@ func TestAppsodyApplication(t *testing.T) {
 	t.Run("AppsodyPullPolicyTest", AppsodyPullPolicyTest)
 	t.Run("AppsodyBasicTest", AppsodyBasicTest)
 	t.Run("AppsodyStorageTest", AppsodyBasicStorageTest)
-	t.Run("AppsodyAutoScalingTest", AppsodyAutoScalingTest)
-
+	t.Run("AppsodyProbeTest", AppsodyProbeTest)
 }
