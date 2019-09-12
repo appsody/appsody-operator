@@ -47,7 +47,6 @@ var (
 	stack                      = "java-microprofile"
 	genStack                   = "generic"
 	statefulSetSN              = name + "-headless"
-	defaultKSVCName            = "user-container"
 )
 
 type Test struct {
@@ -175,7 +174,6 @@ func TestAppsodyController(t *testing.T) {
 
 	// Check updated values in KnativeService
 	ksvcTests := []Test{
-		{"service name", defaultKSVCName, ksvc.Spec.Template.Spec.Containers[0].Name},
 		{"service image name", ksvcAppImage, ksvc.Spec.Template.Spec.Containers[0].Image},
 		{"pull policy", pullPolicy, ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy},
 		{"service account name", name, ksvc.Spec.Template.Spec.ServiceAccountName},
