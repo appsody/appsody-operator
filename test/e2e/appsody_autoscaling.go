@@ -298,7 +298,7 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 		t.Log(err)
 	}
 
-	appsodyApplication.Spec.ResourceConstraints = setResources("1")
+	appsodyApplication.Spec.ResourceConstraints = setResources("0.3")
 	appsodyApplication.Spec.Autoscaling = setAutoScale(4)
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
