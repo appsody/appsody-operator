@@ -35,12 +35,7 @@ build-image: setup
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image:
-# Push Docker image only if it is building on a master branch that is not a pull request build
-ifeq "${TRAVIS_BRANCH}" "master"
-ifndef TRAVIS_PULL_REQUEST
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
-endif
-endif
 
 gofmt:
 	@gofmt -s -l -w $(SRC_FILES)
