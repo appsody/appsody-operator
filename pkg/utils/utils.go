@@ -200,14 +200,13 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.A
 		ksvc.Spec.Template = &servingv1alpha1.RevisionTemplateSpec{}
 	}
 	if len(ksvc.Spec.Template.Spec.Containers) == 0 {
-		ksvc.Spec.Template.Spec.Containers = append(ksvc.Spec.Template.Spec.Containers, corev1.Container{Name: "user-container"})
+		ksvc.Spec.Template.Spec.Containers = append(ksvc.Spec.Template.Spec.Containers, corev1.Container{})
 	}
 
 	if len(ksvc.Spec.Template.Spec.Containers[0].Ports) == 0 {
 		ksvc.Spec.Template.Spec.Containers[0].Ports = append(ksvc.Spec.Template.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
-	ksvc.Spec.Template.Spec.Containers[0].Name = "user-container"
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	// Knative sets its own resource constraints
 	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
