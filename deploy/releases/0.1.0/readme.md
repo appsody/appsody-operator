@@ -29,8 +29,8 @@ _Limitation: Operator cannot be installed to watch multiple namespaces_
     - To watch all namespaces in the cluster, set `WATCH_NAMESPACE='""'`
 
     ```console
-    OPERATOR_NAMESPACE=`<SPECIFY_OPERATOR_NAMESPACE_HERE>`
-    WATCH_NAMESPACE=`<SPECIFY_WATCH_NAMESPACE_HERE>`
+    OPERATOR_NAMESPACE=<SPECIFY_OPERATOR_NAMESPACE_HERE>
+    WATCH_NAMESPACE=<SPECIFY_WATCH_NAMESPACE_HERE>
     ```
 
     2.2. _Optional_: Install cluster-level role based access. This step can be skipped if the operator is only watching its own namespace:
