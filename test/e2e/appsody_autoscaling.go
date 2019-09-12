@@ -70,8 +70,8 @@ func AppsodyAutoScalingTest(t *testing.T) {
 		t.Log(err)
 	}
 
-	appsodyApplication.Spec.ResourceConstraints = setResources("1")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(6, 50)
+	appsodyApplication.Spec.ResourceConstraints = setResources("0.2")
+	appsodyApplication.Spec.Autoscaling = setAutoScale(5, 50)
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
@@ -164,7 +164,7 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 	}
 
 	appsodyApplication.Spec.ResourceConstraints = setResources("0.2")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(5, 4, 30)
+	appsodyApplication.Spec.Autoscaling = setAutoScale(3, 2, 30)
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
@@ -178,7 +178,7 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	hpa = getHPA(hpa, t, f, options2)
 
-	err = checkValues(hpa, t, 4, 5, 30)
+	err = checkValues(hpa, t, 2, 3, 30)
 	if err != nil {
 		t.Log("Error: There should be an update since the values have been updated.")
 		t.Fail()
@@ -186,7 +186,7 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 	t.Log("Values updated to new values successfully")
 }
 
-// Check default value of MinReplicas
+// Checks when max is less than min
 func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, apps *appsodyv1beta1.AppsodyApplicationList, options k.ListOptions, namespace string, updateTime v1.Time, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
 
 	apps = getAppsodyApplicationList(apps, t, f, options)
@@ -211,7 +211,7 @@ func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	hpa = getHPA(hpa, t, f, options2)
 
-	err = checkValues(hpa, t, 4, 5, 30)
+	err = checkValues(hpa, t, 2, 3, 30)
 	if err != nil {
 		t.Log("Error: There should be no update since the minReplicas are greater than the maxReplicas")
 		t.Fail()
@@ -245,7 +245,7 @@ func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *a
 
 	hpa = getHPA(hpa, t, f, options2)
 
-	err = checkValues(hpa, t, 4, 5, 30)
+	err = checkValues(hpa, t, 2, 3, 30)
 	if err != nil {
 		t.Log("Error: There should be no update since the minReplicas are updated to a value less than 1")
 		t.Fail()
@@ -299,7 +299,7 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 	}
 
 	appsodyApplication.Spec.ResourceConstraints = setResources("1")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(6)
+	appsodyApplication.Spec.Autoscaling = setAutoScale(4)
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
