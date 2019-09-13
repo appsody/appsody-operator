@@ -233,7 +233,6 @@ func TestCustomizeKnativeService(t *testing.T) {
 	ksvc, appsody := &servingv1alpha1.Service{}, createAppsodyApp(name, namespace, spec)
 
 	CustomizeKnativeService(ksvc, appsody)
-	ksvcContainerName := ksvc.Spec.Template.Spec.Containers[0].Name
 	ksvcNumPorts := len(ksvc.Spec.Template.Spec.Containers[0].Ports)
 	ksvcSAN := ksvc.Spec.Template.Spec.ServiceAccountName
 
@@ -256,7 +255,6 @@ func TestCustomizeKnativeService(t *testing.T) {
 	appsody = createAppsodyApp(name, namespace, spec)
 	CustomizeKnativeService(ksvc, appsody)
 	testCKS := []Test{
-		{"ksvc Container Name", "user-container", ksvcContainerName},
 		{"ksvc container ports", 1, ksvcNumPorts},
 		{"ksvc ServiceAccountName is nil", name, ksvcSAN},
 		{"ksvc ServiceAccountName not nil", *appsody.Spec.ServiceAccountName, ksvc.Spec.Template.Spec.ServiceAccountName},

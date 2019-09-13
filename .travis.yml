@@ -29,11 +29,11 @@ jobs:
     stage: build
     script:
     - make build-image
-  - name: unit test
+  - name: Run unit tests
     stage: unit test
     script:
     - make unit-test
-  - name: e2e test
+  - name: Run end-to-end tests
     stage: e2e test
     script: 
     - make setup-cluster

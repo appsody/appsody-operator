@@ -2,45 +2,52 @@ OPERATOR_SDK_RELEASE_VERSION ?= v0.8.1
 OPERATOR_IMAGE ?= appsody/application-operator
 OPERATOR_IMAGE_TAG ?= daily
 
+WATCH_NAMESPACE ?= default
+
 GIT_COMMIT  ?= $(shell git rev-parse --short HEAD)
 
 # Get source files, ignore vendor directory
 SRC_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
-.PHONY: build test deploy
+.DEFAULT_GOAL := help
 
-setup:
+.PHONY: help setup setup-cluster tidy build unit-test test-e2e generate build-image push-image gofmt golint clean install deploy
+
+help: 
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+setup: ## Ensure Operator SDK is installed
 	./scripts/install-operator-sdk.sh ${OPERATOR_SDK_RELEASE_VERSION}
 
-setup-cluster:
+setup-cluster: ## Install `oc` and starts OpenShift on Docker
 	./scripts/setup-cluster.sh
 
-tidy:
+tidy: ## Clean up Go modules by adding missing and removing unused modules
 	go mod tidy
 
-build:
+build: ## Compile the operator
 	go install ./cmd/manager
 
-unit-test:
-	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/controller/appsodyapplication
+unit-test: ## Run unit tests
+	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
-test-e2e: setup
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace default
+test-e2e: setup ## Run end-to-end tests
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace ${WATCH_NAMESPACE}
 
-generate: setup
+generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
 
-build-image: setup
+build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}"
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
-push-image:
+push-image: ## Push operator image
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
-gofmt:
+gofmt: ## Format the Go code with `gofmt`
 	@gofmt -s -l -w $(SRC_FILES)
 
-golint:
+golint: ## Run linter on operator code
 	for file in $(SRC_FILES); do \
 		golint $${file}; \
 		if [ -n "$$(golint $${file})" ]; then \
@@ -48,13 +55,13 @@ golint:
 		fi; \
 	done
 
-clean:
+clean: ## Clean binary artifacts
 	rm -rf build/_output
 
-install:
+install: ## Installs operator CRD in the daily directory
 	kubectl apply -f deploy/releases/daily/appsody-app-crd.yaml
 	
-deploy:
+deploy: ## Deploys operator across cluster and watches ${WATCH_NAMESPACE} namespace. If ${WATCH_NAMESPACE} is not specified, it defaults to `default` namespace
 ifneq "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}" "appsody/application-operator:daily"
 	sed -i.bak -e 's!image: appsody/application-operator:daily!image: ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}!' deploy/releases/daily/appsody-app-operator.yaml
 endif
