@@ -324,13 +324,12 @@ func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1be
 	}
 
 	if cr.Spec.Service == nil {
-		if defaults.Service == nil {
-			st := corev1.ServiceTypeClusterIP
-			cr.Spec.Service.Type = &st
-			cr.Spec.Service.Port = 8080
-		} else {
-			cr.Spec.Service = defaults.Service
-		}
+		cr.Spec.Service = defaults.Service
+	}
+
+	// This is to handle when there is no service in the CR nor defaults
+	if cr.Spec.Service == nil {
+		cr.Spec.Service = &appsodyv1beta1.AppsodyApplicationService{}
 	}
 
 	if cr.Spec.Service.Type == nil {
