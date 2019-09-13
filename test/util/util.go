@@ -22,6 +22,8 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			Port: intstr.FromInt(3000),
 		},
 	}
+	expose := false
+	serviceType := corev1.ServiceTypeClusterIP
 	return &appsodyv1beta1.AppsodyApplication{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AppsodyApplication",
@@ -34,8 +36,10 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 		Spec: appsodyv1beta1.AppsodyApplicationSpec{
 			ApplicationImage: "navidsh/demo-day",
 			Replicas:         &replicas,
+			Expose:           &expose,
 			Service: &appsodyv1beta1.AppsodyApplicationService{
 				Port: 3000,
+				Type: &serviceType,
 			},
 			ReadinessProbe: &corev1.Probe{
 				Handler:             probe,
