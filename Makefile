@@ -14,7 +14,7 @@ SRC_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 .PHONY: help setup setup-cluster tidy build unit-test test-e2e generate build-image push-image gofmt golint clean install deploy
 
 help: 
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Ensure Operator SDK is installed
 	./scripts/install-operator-sdk.sh ${OPERATOR_SDK_RELEASE_VERSION}
@@ -31,17 +31,14 @@ build: ## Compile the operator
 unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
-test-e2e: ## Run end-to-end tests
-	setup
+test-e2e: setup ## Run end-to-end tests
 	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace default
 
-generate: ## Invoke `k8s` and `openapi` generators
-	setup
+generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
 
-build-image: ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}"
-	setup
+build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}"
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image: ## Push operator image
