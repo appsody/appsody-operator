@@ -32,7 +32,7 @@ unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
 test-e2e: setup ## Run end-to-end tests
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace default
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace ${WATCH_NAMESPACE}
 
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s

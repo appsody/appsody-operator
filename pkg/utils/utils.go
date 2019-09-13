@@ -324,16 +324,18 @@ func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1be
 	}
 
 	if cr.Spec.Service == nil {
-		cr.Spec.Service = defaults.Service
+		if defaults.Service == nil {
+			st := corev1.ServiceTypeClusterIP
+			cr.Spec.Service.Type = &st
+			cr.Spec.Service.Port = 8080
+		} else {
+			cr.Spec.Service = defaults.Service
+		}
 	}
 
 	if cr.Spec.Service.Type == nil {
-		if defaults.Service.Type != nil {
-			cr.Spec.Service.Type = defaults.Service.Type
-		} else {
-			st := corev1.ServiceTypeClusterIP
-			cr.Spec.Service.Type = &st
-		}
+		st := corev1.ServiceTypeClusterIP
+		cr.Spec.Service.Type = &st
 	}
 	if cr.Spec.Service.Port == 0 {
 		if defaults.Service.Port != 0 {

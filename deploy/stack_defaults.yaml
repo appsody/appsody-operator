@@ -1,15 +1,24 @@
 # Appsody Operator would create this ConfigMap automatically during installation, so you don't have to apply this manually.
 apiVersion: v1
 data:
-  java-microprofile: ""
-  java-spring-boot2: ""
-  nodejs: ""
-  nodejs-express: ""
-  swift: ""
+  java-microprofile: |-
+    service:
+      port: 9080
+  java-spring-boot2: |-
+    service:
+      port: 8080
+  nodejs: |-
+    service:
+      port: 3000
+  nodejs-express: |-
+    service:
+      port: 3000
+  swift: |-
+    service:
+      port: 8080
   generic: |-
     service:
       port: 3000
-      type: ClusterIP
 kind: ConfigMap
 metadata:
   name: appsody-operator-defaults
