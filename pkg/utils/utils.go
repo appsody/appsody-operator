@@ -337,7 +337,7 @@ func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1be
 		cr.Spec.Service.Type = &st
 	}
 	if cr.Spec.Service.Port == 0 {
-		if defaults.Service.Port != 0 {
+		if defaults.Service != nil && defaults.Service.Port != 0 {
 			cr.Spec.Service.Port = defaults.Service.Port
 		} else {
 			cr.Spec.Service.Port = 8080

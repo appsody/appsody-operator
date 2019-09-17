@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
@@ -31,6 +32,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_appsodyapplication")
+var watchList []string
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -48,13 +50,21 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
 		StackDefaults: map[string]appsodyv1beta1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1beta1.AppsodyApplicationSpec{}}
 
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		log.Error(err, "Failed to get watch namespace")
+		os.Exit(1)
+	}
+
+	for _, ns := range strings.Split(watchNamespace, ",") {
+		watchList = append(watchList, strings.TrimSpace(ns))
+	}
+
 	ns, err := k8sutil.GetOperatorNamespace()
+	// If the operator is running locally, `ns` would be "". Take the first namespace before `,` from Watch Namespace and assume
+	// the operator is running there.
 	if ns == "" {
-		ns, err = k8sutil.GetWatchNamespace()
-		if err != nil {
-			log.Error(err, "Failed to find a namespace for operator config maps")
-			os.Exit(1)
-		}
+		ns = strings.TrimSpace(watchList[0])
 	}
 
 	fData, err := ioutil.ReadFile("deploy/stack_defaults.yaml")
@@ -106,23 +116,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	nsMap := make(map[string]bool)
+	for _, ns := range watchList {
+		nsMap[ns] = true
+	}
+
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			ns, _ := k8sutil.GetWatchNamespace()
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (ns == "" || e.MetaOld.GetNamespace() == ns)
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (len(nsMap) == 0 || nsMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			ns, _ := k8sutil.GetWatchNamespace()
-			return ns == "" || e.Meta.GetNamespace() == ns
+			return len(nsMap) == 0 || nsMap[e.Meta.GetNamespace()]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			ns, _ := k8sutil.GetWatchNamespace()
-			return ns == "" || e.Meta.GetNamespace() == ns
+			return len(nsMap) == 0 || nsMap[e.Meta.GetNamespace()]
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			ns, _ := k8sutil.GetWatchNamespace()
-			return ns == "" || e.Meta.GetNamespace() == ns
+			return len(nsMap) == 0 || nsMap[e.Meta.GetNamespace()]
 		},
 	}
 
@@ -170,11 +181,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	reqLogger.Info("Reconciling AppsodyApplication")
 
 	ns, err := k8sutil.GetOperatorNamespace()
+	// If the operator is running locally, `ns` would be "". Take the first namespace before `,` from Watch Namespace and assume
+	// the operator is running there.
 	if ns == "" {
-		ns, err = k8sutil.GetWatchNamespace()
-		if err != nil {
-			log.Error(err, "Failed to find a namespace for operator config maps")
-		}
+		ns = watchList[0]
 	}
 
 	configMap, err := r.GetAppsodyOpConfigMap("appsody-operator-defaults", ns)
