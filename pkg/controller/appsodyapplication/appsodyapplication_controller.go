@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
@@ -32,7 +31,7 @@ import (
 )
 
 var log = logf.Log.WithName("controller_appsodyapplication")
-var watchList []string
+var watchNamespaces []string
 
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
@@ -50,21 +49,19 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
 		StackDefaults: map[string]appsodyv1beta1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1beta1.AppsodyApplicationSpec{}}
 
-	watchNamespace, err := k8sutil.GetWatchNamespace()
+	watchNamespaces, err := appsodyutils.GetWatchNamespaces()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
-	}
-
-	for _, ns := range strings.Split(watchNamespace, ",") {
-		watchList = append(watchList, strings.TrimSpace(ns))
 	}
 
 	ns, err := k8sutil.GetOperatorNamespace()
 	// If the operator is running locally, `ns` would be "". Take the first namespace before `,` from Watch Namespace and assume
 	// the operator is running there.
 	if ns == "" {
-		ns = strings.TrimSpace(watchList[0])
+		// If the operator is running locally, use the first namespace in the watchNameSpace list. This is only for running locally.
+		// watchNamespaces will always have at least one value if operator namespace is not set (e.g. running locally or unit tests)
+		ns = watchNamespaces[0]
 	}
 
 	fData, err := ioutil.ReadFile("deploy/stack_defaults.yaml")
@@ -116,24 +113,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	nsMap := make(map[string]bool)
-	for _, ns := range watchList {
-		nsMap[ns] = true
+	watchNamespacesMap := make(map[string]bool)
+	for _, ns := range watchNamespaces {
+		watchNamespacesMap[ns] = true
 	}
 
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (len(nsMap) == 0 || nsMap[e.MetaOld.GetNamespace()])
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (len(watchNamespacesMap) == 0 || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return len(nsMap) == 0 || nsMap[e.Meta.GetNamespace()]
+			return len(watchNamespacesMap) == 0 || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return len(nsMap) == 0 || nsMap[e.Meta.GetNamespace()]
+			return len(watchNamespacesMap) == 0 || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return len(nsMap) == 0 || nsMap[e.Meta.GetNamespace()]
+			return len(watchNamespacesMap) == 0 || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 	}
 
@@ -181,10 +178,19 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	reqLogger.Info("Reconciling AppsodyApplication")
 
 	ns, err := k8sutil.GetOperatorNamespace()
-	// If the operator is running locally, `ns` would be "". Take the first namespace before `,` from Watch Namespace and assume
-	// the operator is running there.
 	if ns == "" {
-		ns = watchList[0]
+		// This is to handle the case when Reconcile is called directly from unit tests
+		//
+		if watchNamespaces == nil {
+			watchNamespaces, err = appsodyutils.GetWatchNamespaces()
+			if err != nil {
+				reqLogger.Error(err, "Error getting watch namespace")
+				return reconcile.Result{}, err
+			}
+		}
+		// If the operator is running locally, use the first namespace in the watchNameSpace list. This is only for running locally.
+		// watchNamespaces will always have at least one value if operator namespace is not set (e.g. running locally or unit tests)
+		ns = watchNamespaces[0]
 	}
 
 	configMap, err := r.GetAppsodyOpConfigMap("appsody-operator-defaults", ns)

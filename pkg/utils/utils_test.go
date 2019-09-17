@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -448,6 +449,43 @@ func TestSetCondition(t *testing.T) {
 	verifyTests(testSC, t)
 }
 
+func TestGetWatchNamespaces(t *testing.T) {
+	// Set the logger to development mode for verbose logs
+	logf.SetLogger(logf.ZapLogger(true))
+
+	os.Setenv("WATCH_NAMESPACE", "")
+	namespaces, err := GetWatchNamespaces()
+	configMapConstTests := []Test{
+		{"namespaces", []string{""}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+
+	os.Setenv("WATCH_NAMESPACE", "ns1")
+	namespaces, err = GetWatchNamespaces()
+	configMapConstTests = []Test{
+		{"namespaces", []string{"ns1"}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+
+	os.Setenv("WATCH_NAMESPACE", "ns1,ns2,ns3")
+	namespaces, err = GetWatchNamespaces()
+	configMapConstTests = []Test{
+		{"namespaces", []string{"ns1", "ns2", "ns3"}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+
+	os.Setenv("WATCH_NAMESPACE", " ns1   ,  ns2,  ns3  ")
+	namespaces, err = GetWatchNamespaces()
+	configMapConstTests = []Test{
+		{"namespaces", []string{"ns1", "ns2", "ns3"}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+}
+
 // Helper Functions
 func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
 	app := &appsodyv1beta1.AppsodyApplication{
@@ -459,7 +497,7 @@ func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) 
 
 func verifyTests(tests []Test, t *testing.T) {
 	for _, tt := range tests {
-		if tt.actual != tt.expected {
+		if !reflect.DeepEqual(tt.actual, tt.expected) {
 			t.Errorf("%s test expected: (%v) actual: (%v)", tt.test, tt.expected, tt.actual)
 		}
 	}
