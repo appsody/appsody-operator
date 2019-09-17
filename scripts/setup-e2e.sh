@@ -3,9 +3,17 @@
 set -o errexit
 set -o nounset
 
-oc policy add-role-to-user registry-viewer developer
-oc policy add-role-to-user registry-editor developer
+# oc adm ca create-server-cert \
+#  --signer-cert=/etc/origin/master/ca.crt \
+#  --signer-key=/etc/origin/master/ca.key  \
+#  --signer-serial=/etc/origin/master/ca.serial.txt  \
+#  --hostnames=$(oc registry info) \
+#  --cert=/etc/secrets/registry.crt  \
+#  --key=/etc/secrets/registry.key
 
-oc login -u developer
 
-docker login -u developer -p $(oc whoami -t) $(oc registry info)
+oc create sa robot
+oc policy add-role-to-user registry-viewer system:serviceaccounts
+oc policy add-role-to-user registry-editor system:serviceaccounts
+docker login -u robot -p $(oc sa get-token robot) $(oc registry info)
+

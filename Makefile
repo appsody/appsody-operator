@@ -45,7 +45,6 @@ build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image-oc: setup ## Docker login to local cluster registry
-	docker tag $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 	docker push $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image: ## Push operator image
