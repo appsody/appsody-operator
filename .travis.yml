@@ -37,9 +37,11 @@ jobs:
     stage: e2e test
     script:
     - make setup-cluster
+    - oc login -u developer
     - docker login -u $(oc whoami) -p $(oc whoami -t) $(oc registry info)
     - make build-image
     - make oc-push-image
+    - oc login -u system:admin
     - make test-e2e
   - name: Build docker image and push
     stage: push
