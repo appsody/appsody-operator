@@ -15,7 +15,7 @@ services:
 
 cache:
   directories:
-    - vendor 
+    - vendor
 
 stages:
   - name: build
@@ -35,10 +35,13 @@ jobs:
     - make unit-test
   - name: Run end-to-end tests
     stage: e2e test
-    script: 
+    script:
     - make setup-cluster
+    - docker login -u $(oc whoami) -p $(oc whoami -t) $(oc registry info)
+    - make build-image
+    - make oc-push-image
     - make test-e2e
-  - name: Build docker image and push 
+  - name: Build docker image and push
     stage: push
     script:
     - make build-image

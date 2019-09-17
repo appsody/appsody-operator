@@ -13,7 +13,7 @@ SRC_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: help setup setup-cluster tidy build unit-test test-e2e generate build-image push-image gofmt golint clean install deploy
 
-help: 
+help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Ensure Operator SDK is installed
@@ -32,7 +32,7 @@ unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
 test-e2e: setup ## Run end-to-end tests
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace ${WATCH_NAMESPACE}
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} --namespace ${WATCH_NAMESPACE}
 
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
@@ -40,6 +40,10 @@ generate: setup ## Invoke `k8s` and `openapi` generators
 
 build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}"
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+
+oc-push-image: setup ## Docker login to local cluster registry
+	docker tag $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+	docker push $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image: ## Push operator image
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
@@ -60,7 +64,7 @@ clean: ## Clean binary artifacts
 
 install: ## Installs operator CRD in the daily directory
 	kubectl apply -f deploy/releases/daily/appsody-app-crd.yaml
-	
+
 deploy: ## Deploys operator across cluster and watches ${WATCH_NAMESPACE} namespace. If ${WATCH_NAMESPACE} is not specified, it defaults to `default` namespace
 ifneq "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}" "appsody/application-operator:daily"
 	sed -i.bak -e 's!image: appsody/application-operator:daily!image: ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}!' deploy/releases/daily/appsody-app-operator.yaml
