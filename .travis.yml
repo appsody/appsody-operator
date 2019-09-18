@@ -25,18 +25,23 @@ stages:
 
 jobs:
  include:
-  - name: unit test
+  - name: Build docker image
+    stage: build
+    script:
+    - make build-image
+  - name: Run unit tests
     stage: unit test
     script:
     - make unit-test
-  - name: e2e test
+  - name: Run end-to-end tests
     stage: e2e test
     script: 
     - make setup-cluster
     - make test-e2e
-  - name: push docker image
-    stage: build and push
+  - name: Build docker image and push 
+    stage: push
     script:
     - make build-image
-    - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
     - make push-image
+    if: branch = master AND fork = false AND type != pull_request AND env(DOCKER_USERNAME) IS NOT blank AND env(DOCKER_PASSWORD) IS NOT blank

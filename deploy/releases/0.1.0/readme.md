@@ -17,7 +17,7 @@ _Limitation: Operator cannot be installed to watch multiple namespaces_
 1. Install `AppsodyApplication` Custom Resource Definition (CRD). This needs to be done only ONCE per cluster:
 
     ```console
-    $ kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
+    kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-crd.yaml
     ```
 
 2. Install the Appsody Operator:
@@ -26,21 +26,27 @@ _Limitation: Operator cannot be installed to watch multiple namespaces_
 
     2.1. Set operator namespace and the namespace to watch:
 
-    - To watch all namespaces in the cluster, set `WATCH_NAMESPACE="''"`
+    - To watch all namespaces in the cluster, set `WATCH_NAMESPACE='""'`
 
     ```console
-    $ OPERATOR_NAMESPACE=`<SPECIFY_OPERATOR_NAMESPACE_HERE>`
-    $ WATCH_NAMESPACE=`<SPECIFY_WATCH_NAMESPACE_HERE>`
+    OPERATOR_NAMESPACE=<SPECIFY_OPERATOR_NAMESPACE_HERE>
+    WATCH_NAMESPACE=<SPECIFY_WATCH_NAMESPACE_HERE>
     ```
 
     2.2. _Optional_: Install cluster-level role based access. This step can be skipped if the operator is only watching its own namespace:
 
-        $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-cluster-rbac.yaml | sed -e "s/APPSODY_OPERATOR_NAMESPACE/$OPERATOR_NAMESPACE/" | kubectl apply -f -
+    ```console
+    curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-cluster-rbac.yaml \
+      | sed -e "s/APPSODY_OPERATOR_NAMESPACE/${OPERATOR_NAMESPACE}/" \
+      | kubectl apply -f -
+    ```
 
     2.3. Install the operator:
 
     ```console
-    $ curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml | sed -e "s/APPSODY_WATCH_NAMESPACE/$WATCH_NAMESPACE/" | kubectl apply -f -
+    curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-operator.yaml \
+      | sed -e "s/APPSODY_WATCH_NAMESPACE/${WATCH_NAMESPACE}/" \
+      | kubectl apply -n ${OPERATOR_NAMESPACE} -f -
     ```
 
 ## Uninstallation
