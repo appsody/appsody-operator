@@ -31,12 +31,9 @@ import (
 )
 
 var log = logf.Log.WithName("controller_appsodyapplication")
-var watchNamespaces []string
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+// Holds a list of namespaces the operator will be watching
+var watchNamespaces []string
 
 // Add creates a new AppsodyApplication Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -54,13 +51,13 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
 	}
+	log.Info("newReconciler", "watchNamespaces", watchNamespaces)
 
 	ns, err := k8sutil.GetOperatorNamespace()
-	// If the operator is running locally, `ns` would be "". Take the first namespace before `,` from Watch Namespace and assume
-	// the operator is running there.
+	// When running the operator locally, `ns` will be empty string
 	if ns == "" {
-		// If the operator is running locally, use the first namespace in the watchNameSpace list. This is only for running locally.
-		// watchNamespaces will always have at least one value if operator namespace is not set (e.g. running locally or unit tests)
+		// If the operator is running locally, use the first namespace in the `watchNamespaces`
+		// `watchNamespaces` must have at least one item
 		ns = watchNamespaces[0]
 	}
 
@@ -113,24 +110,33 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	watchNamespaces, err := appsodyutils.GetWatchNamespaces()
+	if err != nil {
+		log.Error(err, "Failed to get watch namespace")
+		os.Exit(1)
+	}
+
 	watchNamespacesMap := make(map[string]bool)
 	for _, ns := range watchNamespaces {
 		watchNamespacesMap[ns] = true
 	}
+	isClusterWide := len(watchNamespacesMap) == 1 && watchNamespacesMap[""]
+
+	log.V(1).Info("Adding a new controller", "watchNamespaces", watchNamespaces, "isClusterWide", isClusterWide)
 
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (len(watchNamespacesMap) == 0 || watchNamespacesMap[e.MetaOld.GetNamespace()])
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			return len(watchNamespacesMap) == 0 || watchNamespacesMap[e.Meta.GetNamespace()]
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			return len(watchNamespacesMap) == 0 || watchNamespacesMap[e.Meta.GetNamespace()]
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			return len(watchNamespacesMap) == 0 || watchNamespacesMap[e.Meta.GetNamespace()]
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 	}
 
@@ -178,9 +184,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	reqLogger.Info("Reconciling AppsodyApplication")
 
 	ns, err := k8sutil.GetOperatorNamespace()
+	// When running the operator locally, `ns` will be empty string
 	if ns == "" {
-		// This is to handle the case when Reconcile is called directly from unit tests
-		//
+		// Since this method can be called directly from unit test, populate `watchNamespaces`.
 		if watchNamespaces == nil {
 			watchNamespaces, err = appsodyutils.GetWatchNamespaces()
 			if err != nil {
@@ -188,8 +194,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return reconcile.Result{}, err
 			}
 		}
-		// If the operator is running locally, use the first namespace in the watchNameSpace list. This is only for running locally.
-		// watchNamespaces will always have at least one value if operator namespace is not set (e.g. running locally or unit tests)
+		// If the operator is running locally, use the first namespace in the `watchNamespaces`
+		// `watchNamespaces` must have at least one item
 		ns = watchNamespaces[0]
 	}
 

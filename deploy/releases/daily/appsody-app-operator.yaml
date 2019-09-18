@@ -108,7 +108,7 @@ spec:
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
-              value: appsody-app
+              value: APPSODY_WATCH_NAMESPACE
             - name: POD_NAME
               valueFrom:
                 fieldRef:
