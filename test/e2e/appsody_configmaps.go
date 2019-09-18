@@ -65,6 +65,7 @@ func AppsodyConfigMapsTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// Selects the appsodyApplication called example-appsody-configmap
 	m := map[string]string{"metadata.name": "example-appsody-configmap"}
 	l := fields.Set(m)
 	selec := l.AsSelector()
@@ -76,6 +77,7 @@ func AppsodyConfigMapsTest(t *testing.T) {
 		t.Log(err)
 	}
 
+	// Checks that the default values from the configmap are applied to the application
 	if apps.Items[0].Spec.LivenessProbe.FailureThreshold != 3 && apps.Items[0].Spec.LivenessProbe.InitialDelaySeconds != 60 && apps.Items[0].Spec.LivenessProbe.PeriodSeconds != 5 {
 		t.Log("Wrong default values for the LivenessProbe")
 		t.Fail()
@@ -111,6 +113,7 @@ func AppsodyConfigMapsTest(t *testing.T) {
 		t.Log(err)
 	}
 
+	// Changes the default values for the application that were taken from the defaults configmap
 	serviceType = corev1.ServiceTypeNodePort
 	appsodyApplication.Spec.LivenessProbe = setProbe(1, 1, 1, 1, 1)
 	appsodyApplication.Spec.ReadinessProbe = setProbe(1, 1, 1, 1, 1)
@@ -126,6 +129,7 @@ func AppsodyConfigMapsTest(t *testing.T) {
 		t.Log(err)
 	}
 
+	// Checks that the appsodyApplication has been updated with the new values
 	if apps.Items[0].Spec.LivenessProbe.FailureThreshold != 1 && apps.Items[0].Spec.LivenessProbe.SuccessThreshold != 1 && apps.Items[0].Spec.LivenessProbe.InitialDelaySeconds != 1 && apps.Items[0].Spec.LivenessProbe.PeriodSeconds != 1 && apps.Items[0].Spec.LivenessProbe.TimeoutSeconds != 1 {
 		t.Log("LivenessProbe values not updated")
 		t.Fail()
@@ -155,30 +159,9 @@ func AppsodyConfigMapsTest(t *testing.T) {
 	} else {
 		t.Log("Services are successfully updated")
 	}
-
-	//Check the name field that matches // "metadata.name": "appsody-operator-defaults"
-	// m = map[string]string{"metadata.name": "appsody-operator-constants"}
-	// l = fields.Set(m)
-	// selec = l.AsSelector()
-
-	// maps := &corev1.ConfigMapList{}
-	// options = k.ListOptions{FieldSelector: selec}
-
-	// if err := f.Client.List(goctx.TODO(), &options, maps); err != nil {
-	// 	t.Log(err)
-	// }
-
-	// for i := 0; i < len(maps.Items); i++ {
-	// 	t.Log(maps.Items[i])
-	// 	t.Log("----------------------------------------------------------------------")
-	// }
-
-	t.Fail()
-
 }
 
 func setProbe(initialDelay int32, timeoutSeconds int32, periodSeconds int32, successThreshold int32, failureThreshold int32) *corev1.Probe {
-
 	probe := corev1.Handler{
 		HTTPGet: &corev1.HTTPGetAction{
 			Path: "/",
