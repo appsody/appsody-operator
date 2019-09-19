@@ -28,6 +28,7 @@ _Limitation: Operator cannot be installed to watch multiple namespaces_
     2.1. Set operator namespace and the namespace to watch:
 
     - To watch all namespaces in the cluster, set `WATCH_NAMESPACE='""'`
+    - To watch multiple namespaces in the cluster, set `WATCH_NAMESPACE` to a comma-separated list of namespaces e.g. `WATCH_NAMESPACE=my-appsody-ns-1,my-appsody-ns-2,my-appsody-ns-3`
 
     ```console
     OPERATOR_NAMESPACE=<SPECIFY_OPERATOR_NAMESPACE_HERE>
