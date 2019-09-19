@@ -33,7 +33,7 @@ _Limitation: Operator cannot be installed to watch multiple namespaces_
     WATCH_NAMESPACE=<SPECIFY_WATCH_NAMESPACE_HERE>
     ```
 
-    2.2. _Optional_: Install cluster-level role based access. This step can be skipped if the operator is only watching its own namespace:
+    2.2. _Optional_: Install cluster-level role-based access. This step can be skipped if the operator is only watching its own namespace:
 
     ```console
     curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.1.0/appsody-app-cluster-rbac.yaml \
@@ -59,5 +59,5 @@ _Deleting the CRD will also delete all `AppsodyApplication` in the cluster_
 
 ## Current Limitations
 
-- Operator cannot be installed to watch multiple namespaces
-- Knative support is limited. Values specified for `autoscaling`, `resources` and `replicas` parameters would not apply for Knative, when enabled using `createKnativeService` parameter.
+- The operator cannot be installed to watch multiple namespaces
+- Knative support is limited. Values specified for `autoscaling`, `resources` and `replicas` parameters would not apply for Knative when enabled using `createKnativeService` parameter.

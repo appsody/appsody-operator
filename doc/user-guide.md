@@ -10,9 +10,10 @@ The Appsody Operator can be installed to:
 
 - watch its own namespace
 - watch another namespace
+- warch multiple namespaces
 - watch all namespaces in the cluster
 
-Appropriate cluster role and binding are required to watch another namespace or to watch all namespaces.
+Appropriate cluster role and binding are required to watch another namespace, watch multiple namespaces or to watch all namespaces.
 
 _Limitation: Operator cannot be installed to watch multiple namespaces_
 
