@@ -7,6 +7,7 @@ import (
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -337,7 +338,7 @@ func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1be
 		cr.Spec.Service.Type = &st
 	}
 	if cr.Spec.Service.Port == 0 {
-		if defaults.Service.Port != 0 {
+		if defaults.Service != nil && defaults.Service.Port != 0 {
 			cr.Spec.Service.Port = defaults.Service.Port
 		} else {
 			cr.Spec.Service.Port = 8080
@@ -491,4 +492,20 @@ func SetCondition(condition appsodyv1beta1.StatusCondition, status *appsodyv1bet
 	}
 
 	status.Conditions = append(status.Conditions, condition)
+}
+
+// GetWatchNamespaces returns a slice of namespaces the operator should watch based on WATCH_NAMESPSCE value
+// WATCH_NAMESPSCE value could be empty for watching the whole cluster or a comma-separated list of namespaces
+func GetWatchNamespaces() ([]string, error) {
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	var watchNamespaces []string
+	for _, ns := range strings.Split(watchNamespace, ",") {
+		watchNamespaces = append(watchNamespaces, strings.TrimSpace(ns))
+	}
+
+	return watchNamespaces, nil
 }

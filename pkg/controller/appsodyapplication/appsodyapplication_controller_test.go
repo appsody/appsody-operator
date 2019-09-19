@@ -58,6 +58,7 @@ type Test struct {
 func TestAppsodyController(t *testing.T) {
 	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
+	os.Setenv("WATCH_NAMESPACE", namespace)
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 	appsody := createAppsodyApp(name, namespace, spec)
@@ -259,8 +260,9 @@ func TestAppsodyController(t *testing.T) {
 }
 
 func TestConfigMapDefaults(t *testing.T) {
-	os.Setenv("WATCH_NAMESPACE", namespace)
+	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
+	os.Setenv("WATCH_NAMESPACE", namespace)
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack, Service: service}
 	appsody := createAppsodyApp(name, namespace, spec)
@@ -301,8 +303,9 @@ func TestConfigMapDefaults(t *testing.T) {
 }
 
 func TestConfigMapConstants(t *testing.T) {
-	os.Setenv("WATCH_NAMESPACE", namespace)
+	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
+	os.Setenv("WATCH_NAMESPACE", namespace)
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 	appsody := createAppsodyApp(name, namespace, spec)
