@@ -37,10 +37,8 @@ jobs:
     stage: e2e test
     script:
     - make setup-cluster
-    - make setup-oc-registry
+    - cd ..
     - make build-image
-    - make push-image-oc
-    - oc login -u system:admin
     - make test-e2e
   - name: Build docker image and push
     stage: push

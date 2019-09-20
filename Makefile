@@ -35,7 +35,7 @@ setup-oc-registry:
 	./scripts/setup-e2e.sh
 
 test-e2e: setup ## Run end-to-end tests
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} --namespace ${WATCH_NAMESPACE}
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} --namespace ${WATCH_NAMESPACE}
 
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
