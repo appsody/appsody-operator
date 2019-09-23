@@ -10,9 +10,10 @@ The Appsody Operator can be installed to:
 
 - watch its own namespace
 - watch another namespace
+- warch multiple namespaces
 - watch all namespaces in the cluster
 
-Appropriate cluster role and binding are required to watch another namespace or to watch all namespaces.
+Appropriate cluster role and binding are required to watch another namespace, watch multiple namespaces or to watch all namespaces.
 
 _Limitation: Operator cannot be installed to watch multiple namespaces_
 
@@ -101,6 +102,22 @@ The operator can create a `ServiceAccount` resource when deploying an Appsody ba
 Users can also specify `serviceAccountName` when they want to create a service account manually.
 
 If applications require specific permissions but still want the operator to create a `ServiceAccount`, users can still manually create a role binding to bind a role to the service account created by the operator. To learn more about Role-based access control (RBAC), see Kubernetes [documentation](https://kubernetes.io/docs/reference/access-authn-authz/rbac/).
+
+### Labels
+
+By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack`. You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+  labels:
+    my-label-key: my-label-value
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+```
 
 ### Environment variables
 
