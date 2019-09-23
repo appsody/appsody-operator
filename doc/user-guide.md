@@ -116,6 +116,7 @@ metadata:
 spec:
   stack: java-microprofile
   applicationImage: quay.io/my-repo/my-app:1.0
+```
 
 ### Environment variables
 
