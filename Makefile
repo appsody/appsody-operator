@@ -35,7 +35,7 @@ setup-oc-registry:
 	./scripts/setup-e2e.sh
 
 test-e2e: setup ## Run end-to-end tests
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image $(oc get route openshift-docker-registry -o=jsonpath='{.spec.host}')/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} --namespace ${WATCH_NAMESPACE}
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} --namespace ${WATCH_NAMESPACE}
 
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
@@ -45,7 +45,7 @@ build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image-oc: setup ## Docker login to local cluster registry
-	docker push $(oc get route openshift-docker-registry -o=jsonpath='{.spec.host}')/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+	docker push $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 push-image: ## Push operator image
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
