@@ -204,6 +204,16 @@ func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1beta1.AppsodyApplication
 func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.AppsodyApplication) {
 	ksvc.Labels = GetLabels(cr)
 
+	// If `expose` is not set to `true`, make Knative route a private route by adding `serving.knative.dev/visibility: cluster-local`
+	// to the Knative service. If `serving.knative.dev/visibility: XYZ` is defined in cr.Labels, `expose` always wins.
+	if cr.Spec.Expose != nil {
+		if *cr.Spec.Expose {
+			delete(ksvc.Labels, "serving.knative.dev/visibility")
+		} else {
+			ksvc.Labels["serving.knative.dev/visibility"] = "cluster-local"
+		}
+	}
+
 	if ksvc.Spec.Template == nil {
 		ksvc.Spec.Template = &servingv1alpha1.RevisionTemplateSpec{}
 	}
@@ -214,6 +224,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.A
 	if len(ksvc.Spec.Template.Spec.Containers[0].Ports) == 0 {
 		ksvc.Spec.Template.Spec.Containers[0].Ports = append(ksvc.Spec.Template.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
+	ksvc.Spec.Template.ObjectMeta.Labels = GetLabels(cr)
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	// Knative sets its own resource constraints
@@ -250,7 +261,6 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.A
 			ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port = intstr.IntOrString{}
 		}
 	}
-
 }
 
 // CustomizeHPA ...
