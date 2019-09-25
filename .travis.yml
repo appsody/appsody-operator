@@ -36,12 +36,15 @@ jobs:
   - name: Run end-to-end tests
     stage: e2e test
     script:
+    - make restart-docker
     - make build-image
-    - echo "{ \"insecure-registries\":[\"172.30.0.0/16\"] }" | sudo tee -a /etc/docker/daemon.json
-    - sudo service docker restart
     - make setup-cluster
     - make setup-oc-registry
+    - docker login -u robot -p $(oc sa get-token robot) $(oc registry info)
     - make push-image-oc
+    - oc login -u system:admin
+    - oc get svc/docker-registry -o yaml -n default | grep clusterIP
+    - oc get svc -n default
     - make test-e2e
   - name: Build docker image and push
     stage: push

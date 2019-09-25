@@ -33,7 +33,8 @@ unit-test: ## Run unit tests
 
 setup-oc-registry:
 	./scripts/setup-e2e.sh
-
+restart-docker:
+	./scripts/restart-docker.sh
 test-e2e: setup ## Run end-to-end tests
 	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image $(oc registry info)/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} --namespace ${WATCH_NAMESPACE}
 
