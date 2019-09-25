@@ -37,6 +37,8 @@ jobs:
     stage: e2e test
     script:
     - make build-image
+    - echo "{ \"insecure-registries\":[\"172.30.0.0/16\"] }" | sudo tee -a /etc/docker/daemon.json
+    - sudo service docker restart
     - make setup-cluster
     - make setup-oc-registry
     - make push-image-oc
