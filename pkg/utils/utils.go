@@ -206,12 +206,10 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.A
 
 	// If `expose` is not set to `true`, make Knative route a private route by adding `serving.knative.dev/visibility: cluster-local`
 	// to the Knative service. If `serving.knative.dev/visibility: XYZ` is defined in cr.Labels, `expose` always wins.
-	if cr.Spec.Expose != nil {
-		if *cr.Spec.Expose {
-			delete(ksvc.Labels, "serving.knative.dev/visibility")
-		} else {
-			ksvc.Labels["serving.knative.dev/visibility"] = "cluster-local"
-		}
+	if cr.Spec.Expose != nil && *cr.Spec.Expose {
+		delete(ksvc.Labels, "serving.knative.dev/visibility")
+	} else {
+		ksvc.Labels["serving.knative.dev/visibility"] = "cluster-local"
 	}
 
 	if ksvc.Spec.Template == nil {
