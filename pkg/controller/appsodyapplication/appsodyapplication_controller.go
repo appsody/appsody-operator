@@ -497,8 +497,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String()); err != nil {
 		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
 		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
-	} else if ok && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
-		if instance.Spec.Monitoring != nil {
+	} else if ok {
+		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
 			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(sm, instance, func() error {
 				appsodyutils.CustomizeServiceMonitor(sm, instance)
@@ -517,6 +517,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 		}
 
+	} else {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 	}
 
 	return r.ManageSuccess(appsodyv1beta1.StatusConditionTypeReconciled, instance)
