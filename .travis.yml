@@ -37,9 +37,11 @@ jobs:
     stage: e2e test
     script:
     - make restart-docker
-    - make build-image
+    - sudo systemctl restart docker
     - make setup-cluster
-    - make login-oc-registry
+    - oc whoami -t
+    - oc registry info
+    - docker login -u $(oc whoami) -p $(oc whoami -t) $(oc registry info)
     - make push-oc-registry
     - oc login -u system:admin
     - make test-e2e

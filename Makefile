@@ -32,8 +32,9 @@ unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
 login-oc-registry:
-	./scripts/setup-e2e.sh ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
-push-oc-registry:
+	./scripts/setup-e2e.sh
+push-oc-registry: setup # Build operator and push to local registry
+	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 	docker push 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 restart-docker:
 	./scripts/restart-docker.sh
