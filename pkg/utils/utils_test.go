@@ -241,6 +241,7 @@ func TestCustomizeKnativeService(t *testing.T) {
 	ksvcLPTCP := ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.TCPSocket.Port
 	ksvcRPPort := ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port
 	ksvcRPTCP := ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port
+	ksvcLabelNoExpose := ksvc.Labels["serving.knative.dev/visibility"]
 
 	spec = appsodyv1beta1.AppsodyApplicationSpec{
 		ApplicationImage:   appImage,
@@ -252,9 +253,17 @@ func TestCustomizeKnativeService(t *testing.T) {
 		ServiceAccountName: &serviceAccountName,
 		LivenessProbe:      livenessProbe,
 		ReadinessProbe:     readinessProbe,
+		Expose:             &expose,
 	}
 	appsody = createAppsodyApp(name, namespace, spec)
 	CustomizeKnativeService(ksvc, appsody)
+	ksvcLabelTrueExpose := ksvc.Labels["serving.knative.dev/visibility"]
+
+	fls := false
+	appsody.Spec.Expose = &fls
+	CustomizeKnativeService(ksvc, appsody)
+	ksvcLabelFalseExpose := ksvc.Labels["serving.knative.dev/visibility"]
+
 	testCKS := []Test{
 		{"ksvc container ports", 1, ksvcNumPorts},
 		{"ksvc ServiceAccountName is nil", name, ksvcSAN},
@@ -263,6 +272,9 @@ func TestCustomizeKnativeService(t *testing.T) {
 		{"liveness probe TCP socket port", intstr.IntOrString{}, ksvcLPTCP},
 		{"Readiness probe port", intstr.IntOrString{}, ksvcRPPort},
 		{"Readiness probe TCP socket port", intstr.IntOrString{}, ksvcRPTCP},
+		{"expose not set", "cluster-local", ksvcLabelNoExpose},
+		{"expose set to true", "", ksvcLabelTrueExpose},
+		{"expose set to false", "cluster-local", ksvcLabelFalseExpose},
 	}
 	verifyTests(testCKS, t)
 }

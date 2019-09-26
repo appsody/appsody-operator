@@ -58,7 +58,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |
 | `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
-| `expose`   | A boolean that toggles the external exposure of this deployment via a Route resource.|
+| `expose`   | A boolean that toggles the external exposure of this deployment via a Route or a Knative Route resource.|
 | `replicas` | The static number of desired replica pods that run simultaneously. |
 | `autoscaling.maxReplicas` | Required field for autoscaling. Upper limit for the number of pods that can be set by the autoscaler. Cannot be lower than the minimum number of replicas. |
 | `autoscaling.minReplicas`   | Lower limit for the number of pods that can be set by the autoscaler. |
@@ -224,7 +224,7 @@ spec:
 
 Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a [Knative `Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of a workload.
 
-To create `Knative Service`, set `createKnativeService` to `true`:
+To create Knative service, set `createKnativeService` to `true`:
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -237,15 +237,17 @@ spec:
   createKnativeService: true
 ```
 
-By setting this parameter, the operator creates a `Knative Service` in the cluster and populates the resource with applicable `AppsodyApplication` CRD fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
+By setting this parameter, the operator creates a Knative service in the cluster and populates the resource with applicable `AppsodyApplication` fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
-The CRD fields that are used to populate the `Knative Service` resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
+The CRD fields that are used to populate the Knative service resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
 
 For more details on how to configure Knative for tasks such as enabling HTTPS connections and setting up a custom domain, checkout [Knative Documentation](https://knative.dev/docs/serving/).
 
 _This feature is only available if you have Knative installed on your cluster._
 
 ### Exposing service externally
+
+#### Non-Knative deployment
 
 To expose your application externally, set `expose` to `true`:
 
@@ -266,6 +268,25 @@ To create a secured HTTPS route, see [secured routes](https://docs.openshift.com
 
 _This feature is only available if you are running on OKD or OpenShift._
 
+#### Knative deployment
+
+To expose your application as a Knative service externally, set `expose` to `true`:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  createKnativeService: true
+  expose: true
+```
+
+When `expose` is **not** set to `true`, the Knative service is labelled with `serving.knative.dev/visibility=cluster-local` which makes the Knative route to only be available on the cluster-local network (and not on the public Internet). However, if `expose` is set `true`, the Knative route would be accessible externally.
+
+To configure secure HTTPS connections for your deployment, see [Configuring HTTPS with TLS certificates](https://knative.dev/docs/serving/using-a-tls-cert/) for more information.
 
 ### Operator Configuration
 
