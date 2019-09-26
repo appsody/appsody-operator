@@ -39,12 +39,8 @@ jobs:
     - make restart-docker
     - make build-image
     - make setup-cluster
-    - make setup-oc-registry
-    - docker login -u robot -p $(oc sa get-token robot) $(oc registry info)
     - make push-image-oc
     - oc login -u system:admin
-    - oc get svc/docker-registry -o yaml -n default | grep clusterIP
-    - oc get svc -n default
     - make test-e2e
   - name: Build docker image and push
     stage: push
