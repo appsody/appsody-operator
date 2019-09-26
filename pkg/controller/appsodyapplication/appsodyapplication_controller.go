@@ -12,6 +12,7 @@ import (
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -359,6 +360,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	err = r.CreateOrUpdate(svc, instance, func() error {
 		appsodyutils.CustomizeService(svc, instance)
 		svc.Annotations = instance.Spec.Service.Annotations
+		if instance.Spec.Monitoring != nil {
+			svc.Labels["app.appsody.dev/monitor"] = "true"
+		} else {
+			if _, ok := svc.Labels["app.appsody.dev/monitor"]; ok {
+				delete(svc.Labels, "app.appsody.dev/monitor")
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -482,6 +490,33 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
 			}
 		}
+	} else {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
+	}
+
+	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String()); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
+		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+	} else if ok {
+		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
+			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(sm, instance, func() error {
+				appsodyutils.CustomizeServiceMonitor(sm, instance)
+				return nil
+			})
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile ServiceMonitor")
+				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			}
+		} else {
+			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
+			err = r.DeleteResource(sm)
+			if err != nil {
+				reqLogger.Error(err, "Failed to delete ServiceMonitor")
+				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			}
+		}
+
 	} else {
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 	}

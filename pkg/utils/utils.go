@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -54,6 +56,7 @@ func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
 // CustomizeService ...
 func CustomizeService(svc *corev1.Service, cr *appsodyv1beta1.AppsodyApplication) {
 	svc.Labels = GetLabels(cr)
+
 	if len(svc.Spec.Ports) == 0 {
 		svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 	}
@@ -484,6 +487,53 @@ func applyConstants(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1bet
 	if constants.Autoscaling != nil {
 		cr.Spec.Autoscaling = constants.Autoscaling
 	}
+}
+
+// CustomizeServiceMonitor ...
+func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, cr *appsodyv1beta1.AppsodyApplication) {
+	sm.Labels = GetLabels(cr)
+	sm.Spec.Selector = metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app.kubernetes.io/name":  cr.Name,
+			"app.appsody.dev/monitor": "true",
+		},
+	}
+	if len(sm.Spec.Endpoints) == 0 {
+		sm.Spec.Endpoints = append(sm.Spec.Endpoints, prometheusv1.Endpoint{})
+	}
+	targetPort := intstr.FromInt(int(cr.Spec.Service.Port))
+	sm.Spec.Endpoints[0].TargetPort = &targetPort
+	if len(cr.Spec.Monitoring.Labels) > 0 {
+		for k, v := range cr.Spec.Monitoring.Labels {
+			sm.Labels[k] = v
+		}
+	}
+
+	if len(cr.Spec.Monitoring.Endpoints) > 0 {
+
+		if cr.Spec.Monitoring.Endpoints[0].Scheme != "" {
+			sm.Spec.Endpoints[0].Scheme = cr.Spec.Monitoring.Endpoints[0].Scheme
+		}
+		if cr.Spec.Monitoring.Endpoints[0].Interval != "" {
+			sm.Spec.Endpoints[0].Interval = cr.Spec.Monitoring.Endpoints[0].Interval
+		}
+		if cr.Spec.Monitoring.Endpoints[0].Path != "" {
+			sm.Spec.Endpoints[0].Path = cr.Spec.Monitoring.Endpoints[0].Path
+		}
+
+		if cr.Spec.Monitoring.Endpoints[0].TLSConfig != nil {
+			sm.Spec.Endpoints[0].TLSConfig = cr.Spec.Monitoring.Endpoints[0].TLSConfig
+		}
+
+		if cr.Spec.Monitoring.Endpoints[0].BasicAuth != nil {
+			sm.Spec.Endpoints[0].BasicAuth = cr.Spec.Monitoring.Endpoints[0].BasicAuth
+		}
+
+		if cr.Spec.Monitoring.Endpoints[0].Params != nil {
+			sm.Spec.Endpoints[0].Params = cr.Spec.Monitoring.Endpoints[0].Params
+		}
+	}
+
 }
 
 // GetCondition ...

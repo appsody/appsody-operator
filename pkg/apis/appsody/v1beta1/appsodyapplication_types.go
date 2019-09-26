@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -28,7 +29,8 @@ type AppsodyApplicationSpec struct {
 	Architecture         []string                       `json:"architecture,omitempty"`
 	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
 	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
-	Stack                string                         `json:"stack"`
+	Stack                string                         `json:"stack,omitempty"`
+	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -59,6 +61,12 @@ type AppsodyApplicationStorage struct {
 	Size                string                        `json:"size,omitempty"`
 	MountPath           string                        `json:"mountPath,omitempty"`
 	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
+}
+
+// AppsodyApplicationMonitoring ...
+type AppsodyApplicationMonitoring struct {
+	Labels    map[string]string       `json:"labels,omitempty"`
+	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
 }
 
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
