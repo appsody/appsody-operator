@@ -31,8 +31,10 @@ build: ## Compile the operator
 unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
-push-image-oc:
-	./scripts/setup-e2e.sh $(oc get svc docker-registry -n default -o template --template=--template={{.spec.clusterIP}}) ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+login-oc-registry:
+	./scripts/setup-e2e.sh ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+push-oc-registry:
+	docker push 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 restart-docker:
 	./scripts/restart-docker.sh
 test-e2e: setup ## Run end-to-end tests
