@@ -39,9 +39,8 @@ jobs:
     - make restart-docker
     - sudo systemctl restart docker
     - make setup-cluster
-    - oc whoami -t
-    - oc registry info
-    - docker login -u $(oc whoami) -p $(oc whoami -t) $(oc registry info)
+    - make build-image
+    - docker login -u openshift -p $(oc whoami -t) $(oc registry info)
     - make push-oc-registry
     - oc login -u system:admin
     - make test-e2e

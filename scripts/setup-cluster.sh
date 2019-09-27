@@ -10,3 +10,8 @@ sudo mv oc kubectl /usr/local/bin/
 
 # Start a cluster and login
 oc cluster up
+oc login -u system:admin
+oc policy add-role-to-user registry-viewer developer
+oc policy add-role-to-user registry-editor developer
+oc policy add-role-to-user image-builder developer
+oc login -u developer
