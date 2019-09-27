@@ -42,6 +42,7 @@ jobs:
     - make setup-cluster
     - docker login -u appsody -p $(oc whoami -t) $(oc registry info)
     - make push-oc-registry
+    - docker pull $(oc registry info)/myproject/appsody-operator:daily
     - oc login -u system:admin
     - make test-e2e
   - name: Build docker image and push

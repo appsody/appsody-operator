@@ -34,13 +34,13 @@ unit-test: ## Run unit tests
 login-oc-registry:
 	./scripts/setup-e2e.sh
 build-oc-image: setup
-	operator-sdk build 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+	operator-sdk build 172.30.1.1:5000/myproject/appsody-operator:${OPERATOR_IMAGE_TAG}
 push-oc-registry:
-	docker push 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+	docker push 172.30.1.1:5000/myproject/appsody-operator:${OPERATOR_IMAGE_TAG}
 restart-docker:
 	./scripts/restart-docker.sh
 test-e2e: setup ## Run end-to-end tests
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --image 172.30.1.1:5000/myproject/appsody-operator:${OPERATOR_IMAGE_TAG}
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
