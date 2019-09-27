@@ -8,7 +8,7 @@ Use the instructions for one of the [releases](../deploy/releases) to install th
 
 The Appsody Operator can be installed to:
 
-- watch its namespace
+- watch own namespace
 - watch another namespace
 - watch multiple namespaces
 - watch all namespaces in the cluster
@@ -227,11 +227,13 @@ spec:
 ```
 ### Monitoring
 
-Appsody Operator can create a `ServiceMonitor` resource to integrate with `Prometheus Operator`
+Appsody Operator can create a `ServiceMonitor` resource to integrate with `Prometheus Operator`.
+
+_This feature does not support integration with Knative Service. Prometheus Operator is required to use ServiceMonitor._
 
 #### Basic monitoring specification
 
-At minimum, a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case, it is `apps-prometheus`
+At minimum, a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case, it is `apps-prometheus`.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -273,6 +275,8 @@ spec:
       tlsConfig:
         insecureSkipVerify: true
 ```
+
+__
 
 ### Knative support
 
