@@ -3,6 +3,7 @@ package utils
 import (
 	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
@@ -82,7 +83,7 @@ func TestCustomizeRoute(t *testing.T) {
 		{"Route target kind", "Service", route.Spec.To.Kind},
 		{"Route target name", name, route.Spec.To.Name},
 		{"Route target weight", int32(100), *route.Spec.To.Weight},
-		{"Route service target port", intstr.FromInt(int(appsody.Spec.Service.Port)), route.Spec.Port.TargetPort},
+		{"Route service target port", intstr.FromString(strconv.Itoa(int(appsody.Spec.Service.Port)) + "-tcp"), route.Spec.Port.TargetPort},
 	}
 
 	verifyTests(testCR, t)

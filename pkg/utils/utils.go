@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -110,7 +111,8 @@ func CustomizeRoute(route *routev1.Route, cr *appsodyv1beta1.AppsodyApplication)
 	if route.Spec.Port == nil {
 		route.Spec.Port = &routev1.RoutePort{}
 	}
-	route.Spec.Port.TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
+	route.Spec.Port.TargetPort = intstr.FromString(strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp")
+
 }
 
 // ErrorIsNoMatchesForKind ...
@@ -127,6 +129,7 @@ func CustomizeService(svc *corev1.Service, cr *appsodyv1beta1.AppsodyApplication
 	}
 	svc.Spec.Ports[0].Port = cr.Spec.Service.Port
 	svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
+	svc.Spec.Ports[0].Name = strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp"
 	svc.Spec.Type = *cr.Spec.Service.Type
 	svc.Spec.Selector = map[string]string{
 		"app.kubernetes.io/name": cr.Name,
@@ -144,6 +147,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1beta1.AppsodyApp
 		pts.Spec.Containers[0].Ports = append(pts.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
 	pts.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
+	pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp"
 	pts.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	pts.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	pts.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
@@ -591,8 +595,7 @@ func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, cr *appsodyv1beta1
 	if len(sm.Spec.Endpoints) == 0 {
 		sm.Spec.Endpoints = append(sm.Spec.Endpoints, prometheusv1.Endpoint{})
 	}
-	targetPort := intstr.FromInt(int(cr.Spec.Service.Port))
-	sm.Spec.Endpoints[0].TargetPort = &targetPort
+	sm.Spec.Endpoints[0].Port = strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp"
 	if len(cr.Spec.Monitoring.Labels) > 0 {
 		for k, v := range cr.Spec.Monitoring.Labels {
 			sm.Labels[k] = v
@@ -621,6 +624,12 @@ func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, cr *appsodyv1beta1
 
 		if cr.Spec.Monitoring.Endpoints[0].Params != nil {
 			sm.Spec.Endpoints[0].Params = cr.Spec.Monitoring.Endpoints[0].Params
+		}
+		if cr.Spec.Monitoring.Endpoints[0].ScrapeTimeout != "" {
+			sm.Spec.Endpoints[0].ScrapeTimeout = cr.Spec.Monitoring.Endpoints[0].ScrapeTimeout
+		}
+		if cr.Spec.Monitoring.Endpoints[0].BearerTokenFile != "" {
+			sm.Spec.Endpoints[0].BearerTokenFile = cr.Spec.Monitoring.Endpoints[0].BearerTokenFile
 		}
 	}
 
