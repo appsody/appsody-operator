@@ -33,7 +33,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	f := framework.Global
 
 	// Values to be loaded into the default configmap
-	updateData := map[string]string{"nodejs-express": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort, "annotations":{"prometheus.io/scrape": true}}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}, "livenessProbe":{"failureThreshold": 12, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2}}`}
+	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort, "annotations":{"prometheus.io/scrape": true}}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}, "livenessProbe":{"failureThreshold": 12, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2}}`}
 	configMap := &corev1.ConfigMap{}
 
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "appsody-operator-defaults", Namespace: namespace}, configMap)
@@ -62,7 +62,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 		Spec: appsodyv1beta1.AppsodyApplicationSpec{
 			ApplicationImage: "navidsh/demo-day",
 			Replicas:         &replicas,
-			Stack:            "nodejs-express",
+			Stack:            "jstack",
 		},
 	}
 
