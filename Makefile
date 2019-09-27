@@ -1,5 +1,5 @@
 OPERATOR_SDK_RELEASE_VERSION ?= v0.8.1
-OPERATOR_IMAGE ?= edavidj/test
+OPERATOR_IMAGE ?= appsody/application-operator
 OPERATOR_IMAGE_TAG ?= daily
 
 WATCH_NAMESPACE ?= default
