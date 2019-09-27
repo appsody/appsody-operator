@@ -31,6 +31,7 @@ type AppsodyApplicationSpec struct {
 	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
 	Stack                string                         `json:"stack,omitempty"`
 	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
+	AppDefinition        *AppsodyApplicationDefinition  `json:"appDefinition,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -41,6 +42,13 @@ type AppsodyApplicationAutoScaling struct {
 
 	// +kubebuilder:validation:Minimum=1
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`
+}
+
+// AppsodyApplicationDefinition ...
+// +k8s:openapi-gen=true
+type AppsodyApplicationDefinition struct {
+	AutoCreate *bool  `json:"autoCreate,omitempty"`
+	Version    string `json:"version,omitempty"`
 }
 
 // AppsodyApplicationService ...

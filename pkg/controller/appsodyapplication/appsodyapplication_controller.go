@@ -397,13 +397,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(statefulSet, instance, func() error {
-			statefulSet.Spec.Replicas = instance.Spec.Replicas
-			statefulSet.Spec.ServiceName = instance.Name + "-headless"
-			statefulSet.Spec.Selector = &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": instance.Name,
-				},
-			}
+			appsodyutils.CustomizeStatefulSet(statefulSet, instance)
 			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			appsodyutils.CustomizePersistence(statefulSet, instance)
 			return nil
@@ -432,12 +426,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(deploy, instance, func() error {
-			deploy.Spec.Replicas = instance.Spec.Replicas
-			deploy.Spec.Selector = &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": instance.Name,
-				},
-			}
+			appsodyutils.CustomizeDeployment(deploy, instance)
 			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
 			return nil
 		})

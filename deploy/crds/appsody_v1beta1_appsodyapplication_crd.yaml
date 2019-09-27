@@ -56,6 +56,13 @@ spec:
           type: object
         spec:
           properties:
+            appDefinition:
+              properties:
+                autoCreate:
+                  type: boolean
+                version:
+                  type: string
+              type: object
             applicationImage:
               type: string
             architecture:
