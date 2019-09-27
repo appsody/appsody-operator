@@ -3,6 +3,7 @@ package appsodyapplication
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
@@ -198,7 +199,7 @@ func TestAppsodyController(t *testing.T) {
 	}
 
 	// Check updated values in Route
-	routeTests := []Test{{"target port", intstr.FromInt(int(service.Port)), route.Spec.Port.TargetPort}}
+	routeTests := []Test{{"target port", intstr.FromString(strconv.Itoa(int(service.Port)) + "-tcp"), route.Spec.Port.TargetPort}}
 	verifyTests("route", routeTests, t)
 
 	// Disable Route/Expose and enable Autoscaling
