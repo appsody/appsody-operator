@@ -44,7 +44,7 @@ spec:
 
 The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](../deploy/crds/appsody_v1beta1_appsodyapplication_crd.yaml).
 
-Each `AppsodyApplication` CR must specify `applicationImage` and `stack` parameters. Specifying other parameters is optional.
+Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifying other parameters is optional.
 
 | Parameter | Description |
 |---|---|
@@ -76,7 +76,8 @@ Each `AppsodyApplication` CR must specify `applicationImage` and `stack` paramet
 | `storage.size` | A convenient field to set the size of the persisted storage. Can be overriden by the `storage.volumeClaimTemplate` property. |
 | `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
-
+| `monitoring.labels` | Labels to set on [ServiceMonitor](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
+| `monitoring.endpoints` | A YAML snippet representing a array of [Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint) component from ServiceMonitor. |
 ### Basic usage
 
 To deploy a Docker image containing an Appsody based application to a Kubernetes environment you can use the following CR:
@@ -218,6 +219,54 @@ spec:
         resources:
           requests:
             storage: 1Gi
+```
+### Monitoring
+
+Appsody Operator can create a `ServiceMonitor` resource to integrate with `Prometheus Operator`
+
+#### Basic monitoring specification
+
+As minimum a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case it is `apps-prometheus`
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  monitoring:
+    labels:
+       apps-prometheus: ''
+```
+
+#### Advanced monitoring specification
+
+For advanced scenarios it is possible to set many `ServicerMonitor` settings such as authentication sercret using [Prometheus Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint)
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  monitoring:
+    labels:
+       app-prometheus: ''
+    endpoints:
+    - interval: '30s'
+      basicAuth:
+        username:
+          key: username
+          name: metrics-secret
+        password:
+          key: password
+          name: metrics-secret
+      tlsConfig:
+        insecureSkipVerify: true
 ```
 
 ### Knative support
