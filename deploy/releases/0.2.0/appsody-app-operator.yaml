@@ -101,7 +101,7 @@ spec:
       serviceAccountName: appsody-operator
       containers:
         - name: appsody-operator
-          image: appsody/application-operator:daily
+          image: appsody/application-operator:0.2.0
           command:
           - appsody-operator
           imagePullPolicy: Always

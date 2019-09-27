@@ -95,7 +95,7 @@ spec:
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
 
-Both `stack` and `applicationImage` values are required to be defined in an `AppsodyApplication` CR. `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
+The `applicationImage` value is required to be defined in `AppsodyApplication` CR. The `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
 ### Service account
 
