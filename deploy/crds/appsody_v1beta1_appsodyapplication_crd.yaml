@@ -293,6 +293,7 @@ spec:
                 mountPath:
                   type: string
                 size:
+                  pattern: ^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
                   type: string
                 volumeClaimTemplate:
                   type: object

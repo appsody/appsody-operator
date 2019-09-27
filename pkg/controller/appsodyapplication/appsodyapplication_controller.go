@@ -259,9 +259,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if ok {
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
 		} else {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants["generic"])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants["generic"])
 		}
 	} else {
 		stackDefaults, ok = r.StackDefaults["generic"]
@@ -271,11 +271,20 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
 		} else {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants["generic"])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants["generic"])
 		}
 	}
+
+	_, err = appsodyutils.Validate(instance)
+	// If there's any validation error, don't bother with requeuing
+	if err != nil {
+		reqLogger.Error(err, "Error validating AppsodyApplication")
+		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		return reconcile.Result{}, nil
+	}
+
 	currentGen := instance.Generation
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {

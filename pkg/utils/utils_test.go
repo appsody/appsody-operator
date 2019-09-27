@@ -304,7 +304,7 @@ func TestCustomizeHPA(t *testing.T) {
 	verifyTests(testCHPA, t)
 }
 
-func TestInitAndValidate(t *testing.T) {
+func TestInitialize(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 	emptyService := &appsodyv1beta1.AppsodyApplicationService{Port: 0}
 	appsody := createAppsodyApp(name, namespace, appsodyv1beta1.AppsodyApplicationSpec{})
@@ -314,7 +314,7 @@ func TestInitAndValidate(t *testing.T) {
 	}
 	constants := &appsodyv1beta1.AppsodyApplicationSpec{}
 
-	InitAndValidate(appsody, defaults, constants)
+	Initialize(appsody, defaults, constants)
 	defNilPP := *appsody.Spec.PullPolicy
 	defResConNil := *appsody.Spec.ResourceConstraints
 	servType := *appsody.Spec.Service.Type
@@ -339,7 +339,7 @@ func TestInitAndValidate(t *testing.T) {
 		CreateKnativeService: &createKNS,
 		Service:              service,
 	}
-	InitAndValidate(appsody, defaults, constants)
+	Initialize(appsody, defaults, constants)
 
 	testIAV := []Test{
 		{"Appsody PullPolicy is nil", pullPolicy, *appsody.Spec.PullPolicy},
