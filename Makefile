@@ -33,8 +33,9 @@ unit-test: ## Run unit tests
 
 login-oc-registry:
 	./scripts/setup-e2e.sh
+build-oc-image: setup
+	operator-sdk build 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 push-oc-registry:
-	docker tag ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG} 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 	docker push 172.30.1.1:5000/${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 restart-docker:
 	./scripts/restart-docker.sh

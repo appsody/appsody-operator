@@ -38,8 +38,8 @@ jobs:
     script:
     - make restart-docker
     - sudo systemctl restart docker
+    - make build-oc-image
     - make setup-cluster
-    - make build-image
     - docker login -u openshift -p $(oc whoami -t) $(oc registry info)
     - make push-oc-registry
     - oc login -u system:admin
