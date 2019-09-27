@@ -75,6 +75,8 @@ spec:
                   format: int32
                   type: integer
               type: object
+            createAppDefinition:
+              type: boolean
             createKnativeService:
               type: boolean
             env:
@@ -295,6 +297,8 @@ spec:
                 volumeClaimTemplate:
                   type: object
               type: object
+            version:
+              type: string
             volumeMounts:
               items:
                 type: object

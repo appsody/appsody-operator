@@ -256,6 +256,11 @@ func (in *AppsodyApplicationSpec) DeepCopyInto(out *AppsodyApplicationSpec) {
 		*out = new(AppsodyApplicationMonitoring)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.CreateAppDefinition != nil {
+		in, out := &in.CreateAppDefinition, &out.CreateAppDefinition
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

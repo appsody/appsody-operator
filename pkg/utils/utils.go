@@ -23,7 +23,14 @@ func GetLabels(cr *appsodyv1beta1.AppsodyApplication) map[string]string {
 	labels := map[string]string{
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
-		"app.appsody.dev/stack":        cr.Spec.Stack,
+	}
+
+	if cr.Spec.Stack != "" {
+		labels["app.appsody.dev/stack"] = cr.Spec.Stack
+	}
+
+	if cr.Spec.Version != "" {
+		labels["app.kubernetes.io/version"] = cr.Spec.Version
 	}
 
 	for key, value := range cr.Labels {
@@ -33,6 +40,64 @@ func GetLabels(cr *appsodyv1beta1.AppsodyApplication) map[string]string {
 	}
 
 	return labels
+}
+
+// CustomizeDeployment ...
+func CustomizeDeployment(deploy *appsv1.Deployment, cr *appsodyv1beta1.AppsodyApplication) {
+	deploy.Labels = GetLabels(cr)
+
+	deploy.Spec.Replicas = cr.Spec.Replicas
+
+	deploy.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app.kubernetes.io/name": cr.Name,
+		},
+	}
+
+	if deploy.Annotations == nil {
+		deploy.Annotations = make(map[string]string)
+	}
+	UpdateAppDefinition(deploy.Labels, deploy.Annotations, cr)
+}
+
+// CustomizeStatefulSet ...
+func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, cr *appsodyv1beta1.AppsodyApplication) {
+	statefulSet.Labels = GetLabels(cr)
+	statefulSet.Spec.Replicas = cr.Spec.Replicas
+	statefulSet.Spec.ServiceName = cr.Name + "-headless"
+	statefulSet.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app.kubernetes.io/name": cr.Name,
+		},
+	}
+
+	if statefulSet.Annotations == nil {
+		statefulSet.Annotations = make(map[string]string)
+	}
+	UpdateAppDefinition(statefulSet.Labels, statefulSet.Annotations, cr)
+}
+
+// UpdateAppDefinition ...
+func UpdateAppDefinition(labels map[string]string, annotations map[string]string, cr *appsodyv1beta1.AppsodyApplication) {
+	if cr.Spec.CreateAppDefinition != nil && !*cr.Spec.CreateAppDefinition {
+		delete(labels, "kappnav.app.auto-create")
+		delete(annotations, "kappnav.app.auto-create.name")
+		delete(annotations, "kappnav.app.auto-create.kinds")
+		delete(annotations, "kappnav.app.auto-create.label")
+		delete(annotations, "kappnav.app.auto-create.labels-values")
+		delete(annotations, "kappnav.app.auto-create.version")
+	} else {
+		labels["kappnav.app.auto-create"] = "true"
+		annotations["kappnav.app.auto-create.name"] = cr.Name
+		annotations["kappnav.app.auto-create.kinds"] = "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap"
+		annotations["kappnav.app.auto-create.label"] = "app.kubernetes.io/name"
+		annotations["kappnav.app.auto-create.labels-values"] = cr.Name
+		if cr.Spec.Version == "" {
+			delete(annotations, "kappnav.app.auto-create.version")
+		} else {
+			annotations["kappnav.app.auto-create.version"] = cr.Spec.Version
+		}
+	}
 }
 
 // CustomizeRoute ...

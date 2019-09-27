@@ -11,6 +11,7 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
+	Version              string                         `json:"version,omitempty"`
 	ApplicationImage     string                         `json:"applicationImage"`
 	Replicas             *int32                         `json:"replicas,omitempty"`
 	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
@@ -31,6 +32,7 @@ type AppsodyApplicationSpec struct {
 	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
 	Stack                string                         `json:"stack,omitempty"`
 	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
+	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
