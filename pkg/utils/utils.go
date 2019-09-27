@@ -347,8 +347,31 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1beta1
 	}
 }
 
-// InitAndValidate ...
-func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1beta1.AppsodyApplicationSpec, constants *appsodyv1beta1.AppsodyApplicationSpec) {
+// Validate if the AppsodyApplication is valid
+func Validate(cr *appsodyv1beta1.AppsodyApplication) (bool, error) {
+	// Storage validation
+	if cr.Spec.Storage != nil {
+		if cr.Spec.Storage.Size == "" {
+			return false, fmt.Errorf("validation failed: " + requiredFieldMessage("spec.storage.size"))
+		}
+		if _, err := resource.ParseQuantity(cr.Spec.Storage.Size); err != nil {
+			return false, fmt.Errorf("validation failed: cannot parse '%v': %v", cr.Spec.Storage.Size, err)
+		}
+	}
+
+	return true, nil
+}
+
+func createValidationError(msg string) error {
+	return fmt.Errorf("validation failed: " + msg)
+}
+
+func requiredFieldMessage(fieldPaths ...string) string {
+	return "must set the field(s): " + strings.Join(fieldPaths, ",")
+}
+
+// Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
+func Initialize(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1beta1.AppsodyApplicationSpec, constants *appsodyv1beta1.AppsodyApplicationSpec) {
 
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy

@@ -60,6 +60,7 @@ type AppsodyApplicationService struct {
 // AppsodyApplicationStorage ...
 // +k8s:openapi-gen=true
 type AppsodyApplicationStorage struct {
+	// +kubebuilder:validation:Pattern=^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
 	Size                string                        `json:"size,omitempty"`
 	MountPath           string                        `json:"mountPath,omitempty"`
 	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
