@@ -13,7 +13,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 	return map[string]common.OpenAPIDefinition{
 		"./pkg/apis/appsody/v1beta1.AppsodyApplication":            schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
 		"./pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
-		"./pkg/apis/appsody/v1beta1.AppsodyApplicationDefinition":  schema_pkg_apis_appsody_v1beta1_AppsodyApplicationDefinition(ref),
 		"./pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
 		"./pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
 		"./pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
@@ -96,31 +95,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref common.Re
 	}
 }
 
-func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationDefinition(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "AppsodyApplicationDefinition ...",
-				Properties: map[string]spec.Schema{
-					"autoCreate": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"boolean"},
-							Format: "",
-						},
-					},
-					"version": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -165,6 +139,12 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplicationSpec defines the desired state of AppsodyApplication",
 				Properties: map[string]spec.Schema{
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
 					"applicationImage": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
@@ -309,9 +289,10 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring"),
 						},
 					},
-					"appDefinition": {
+					"createAppDefinition": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationDefinition"),
+							Type:   []string{"boolean"},
+							Format: "",
 						},
 					},
 				},
@@ -319,7 +300,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "./pkg/apis/appsody/v1beta1.AppsodyApplicationDefinition", "./pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "./pkg/apis/appsody/v1beta1.AppsodyApplicationService", "./pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
+			"./pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "./pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "./pkg/apis/appsody/v1beta1.AppsodyApplicationService", "./pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
 	}
 }
 

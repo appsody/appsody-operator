@@ -23,7 +23,14 @@ func GetLabels(cr *appsodyv1beta1.AppsodyApplication) map[string]string {
 	labels := map[string]string{
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
-		"app.appsody.dev/stack":        cr.Spec.Stack,
+	}
+
+	if cr.Spec.Stack != "" {
+		labels["app.appsody.dev/stack"] = cr.Spec.Stack
+	}
+
+	if cr.Spec.Version != "" {
+		labels["app.kubernetes.io/version"] = cr.Spec.Version
 	}
 
 	for key, value := range cr.Labels {
@@ -72,7 +79,7 @@ func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, cr *appsodyv1beta1.Ap
 
 // UpdateAppDefinition ...
 func UpdateAppDefinition(labels map[string]string, annotations map[string]string, cr *appsodyv1beta1.AppsodyApplication) {
-	if cr.Spec.AppDefinition != nil && cr.Spec.AppDefinition.AutoCreate != nil && !*cr.Spec.AppDefinition.AutoCreate {
+	if cr.Spec.CreateAppDefinition != nil && !*cr.Spec.CreateAppDefinition {
 		delete(labels, "kappnav.app.auto-create")
 		delete(annotations, "kappnav.app.auto-create.name")
 		delete(annotations, "kappnav.app.auto-create.kinds")
@@ -85,8 +92,10 @@ func UpdateAppDefinition(labels map[string]string, annotations map[string]string
 		annotations["kappnav.app.auto-create.kinds"] = "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap"
 		annotations["kappnav.app.auto-create.label"] = "app.kubernetes.io/name"
 		annotations["kappnav.app.auto-create.labels-values"] = cr.Name
-		if cr.Spec.AppDefinition != nil && cr.Spec.AppDefinition.Version != "" {
-			annotations["kappnav.app.auto-create.version"] = cr.Spec.AppDefinition.Version
+		if cr.Spec.Version == "" {
+			delete(annotations, "kappnav.app.auto-create.version")
+		} else {
+			annotations["kappnav.app.auto-create.version"] = cr.Spec.Version
 		}
 	}
 }
