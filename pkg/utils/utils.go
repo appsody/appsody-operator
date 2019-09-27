@@ -351,11 +351,13 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1beta1
 func Validate(cr *appsodyv1beta1.AppsodyApplication) (bool, error) {
 	// Storage validation
 	if cr.Spec.Storage != nil {
-		if cr.Spec.Storage.Size == "" {
-			return false, fmt.Errorf("validation failed: " + requiredFieldMessage("spec.storage.size"))
-		}
-		if _, err := resource.ParseQuantity(cr.Spec.Storage.Size); err != nil {
-			return false, fmt.Errorf("validation failed: cannot parse '%v': %v", cr.Spec.Storage.Size, err)
+		if cr.Spec.Storage.VolumeClaimTemplate == nil {
+			if cr.Spec.Storage.Size == "" {
+				return false, fmt.Errorf("validation failed: " + requiredFieldMessage("spec.storage.size"))
+			}
+			if _, err := resource.ParseQuantity(cr.Spec.Storage.Size); err != nil {
+				return false, fmt.Errorf("validation failed: cannot parse '%v': %v", cr.Spec.Storage.Size, err)
+			}
 		}
 	}
 
