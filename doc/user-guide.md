@@ -8,16 +8,16 @@ Use the instructions for one of the [releases](../deploy/releases) to install th
 
 The Appsody Operator can be installed to:
 
-- watch its own namespace
+- watch its namespace
 - watch another namespace
 - watch multiple namespaces
 - watch all namespaces in the cluster
 
-Appropriate cluster roles and bindings are required to watch another namespace, watch multiple namespaces or to watch all namespaces.
+Appropriate cluster roles and bindings are required to watch another namespace, watch multiple namespaces or watch all namespaces.
 
 ## Overview
 
-The architecture of the Appsody Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating a `AppsodyApplication` custom resource (CR) triggers the Appsody Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
+The architecture of the Appsody Operator follows the basic controller pattern:  the Operator container with the controller is deployed into a Pod and listens for incoming resources with `Kind: AppsodyApplication`. Creating an `AppsodyApplication` custom resource (CR) triggers the Appsody Operator to create, update or delete Kubernetes resources needed by the application to run on your cluster.
 
 Each instance of `AppsodyApplication` CR represents the application to be deployed on the cluster:
 
@@ -49,6 +49,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | Parameter | Description |
 |---|---|
 | `stack` | The name of the Appsody Application Stack that produced this application image. |
+| `version` | The current version of the application. Label `app.kubernetes.io/version` will be added to all resources when the version is defined. |
 | `serviceAccountName` | The name of the OpenShift service account to be used during deployment. |
 | `applicationImage` | The absolute name of the image to be deployed, containing the registry and the tag. |
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
@@ -60,7 +61,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
 | `expose`   | A boolean that toggles the external exposure of this deployment via a Route or a Knative Route resource.|
 | `replicas` | The static number of desired replica pods that run simultaneously. |
-| `autoscaling.maxReplicas` | Required field for autoscaling. Upper limit for the number of pods that can be set by the autoscaler. Cannot be lower than the minimum number of replicas. |
+| `autoscaling.maxReplicas` | Required field for autoscaling. Upper limit for the number of pods that can be set by the autoscaler. It cannot be lower than the minimum number of replicas. |
 | `autoscaling.minReplicas`   | Lower limit for the number of pods that can be set by the autoscaler. |
 | `autoscaling.targetCPUUtilizationPercentage`   | Target average CPU utilization (represented as a percentage of requested CPU) over all the pods. |
 | `resourceConstraints.requests.cpu` | The minimum required CPU core. Specify integers, fractions (e.g. 0.5), or millicore values(e.g. 100m, where 100m is equivalent to .1 core). Required field for autoscaling. |
@@ -73,11 +74,13 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `livenessProbe` | A YAML object configuring the [Kubernetes liveness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/#define-a-liveness-http-request) that controls when Kubernetes needs to restart the pod.|
 | `volumes` | A YAML object representing a [pod volume](https://kubernetes.io/docs/concepts/storage/volumes). |
 | `volumeMounts` | A YAML object representing a [pod volumeMount](https://kubernetes.io/docs/concepts/storage/volumes/). |
-| `storage.size` | A convenient field to set the size of the persisted storage. Can be overriden by the `storage.volumeClaimTemplate` property. |
+| `storage.size` | A convenient field to set the size of the persisted storage. Can be overridden by the `storage.volumeClaimTemplate` property. |
 | `storage.mountPath` | The directory inside the container where this persisted storage will be bound to. |
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
 | `monitoring.labels` | Labels to set on [ServiceMonitor](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
-| `monitoring.endpoints` | A YAML snippet representing a array of [Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint) component from ServiceMonitor. |
+| `monitoring.endpoints` | A YAML snippet representing an array of [Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint) component from ServiceMonitor. |
+| `createAppDefinition`   | A boolean to toggle the automatic configuration of the Kubernetes resources to allow creation of an application definition by [kAppNav](https://kappnav.io/). The default value is `true`. See [Application Navigator](#kubernetes-application-navigator-(kappnav)-support) for more information. |
+
 ### Basic usage
 
 To deploy a Docker image containing an Appsody based application to a Kubernetes environment you can use the following CR:
@@ -92,7 +95,7 @@ spec:
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
 
-Both `stack` and `applicationImage` values are required to be defined in an `AppsodyApplication` CR. `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to created your application.
+Both `stack` and `applicationImage` values are required to be defined in an `AppsodyApplication` CR. `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
 ### Service account
 
@@ -104,7 +107,7 @@ If applications require specific permissions but still want the operator to crea
 
 ### Labels
 
-By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack`. You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
+By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack` and `app.kubernetes.io/version` (only when `version` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -117,6 +120,8 @@ spec:
   stack: java-microprofile
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
+
+_After the initial deployment of `AppsodyApplication`, any changes to its labels would be applied only when one of the parameters from `spec` is updated._
 
 ### Environment variables
 
@@ -150,7 +155,7 @@ spec:
         name: env-secrets
 ```
 
-Use `envFrom` to define all data in a `ConfigMap` or a `Secret` as environment variables in a container. Keys from `ConfigMap` or `Secret` resources, become environment variable name in your container.
+Use `envFrom` to define all data in a `ConfigMap` or a `Secret` as environment variables in a container. Keys from `ConfigMap` or `Secret` resources become environment variable name in your container.
 
 ### High availability
 
@@ -159,8 +164,8 @@ Run multiple instances of your application for high availability using one of th
  
     _OR_
 
- - configure auto scaling to create (and delete) instances based on resource consumption using the `autoscaling` parameter.
-      - Parameters `autoscaling.maxReplicas` and `resourceConstraints.requests.cpu` MUST be specified for auto scaling.
+ - configure auto-scaling to create (and delete) instances based on resource consumption using the `autoscaling` parameter.
+      - Parameters `autoscaling.maxReplicas` and `resourceConstraints.requests.cpu` MUST be specified for auto-scaling.
 
 ### Persistence
 
@@ -172,7 +177,7 @@ Users also can provide mount points for their application. There are 2 ways to e
 
 With the `AppsodyApplication` CR definition below the operator will create `PersistentVolumeClaim` called `pvc` with the size of `1Gi` and `ReadWriteOnce` access mode.
 
-Operator will also create a volume mount for the `StatefulSet` mounting to `/data` folder. You can use `volumeMounts` field instead of `storage.mountPath` if you require to persist more then one folder.
+The operator will also create a volume mount for the `StatefulSet` mounting to `/data` folder. You can use `volumeMounts` field instead of `storage.mountPath` if you require to persist more then one folder.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -189,7 +194,7 @@ spec:
 
 #### Advanced storage
 
-Operator allows users to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`.
+Appsody Operator allows users to provide entire `volumeClaimTemplate` for full control over automatically created `PersistentVolumeClaim`.
 
 It is also possible to create multiple volume mount points for persistent volume using `volumeMounts` field as shown below. You can still use `storage.mountPath` if you require only a single mount point.
 
@@ -226,7 +231,7 @@ Appsody Operator can create a `ServiceMonitor` resource to integrate with `Prome
 
 #### Basic monitoring specification
 
-As minimum a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case it is `apps-prometheus`
+At minimum, a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case, it is `apps-prometheus`
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -243,7 +248,7 @@ spec:
 
 #### Advanced monitoring specification
 
-For advanced scenarios it is possible to set many `ServicerMonitor` settings such as authentication sercret using [Prometheus Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint)
+For advanced scenarios, it is possible to set many `ServicerMonitor` settings such as authentication secret using [Prometheus Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint)
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -286,7 +291,7 @@ spec:
   createKnativeService: true
 ```
 
-By setting this parameter, the operator creates a Knative service in the cluster and populates the resource with applicable `AppsodyApplication` fields. Also it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
+By setting this parameter, the operator creates a Knative service in the cluster and populates the resource with applicable `AppsodyApplication` fields. Also, it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
 The CRD fields that are used to populate the Knative service resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
 
@@ -333,7 +338,7 @@ spec:
   expose: true
 ```
 
-When `expose` is **not** set to `true`, the Knative service is labelled with `serving.knative.dev/visibility=cluster-local` which makes the Knative route to only be available on the cluster-local network (and not on the public Internet). However, if `expose` is set `true`, the Knative route would be accessible externally.
+When `expose` is **not** set to `true`, the Knative service is labeled with `serving.knative.dev/visibility=cluster-local` which makes the Knative route to only be available on the cluster-local network (and not on the public Internet). However, if `expose` is set `true`, the Knative route would be accessible externally.
 
 To configure secure HTTPS connections for your deployment, see [Configuring HTTPS with TLS certificates](https://knative.dev/docs/serving/using-a-tls-cert/) for more information.
 
@@ -358,8 +363,7 @@ spec:
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
 
-Since in the `AppsodyApplicaiton` resource service `port` and `type` are not set, they will be looked up in the defaults config map and added to the resource.
-and will be set according to `stack` field. If the `appsody-operator-defaults` doesn't have the `stack` with particular name defined operator will use `generic` stack default values.
+Since in the `AppsodyApplication` resource service `port` and `type` are not set, they will be looked up in the default `ConfigMap` and added to the resource. It will be set according to the `stack` field. If the `appsody-operator-defaults` doesn't have the `stack` with a particular name defined then the operator will use `generic` stack's default values.
 
 After defaults are applied:
 
@@ -379,9 +383,7 @@ spec:
  
 #### Stack Constants ConfigMap
 
-[`appsody-operator-constants`](../deploy/stack_constants.yaml) ConfigMap contains the constant values for each stack. This values will always be used over the ones
-that users provide. This can be used to limit user ability to control certain fields such as `expose`.
-It also provides ability to set environment variables that are always required.
+[`appsody-operator-constants`](../deploy/stack_constants.yaml) ConfigMap contains the constant values for each stack. These values will always be used over the ones that users provide. This can be used to limit user's ability to control certain fields such as `expose`. It also provides the ability to set environment variables that are always required.
 
 Input resource:
 
@@ -417,6 +419,14 @@ spec:
   -  name: DB_URL
      value: url     
 ```
+
+### Kubernetes Application Navigator (kAppNav) support
+
+By default, Appsody Operator configures the Kubernetes resources it generates to allow automatic creation of an application definition by [kAppNav](https://kappnav.io/), Kubernetes Application Navigator. You can easily view and manage the deployed resources that comprise your application using Application Navigator. You can disable auto-creation by setting `createAppDefinition` to `false`.
+
+To join an existing application definition, disable auto-creation and set the label(s) needed to join the application on `AppsodyApplication` CR. See [Labels](#labels) section for more information.
+
+_This feature is only available if you have kAppNav installed on your cluster. Auto creation of an application definition is not supported when Knative service is created_
 
 ### Troubleshooting
 

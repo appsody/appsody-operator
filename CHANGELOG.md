@@ -10,11 +10,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.0]
+
 ### Added
 
 - Support for watching multiple namespaces by setting `WATCH_NAMESPACE` to a comma-separated list of namespaces. ([#114](https://github.com/appsody/appsody-operator/issues/114))
 - Allow users to add new labels or override default labels for resources created by the operator via setting labels on `AppsodyApplication` CRs. ([#118](https://github.com/appsody/appsody-operator/issues/118))
 - Support for automatically creating and configuring `ServiceMonitor` resource for integration with Prometheus Operator. ([#125](https://github.com/appsody/appsody-operator/issues/125))
+- Automatically configure the Kubernetes resources Appsody Operator generates to allow automatic creation of an application definition by [kAppNav](https://kappnav.io/), Kubernetes Application Navigator. ([#128](http
+s://github.com/appsody/appsody-operator/issues/128))
 
 ### Changed
 
@@ -30,5 +34,6 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/appsody/appsody-operator/releases/tag/v0.2.0
 [0.1.0]: https://github.com/appsody/appsody-operator/releases/tag/v0.1.0
