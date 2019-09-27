@@ -14,15 +14,17 @@ All notable changes to this project will be documented in this file.
 
 - Support for watching multiple namespaces by setting `WATCH_NAMESPACE` to a comma-separated list of namespaces. ([#114](https://github.com/appsody/appsody-operator/issues/114))
 - Allow users to add new labels or override default labels for resources created by the operator via setting labels on `AppsodyApplication` CRs. ([#118](https://github.com/appsody/appsody-operator/issues/118))
-- Support for automatically creating and configuring `ServiceMonitor` resource for integration with Prometheus Operator
+- Support for automatically creating and configuring `ServiceMonitor` resource for integration with Prometheus Operator. ([#125](https://github.com/appsody/appsody-operator/issues/125))
 
 ### Changed
 
 - Removed default values for all stacks from `appsody-operator-defaults` ConfigMap since Appsody Stacks would already have defaults. ([#104](https://github.com/appsody/appsody-operator/issues/104))
+- Made the `stack` field not required to specify in `AppsodyApplication`. ([#125](https://github.com/appsody/appsody-operator/issues/125))
 
 ### Fixed
 
 - **Breaking change:** When deploying to Knative, Knative route is only accessible if `expose` is set to `true`. This is to make `expose` behaviour consistent with non-Knative deployment so users need to explicitly declare to make their application accessible externally. ([#122](https://github.com/appsody/appsody-operator/issues/122))
+- Fixed an issue for basic storage scenario (i.e. specifying `storage.mountPath` and `storage.size`) that if `storage.size` is not specified or is not valid, handle it gracefully. ([#130](https://github.com/appsody/appsody-operator/issues/130))
 
 ## [0.1.0]
 
