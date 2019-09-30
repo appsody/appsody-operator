@@ -54,7 +54,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `applicationImage` | The absolute name of the image to be deployed, containing the registry and the tag. |
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
-| `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates preference. |
+| `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates a preference. |
 | `service.port` | The port exposed by the container. |
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |
@@ -79,7 +79,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
 | `monitoring.labels` | Labels to set on [ServiceMonitor](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
 | `monitoring.endpoints` | A YAML snippet representing an array of [Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint) component from ServiceMonitor. |
-| `createAppDefinition`   | A boolean to toggle the automatic configuration of `AppsodyApplication`'s Kubernetes resources to allow creation of an application definition by [kAppNav](https://kappnav.io/). The default value is `true`. See [Application Navigator](#kubernetes-application-navigator-(kappnav)-support) for more information. |
+| `createAppDefinition`   | A boolean to toggle the automatic configuration of `AppsodyApplication`'s Kubernetes resources to allow the creation of an application definition by [kAppNav](https://kappnav.io/). The default value is `true`. See [Application Navigator](#kubernetes-application-navigator-(kappnav)-support) for more information. |
 
 ### Basic usage
 
@@ -107,7 +107,7 @@ If applications require specific permissions but still want the operator to crea
 
 ### Labels
 
-By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack` and `app.kubernetes.io/version` (only when `version` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
+By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack` and `app.kubernetes.io/version` (only when the `version` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -233,7 +233,7 @@ _This feature does not support integration with Knative Service. Prometheus Oper
 
 #### Basic monitoring specification
 
-At minimum, a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case, it is `apps-prometheus`.
+At a minimum, a label needs to be provided that Prometheus expects to be set on `ServiceMonitor` objects. In this case, it is `apps-prometheus`.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -342,7 +342,7 @@ spec:
   expose: true
 ```
 
-When `expose` is **not** set to `true`, the Knative service is labeled with `serving.knative.dev/visibility=cluster-local` which makes the Knative route to only be available on the cluster-local network (and not on the public Internet). However, if `expose` is set `true`, the Knative route would be accessible externally.
+When `expose` is **not** set to `true`, the Knative service is labelled with `serving.knative.dev/visibility=cluster-local` which makes the Knative route to only be available on the cluster-local network (and not on the public Internet). However, if `expose` is set `true`, the Knative route would be accessible externally.
 
 To configure secure HTTPS connections for your deployment, see [Configuring HTTPS with TLS certificates](https://knative.dev/docs/serving/using-a-tls-cert/) for more information.
 
@@ -387,7 +387,7 @@ spec:
  
 #### Stack Constants ConfigMap
 
-[`appsody-operator-constants`](../deploy/stack_constants.yaml) ConfigMap contains the constant values for each stack. These values will always be used over the ones that users provide. This can be used to limit user's ability to control certain fields such as `expose`. It also provides the ability to set environment variables that are always required.
+[`appsody-operator-constants`](../deploy/stack_constants.yaml) ConfigMap contains the constant values for each stack. These values will always be used over the ones that users provide. This can be used to limit the user's ability to control certain fields such as `expose`. It also provides the ability to set environment variables that are always required.
 
 Input resource:
 

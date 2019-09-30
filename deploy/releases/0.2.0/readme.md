@@ -2,7 +2,7 @@
 
 ## Changelog
 
-All notable changes are documented in [Changelog](/CHANGELOG.md#0.2.0)
+All notable changes are documented in the [Changelog](/CHANGELOG.md#0.2.0).
 
 ## Installation
 
