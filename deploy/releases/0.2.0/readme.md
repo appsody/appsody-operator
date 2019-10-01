@@ -1,5 +1,9 @@
 # Appsody Operator
 
+## Changelog
+
+All notable changes are documented in the [Changelog](/CHANGELOG.md#0.2.0).
+
 ## Installation
 
 The Appsody Operator can be installed to:
@@ -16,7 +20,7 @@ Appropriate cluster role and binding are required to watch another namespace, wa
 1. Install `AppsodyApplication` Custom Resource Definition (CRD). This needs to be done only ONCE per cluster:
 
     ```console
-    kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-crd.yaml
+    kubectl apply -f https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.2.0/appsody-app-crd.yaml
     ```
 
 2. Install the Appsody Operator:
@@ -36,7 +40,7 @@ Appropriate cluster role and binding are required to watch another namespace, wa
     2.2. _Optional_: Install cluster-level role-based access. This step can be skipped if the operator is only watching own namespace:
   
     ```console
-    curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-cluster-rbac.yaml \
+    curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.2.0/appsody-app-cluster-rbac.yaml \
       | sed -e "s/APPSODY_OPERATOR_NAMESPACE/${OPERATOR_NAMESPACE}/" \
       | kubectl apply -f -
     ```
@@ -44,7 +48,7 @@ Appropriate cluster role and binding are required to watch another namespace, wa
     2.3. Install the operator:
 
     ```console
-    curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/daily/appsody-app-operator.yaml \
+    curl -L https://raw.githubusercontent.com/appsody/appsody-operator/master/deploy/releases/0.2.0/appsody-app-operator.yaml \
       | sed -e "s/APPSODY_WATCH_NAMESPACE/${WATCH_NAMESPACE}/" \
       | kubectl apply -n ${OPERATOR_NAMESPACE} -f -
     ```

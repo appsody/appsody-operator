@@ -12,6 +12,7 @@ import (
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -32,10 +33,8 @@ import (
 
 var log = logf.Log.WithName("controller_appsodyapplication")
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
+// Holds a list of namespaces the operator will be watching
+var watchNamespaces []string
 
 // Add creates a new AppsodyApplication Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
@@ -48,13 +47,19 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
 		StackDefaults: map[string]appsodyv1beta1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1beta1.AppsodyApplicationSpec{}}
 
+	watchNamespaces, err := appsodyutils.GetWatchNamespaces()
+	if err != nil {
+		log.Error(err, "Failed to get watch namespace")
+		os.Exit(1)
+	}
+	log.Info("newReconciler", "watchNamespaces", watchNamespaces)
+
 	ns, err := k8sutil.GetOperatorNamespace()
+	// When running the operator locally, `ns` will be empty string
 	if ns == "" {
-		ns, err = k8sutil.GetWatchNamespace()
-		if err != nil {
-			log.Error(err, "Failed to find a namespace for operator config maps")
-			os.Exit(1)
-		}
+		// If the operator is running locally, use the first namespace in the `watchNamespaces`
+		// `watchNamespaces` must have at least one item
+		ns = watchNamespaces[0]
 	}
 
 	fData, err := ioutil.ReadFile("deploy/stack_defaults.yaml")
@@ -106,23 +111,33 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	watchNamespaces, err := appsodyutils.GetWatchNamespaces()
+	if err != nil {
+		log.Error(err, "Failed to get watch namespace")
+		os.Exit(1)
+	}
+
+	watchNamespacesMap := make(map[string]bool)
+	for _, ns := range watchNamespaces {
+		watchNamespacesMap[ns] = true
+	}
+	isClusterWide := len(watchNamespacesMap) == 1 && watchNamespacesMap[""]
+
+	log.V(1).Info("Adding a new controller", "watchNamespaces", watchNamespaces, "isClusterWide", isClusterWide)
+
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			ns, _ := k8sutil.GetWatchNamespace()
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (ns == "" || e.MetaOld.GetNamespace() == ns)
+			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			ns, _ := k8sutil.GetWatchNamespace()
-			return ns == "" || e.Meta.GetNamespace() == ns
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			ns, _ := k8sutil.GetWatchNamespace()
-			return ns == "" || e.Meta.GetNamespace() == ns
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			ns, _ := k8sutil.GetWatchNamespace()
-			return ns == "" || e.Meta.GetNamespace() == ns
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 	}
 
@@ -170,11 +185,19 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	reqLogger.Info("Reconciling AppsodyApplication")
 
 	ns, err := k8sutil.GetOperatorNamespace()
+	// When running the operator locally, `ns` will be empty string
 	if ns == "" {
-		ns, err = k8sutil.GetWatchNamespace()
-		if err != nil {
-			log.Error(err, "Failed to find a namespace for operator config maps")
+		// Since this method can be called directly from unit test, populate `watchNamespaces`.
+		if watchNamespaces == nil {
+			watchNamespaces, err = appsodyutils.GetWatchNamespaces()
+			if err != nil {
+				reqLogger.Error(err, "Error getting watch namespace")
+				return reconcile.Result{}, err
+			}
 		}
+		// If the operator is running locally, use the first namespace in the `watchNamespaces`
+		// `watchNamespaces` must have at least one item
+		ns = watchNamespaces[0]
 	}
 
 	configMap, err := r.GetAppsodyOpConfigMap("appsody-operator-defaults", ns)
@@ -236,9 +259,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if ok {
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
 		} else {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants["generic"])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants["generic"])
 		}
 	} else {
 		stackDefaults, ok = r.StackDefaults["generic"]
@@ -248,11 +271,20 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
 		} else {
-			appsodyutils.InitAndValidate(instance, stackDefaults, r.StackConstants["generic"])
+			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants["generic"])
 		}
 	}
+
+	_, err = appsodyutils.Validate(instance)
+	// If there's any validation error, don't bother with requeuing
+	if err != nil {
+		reqLogger.Error(err, "Error validating AppsodyApplication")
+		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		return reconcile.Result{}, nil
+	}
+
 	currentGen := instance.Generation
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
@@ -337,6 +369,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	err = r.CreateOrUpdate(svc, instance, func() error {
 		appsodyutils.CustomizeService(svc, instance)
 		svc.Annotations = instance.Spec.Service.Annotations
+		if instance.Spec.Monitoring != nil {
+			svc.Labels["app.appsody.dev/monitor"] = "true"
+		} else {
+			if _, ok := svc.Labels["app.appsody.dev/monitor"]; ok {
+				delete(svc.Labels, "app.appsody.dev/monitor")
+			}
+		}
 		return nil
 	})
 	if err != nil {
@@ -367,13 +406,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(statefulSet, instance, func() error {
-			statefulSet.Spec.Replicas = instance.Spec.Replicas
-			statefulSet.Spec.ServiceName = instance.Name + "-headless"
-			statefulSet.Spec.Selector = &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": instance.Name,
-				},
-			}
+			appsodyutils.CustomizeStatefulSet(statefulSet, instance)
 			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			appsodyutils.CustomizePersistence(statefulSet, instance)
 			return nil
@@ -402,12 +435,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(deploy, instance, func() error {
-			deploy.Spec.Replicas = instance.Spec.Replicas
-			deploy.Spec.Selector = &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app.kubernetes.io/name": instance.Name,
-				},
-			}
+			appsodyutils.CustomizeDeployment(deploy, instance)
 			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
 			return nil
 		})
@@ -460,6 +488,33 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
 			}
 		}
+	} else {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
+	}
+
+	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String()); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
+		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+	} else if ok {
+		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
+			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(sm, instance, func() error {
+				appsodyutils.CustomizeServiceMonitor(sm, instance)
+				return nil
+			})
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile ServiceMonitor")
+				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			}
+		} else {
+			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
+			err = r.DeleteResource(sm)
+			if err != nil {
+				reqLogger.Error(err, "Failed to delete ServiceMonitor")
+				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			}
+		}
+
 	} else {
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 	}

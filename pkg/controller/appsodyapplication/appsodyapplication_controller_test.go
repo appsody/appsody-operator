@@ -3,6 +3,7 @@ package appsodyapplication
 import (
 	"context"
 	"os"
+	"strconv"
 	"testing"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
@@ -58,6 +59,7 @@ type Test struct {
 func TestAppsodyController(t *testing.T) {
 	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
+	os.Setenv("WATCH_NAMESPACE", namespace)
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 	appsody := createAppsodyApp(name, namespace, spec)
@@ -197,7 +199,7 @@ func TestAppsodyController(t *testing.T) {
 	}
 
 	// Check updated values in Route
-	routeTests := []Test{{"target port", intstr.FromInt(int(service.Port)), route.Spec.Port.TargetPort}}
+	routeTests := []Test{{"target port", intstr.FromString(strconv.Itoa(int(service.Port)) + "-tcp"), route.Spec.Port.TargetPort}}
 	verifyTests("route", routeTests, t)
 
 	// Disable Route/Expose and enable Autoscaling
@@ -259,8 +261,9 @@ func TestAppsodyController(t *testing.T) {
 }
 
 func TestConfigMapDefaults(t *testing.T) {
-	os.Setenv("WATCH_NAMESPACE", namespace)
+	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
+	os.Setenv("WATCH_NAMESPACE", namespace)
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack, Service: service}
 	appsody := createAppsodyApp(name, namespace, spec)
@@ -301,8 +304,9 @@ func TestConfigMapDefaults(t *testing.T) {
 }
 
 func TestConfigMapConstants(t *testing.T) {
-	os.Setenv("WATCH_NAMESPACE", namespace)
+	// Set the logger to development mode for verbose logs
 	logf.SetLogger(logf.ZapLogger(true))
+	os.Setenv("WATCH_NAMESPACE", namespace)
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Stack: stack}
 	appsody := createAppsodyApp(name, namespace, spec)

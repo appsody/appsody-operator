@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"os"
 	"reflect"
+	"strconv"
 	"testing"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
@@ -81,7 +83,7 @@ func TestCustomizeRoute(t *testing.T) {
 		{"Route target kind", "Service", route.Spec.To.Kind},
 		{"Route target name", name, route.Spec.To.Name},
 		{"Route target weight", int32(100), *route.Spec.To.Weight},
-		{"Route service target port", intstr.FromInt(int(appsody.Spec.Service.Port)), route.Spec.Port.TargetPort},
+		{"Route service target port", intstr.FromString(strconv.Itoa(int(appsody.Spec.Service.Port)) + "-tcp"), route.Spec.Port.TargetPort},
 	}
 
 	verifyTests(testCR, t)
@@ -240,6 +242,7 @@ func TestCustomizeKnativeService(t *testing.T) {
 	ksvcLPTCP := ksvc.Spec.Template.Spec.Containers[0].LivenessProbe.TCPSocket.Port
 	ksvcRPPort := ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.HTTPGet.Port
 	ksvcRPTCP := ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port
+	ksvcLabelNoExpose := ksvc.Labels["serving.knative.dev/visibility"]
 
 	spec = appsodyv1beta1.AppsodyApplicationSpec{
 		ApplicationImage:   appImage,
@@ -251,9 +254,17 @@ func TestCustomizeKnativeService(t *testing.T) {
 		ServiceAccountName: &serviceAccountName,
 		LivenessProbe:      livenessProbe,
 		ReadinessProbe:     readinessProbe,
+		Expose:             &expose,
 	}
 	appsody = createAppsodyApp(name, namespace, spec)
 	CustomizeKnativeService(ksvc, appsody)
+	ksvcLabelTrueExpose := ksvc.Labels["serving.knative.dev/visibility"]
+
+	fls := false
+	appsody.Spec.Expose = &fls
+	CustomizeKnativeService(ksvc, appsody)
+	ksvcLabelFalseExpose := ksvc.Labels["serving.knative.dev/visibility"]
+
 	testCKS := []Test{
 		{"ksvc container ports", 1, ksvcNumPorts},
 		{"ksvc ServiceAccountName is nil", name, ksvcSAN},
@@ -262,6 +273,9 @@ func TestCustomizeKnativeService(t *testing.T) {
 		{"liveness probe TCP socket port", intstr.IntOrString{}, ksvcLPTCP},
 		{"Readiness probe port", intstr.IntOrString{}, ksvcRPPort},
 		{"Readiness probe TCP socket port", intstr.IntOrString{}, ksvcRPTCP},
+		{"expose not set", "cluster-local", ksvcLabelNoExpose},
+		{"expose set to true", "", ksvcLabelTrueExpose},
+		{"expose set to false", "cluster-local", ksvcLabelFalseExpose},
 	}
 	verifyTests(testCKS, t)
 }
@@ -291,7 +305,7 @@ func TestCustomizeHPA(t *testing.T) {
 	verifyTests(testCHPA, t)
 }
 
-func TestInitAndValidate(t *testing.T) {
+func TestInitialize(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 	emptyService := &appsodyv1beta1.AppsodyApplicationService{Port: 0}
 	appsody := createAppsodyApp(name, namespace, appsodyv1beta1.AppsodyApplicationSpec{})
@@ -301,7 +315,7 @@ func TestInitAndValidate(t *testing.T) {
 	}
 	constants := &appsodyv1beta1.AppsodyApplicationSpec{}
 
-	InitAndValidate(appsody, defaults, constants)
+	Initialize(appsody, defaults, constants)
 	defNilPP := *appsody.Spec.PullPolicy
 	defResConNil := *appsody.Spec.ResourceConstraints
 	servType := *appsody.Spec.Service.Type
@@ -326,7 +340,7 @@ func TestInitAndValidate(t *testing.T) {
 		CreateKnativeService: &createKNS,
 		Service:              service,
 	}
-	InitAndValidate(appsody, defaults, constants)
+	Initialize(appsody, defaults, constants)
 
 	testIAV := []Test{
 		{"Appsody PullPolicy is nil", pullPolicy, *appsody.Spec.PullPolicy},
@@ -448,6 +462,43 @@ func TestSetCondition(t *testing.T) {
 	verifyTests(testSC, t)
 }
 
+func TestGetWatchNamespaces(t *testing.T) {
+	// Set the logger to development mode for verbose logs
+	logf.SetLogger(logf.ZapLogger(true))
+
+	os.Setenv("WATCH_NAMESPACE", "")
+	namespaces, err := GetWatchNamespaces()
+	configMapConstTests := []Test{
+		{"namespaces", []string{""}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+
+	os.Setenv("WATCH_NAMESPACE", "ns1")
+	namespaces, err = GetWatchNamespaces()
+	configMapConstTests = []Test{
+		{"namespaces", []string{"ns1"}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+
+	os.Setenv("WATCH_NAMESPACE", "ns1,ns2,ns3")
+	namespaces, err = GetWatchNamespaces()
+	configMapConstTests = []Test{
+		{"namespaces", []string{"ns1", "ns2", "ns3"}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+
+	os.Setenv("WATCH_NAMESPACE", " ns1   ,  ns2,  ns3  ")
+	namespaces, err = GetWatchNamespaces()
+	configMapConstTests = []Test{
+		{"namespaces", []string{"ns1", "ns2", "ns3"}, namespaces},
+		{"error", nil, err},
+	}
+	verifyTests(configMapConstTests, t)
+}
+
 // Helper Functions
 func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
 	app := &appsodyv1beta1.AppsodyApplication{
@@ -459,7 +510,7 @@ func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) 
 
 func verifyTests(tests []Test, t *testing.T) {
 	for _, tt := range tests {
-		if tt.actual != tt.expected {
+		if !reflect.DeepEqual(tt.actual, tt.expected) {
 			t.Errorf("%s test expected: (%v) actual: (%v)", tt.test, tt.expected, tt.actual)
 		}
 	}

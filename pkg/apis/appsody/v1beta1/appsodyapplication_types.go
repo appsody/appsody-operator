@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -10,6 +11,7 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
+	Version              string                         `json:"version,omitempty"`
 	ApplicationImage     string                         `json:"applicationImage"`
 	Replicas             *int32                         `json:"replicas,omitempty"`
 	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
@@ -28,7 +30,9 @@ type AppsodyApplicationSpec struct {
 	Architecture         []string                       `json:"architecture,omitempty"`
 	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
 	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
-	Stack                string                         `json:"stack"`
+	Stack                string                         `json:"stack,omitempty"`
+	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
+	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -56,9 +60,16 @@ type AppsodyApplicationService struct {
 // AppsodyApplicationStorage ...
 // +k8s:openapi-gen=true
 type AppsodyApplicationStorage struct {
+	// +kubebuilder:validation:Pattern=^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
 	Size                string                        `json:"size,omitempty"`
 	MountPath           string                        `json:"mountPath,omitempty"`
 	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
+}
+
+// AppsodyApplicationMonitoring ...
+type AppsodyApplicationMonitoring struct {
+	Labels    map[string]string       `json:"labels,omitempty"`
+	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
 }
 
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication

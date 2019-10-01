@@ -2,11 +2,15 @@ package utils
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -20,9 +24,81 @@ func GetLabels(cr *appsodyv1beta1.AppsodyApplication) map[string]string {
 	labels := map[string]string{
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
-		"app.appsody.dev/stack":        cr.Spec.Stack,
 	}
+
+	if cr.Spec.Stack != "" {
+		labels["app.appsody.dev/stack"] = cr.Spec.Stack
+	}
+
+	if cr.Spec.Version != "" {
+		labels["app.kubernetes.io/version"] = cr.Spec.Version
+	}
+
+	for key, value := range cr.Labels {
+		if key != "app.kubernetes.io/name" {
+			labels[key] = value
+		}
+	}
+
 	return labels
+}
+
+// CustomizeDeployment ...
+func CustomizeDeployment(deploy *appsv1.Deployment, cr *appsodyv1beta1.AppsodyApplication) {
+	deploy.Labels = GetLabels(cr)
+
+	deploy.Spec.Replicas = cr.Spec.Replicas
+
+	deploy.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app.kubernetes.io/name": cr.Name,
+		},
+	}
+
+	if deploy.Annotations == nil {
+		deploy.Annotations = make(map[string]string)
+	}
+	UpdateAppDefinition(deploy.Labels, deploy.Annotations, cr)
+}
+
+// CustomizeStatefulSet ...
+func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, cr *appsodyv1beta1.AppsodyApplication) {
+	statefulSet.Labels = GetLabels(cr)
+	statefulSet.Spec.Replicas = cr.Spec.Replicas
+	statefulSet.Spec.ServiceName = cr.Name + "-headless"
+	statefulSet.Spec.Selector = &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app.kubernetes.io/name": cr.Name,
+		},
+	}
+
+	if statefulSet.Annotations == nil {
+		statefulSet.Annotations = make(map[string]string)
+	}
+	UpdateAppDefinition(statefulSet.Labels, statefulSet.Annotations, cr)
+}
+
+// UpdateAppDefinition ...
+func UpdateAppDefinition(labels map[string]string, annotations map[string]string, cr *appsodyv1beta1.AppsodyApplication) {
+	if cr.Spec.CreateAppDefinition != nil && !*cr.Spec.CreateAppDefinition {
+		delete(labels, "kappnav.app.auto-create")
+		delete(annotations, "kappnav.app.auto-create.name")
+		delete(annotations, "kappnav.app.auto-create.kinds")
+		delete(annotations, "kappnav.app.auto-create.label")
+		delete(annotations, "kappnav.app.auto-create.labels-values")
+		delete(annotations, "kappnav.app.auto-create.version")
+	} else {
+		labels["kappnav.app.auto-create"] = "true"
+		annotations["kappnav.app.auto-create.name"] = cr.Name
+		annotations["kappnav.app.auto-create.kinds"] = "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap"
+		annotations["kappnav.app.auto-create.label"] = "app.kubernetes.io/name"
+		annotations["kappnav.app.auto-create.labels-values"] = cr.Name
+		if cr.Spec.Version == "" {
+			delete(annotations, "kappnav.app.auto-create.version")
+		} else {
+			annotations["kappnav.app.auto-create.version"] = cr.Spec.Version
+		}
+	}
 }
 
 // CustomizeRoute ...
@@ -35,7 +111,8 @@ func CustomizeRoute(route *routev1.Route, cr *appsodyv1beta1.AppsodyApplication)
 	if route.Spec.Port == nil {
 		route.Spec.Port = &routev1.RoutePort{}
 	}
-	route.Spec.Port.TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
+	route.Spec.Port.TargetPort = intstr.FromString(strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp")
+
 }
 
 // ErrorIsNoMatchesForKind ...
@@ -46,11 +123,13 @@ func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
 // CustomizeService ...
 func CustomizeService(svc *corev1.Service, cr *appsodyv1beta1.AppsodyApplication) {
 	svc.Labels = GetLabels(cr)
+
 	if len(svc.Spec.Ports) == 0 {
 		svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 	}
 	svc.Spec.Ports[0].Port = cr.Spec.Service.Port
 	svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(cr.Spec.Service.Port))
+	svc.Spec.Ports[0].Name = strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp"
 	svc.Spec.Type = *cr.Spec.Service.Type
 	svc.Spec.Selector = map[string]string{
 		"app.kubernetes.io/name": cr.Name,
@@ -68,6 +147,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, cr *appsodyv1beta1.AppsodyApp
 		pts.Spec.Containers[0].Ports = append(pts.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
 	pts.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
+	pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp"
 	pts.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	pts.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	pts.Spec.Containers[0].ReadinessProbe = cr.Spec.ReadinessProbe
@@ -196,6 +276,14 @@ func CustomizeAffinity(a *corev1.Affinity, cr *appsodyv1beta1.AppsodyApplication
 func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.AppsodyApplication) {
 	ksvc.Labels = GetLabels(cr)
 
+	// If `expose` is not set to `true`, make Knative route a private route by adding `serving.knative.dev/visibility: cluster-local`
+	// to the Knative service. If `serving.knative.dev/visibility: XYZ` is defined in cr.Labels, `expose` always wins.
+	if cr.Spec.Expose != nil && *cr.Spec.Expose {
+		delete(ksvc.Labels, "serving.knative.dev/visibility")
+	} else {
+		ksvc.Labels["serving.knative.dev/visibility"] = "cluster-local"
+	}
+
 	if ksvc.Spec.Template == nil {
 		ksvc.Spec.Template = &servingv1alpha1.RevisionTemplateSpec{}
 	}
@@ -206,6 +294,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.A
 	if len(ksvc.Spec.Template.Spec.Containers[0].Ports) == 0 {
 		ksvc.Spec.Template.Spec.Containers[0].Ports = append(ksvc.Spec.Template.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
+	ksvc.Spec.Template.ObjectMeta.Labels = GetLabels(cr)
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = cr.Spec.Service.Port
 	ksvc.Spec.Template.Spec.Containers[0].Image = cr.Spec.ApplicationImage
 	// Knative sets its own resource constraints
@@ -242,7 +331,6 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, cr *appsodyv1beta1.A
 			ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe.TCPSocket.Port = intstr.IntOrString{}
 		}
 	}
-
 }
 
 // CustomizeHPA ...
@@ -263,8 +351,33 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, cr *appsodyv1beta1
 	}
 }
 
-// InitAndValidate ...
-func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1beta1.AppsodyApplicationSpec, constants *appsodyv1beta1.AppsodyApplicationSpec) {
+// Validate if the AppsodyApplication is valid
+func Validate(cr *appsodyv1beta1.AppsodyApplication) (bool, error) {
+	// Storage validation
+	if cr.Spec.Storage != nil {
+		if cr.Spec.Storage.VolumeClaimTemplate == nil {
+			if cr.Spec.Storage.Size == "" {
+				return false, fmt.Errorf("validation failed: " + requiredFieldMessage("spec.storage.size"))
+			}
+			if _, err := resource.ParseQuantity(cr.Spec.Storage.Size); err != nil {
+				return false, fmt.Errorf("validation failed: cannot parse '%v': %v", cr.Spec.Storage.Size, err)
+			}
+		}
+	}
+
+	return true, nil
+}
+
+func createValidationError(msg string) error {
+	return fmt.Errorf("validation failed: " + msg)
+}
+
+func requiredFieldMessage(fieldPaths ...string) string {
+	return "must set the field(s): " + strings.Join(fieldPaths, ",")
+}
+
+// Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
+func Initialize(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1beta1.AppsodyApplicationSpec, constants *appsodyv1beta1.AppsodyApplicationSpec) {
 
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy
@@ -337,7 +450,7 @@ func InitAndValidate(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1be
 		cr.Spec.Service.Type = &st
 	}
 	if cr.Spec.Service.Port == 0 {
-		if defaults.Service.Port != 0 {
+		if defaults.Service != nil && defaults.Service.Port != 0 {
 			cr.Spec.Service.Port = defaults.Service.Port
 		} else {
 			cr.Spec.Service.Port = 8080
@@ -470,6 +583,58 @@ func applyConstants(cr *appsodyv1beta1.AppsodyApplication, defaults appsodyv1bet
 	}
 }
 
+// CustomizeServiceMonitor ...
+func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, cr *appsodyv1beta1.AppsodyApplication) {
+	sm.Labels = GetLabels(cr)
+	sm.Spec.Selector = metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app.kubernetes.io/name":  cr.Name,
+			"app.appsody.dev/monitor": "true",
+		},
+	}
+	if len(sm.Spec.Endpoints) == 0 {
+		sm.Spec.Endpoints = append(sm.Spec.Endpoints, prometheusv1.Endpoint{})
+	}
+	sm.Spec.Endpoints[0].Port = strconv.Itoa(int(cr.Spec.Service.Port)) + "-tcp"
+	if len(cr.Spec.Monitoring.Labels) > 0 {
+		for k, v := range cr.Spec.Monitoring.Labels {
+			sm.Labels[k] = v
+		}
+	}
+
+	if len(cr.Spec.Monitoring.Endpoints) > 0 {
+
+		if cr.Spec.Monitoring.Endpoints[0].Scheme != "" {
+			sm.Spec.Endpoints[0].Scheme = cr.Spec.Monitoring.Endpoints[0].Scheme
+		}
+		if cr.Spec.Monitoring.Endpoints[0].Interval != "" {
+			sm.Spec.Endpoints[0].Interval = cr.Spec.Monitoring.Endpoints[0].Interval
+		}
+		if cr.Spec.Monitoring.Endpoints[0].Path != "" {
+			sm.Spec.Endpoints[0].Path = cr.Spec.Monitoring.Endpoints[0].Path
+		}
+
+		if cr.Spec.Monitoring.Endpoints[0].TLSConfig != nil {
+			sm.Spec.Endpoints[0].TLSConfig = cr.Spec.Monitoring.Endpoints[0].TLSConfig
+		}
+
+		if cr.Spec.Monitoring.Endpoints[0].BasicAuth != nil {
+			sm.Spec.Endpoints[0].BasicAuth = cr.Spec.Monitoring.Endpoints[0].BasicAuth
+		}
+
+		if cr.Spec.Monitoring.Endpoints[0].Params != nil {
+			sm.Spec.Endpoints[0].Params = cr.Spec.Monitoring.Endpoints[0].Params
+		}
+		if cr.Spec.Monitoring.Endpoints[0].ScrapeTimeout != "" {
+			sm.Spec.Endpoints[0].ScrapeTimeout = cr.Spec.Monitoring.Endpoints[0].ScrapeTimeout
+		}
+		if cr.Spec.Monitoring.Endpoints[0].BearerTokenFile != "" {
+			sm.Spec.Endpoints[0].BearerTokenFile = cr.Spec.Monitoring.Endpoints[0].BearerTokenFile
+		}
+	}
+
+}
+
 // GetCondition ...
 func GetCondition(conditionType appsodyv1beta1.StatusConditionType, status *appsodyv1beta1.AppsodyApplicationStatus) *appsodyv1beta1.StatusCondition {
 	for i := range status.Conditions {
@@ -491,4 +656,20 @@ func SetCondition(condition appsodyv1beta1.StatusCondition, status *appsodyv1bet
 	}
 
 	status.Conditions = append(status.Conditions, condition)
+}
+
+// GetWatchNamespaces returns a slice of namespaces the operator should watch based on WATCH_NAMESPSCE value
+// WATCH_NAMESPSCE value could be empty for watching the whole cluster or a comma-separated list of namespaces
+func GetWatchNamespaces() ([]string, error) {
+	watchNamespace, err := k8sutil.GetWatchNamespace()
+	if err != nil {
+		return nil, err
+	}
+
+	var watchNamespaces []string
+	for _, ns := range strings.Split(watchNamespace, ",") {
+		watchNamespaces = append(watchNamespaces, strings.TrimSpace(ns))
+	}
+
+	return watchNamespaces, nil
 }
