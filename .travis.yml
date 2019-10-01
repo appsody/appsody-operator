@@ -39,9 +39,10 @@ jobs:
     - make restart-docker
     - make build-oc-image
     - make setup-cluster
-    - docker login -u appsody -p $(oc whoami -t) $(oc registry info)
+    - $(oc whoami -t)
+    - $(oc registry info)
+    - make oc-docker-login
     - make push-oc-registry
-    - oc login -u system:admin
     - make test-e2e
   - name: Build docker image and push
     stage: push
