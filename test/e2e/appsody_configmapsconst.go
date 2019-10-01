@@ -38,21 +38,18 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort}, "livenessProbe":{"failureThreshold": 8, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 8, "periodSeconds": 2}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}}`}
 	configMap := &corev1.ConfigMap{}
 
+	// Gets the configmap that contains the constant values that will be applied to the appsody application and cannot be changed
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "appsody-operator-constants", Namespace: namespace}, configMap)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
+	// Sets constant values
 	configMap.Data = updateData
 
 	err = f.Client.Update(goctx.TODO(), configMap)
 	if err != nil {
-		t.Log(err)
-	}
-
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "appsody-operator-constants", Namespace: namespace}, configMap)
-	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	// Creating a basic appsody application that specifies new values for fields that are already assigned from the constants configmap
@@ -100,7 +97,7 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	err = f.Client.Create(goctx.TODO(), apps, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	// wait for example-appsody-constconfigmaps to reach 1 replicas
@@ -109,9 +106,11 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// creates a new struct for the appsody application otherwise the probe values get overwritten
+	apps = &appsodyv1beta1.AppsodyApplication{}
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-constconfigmaps", Namespace: namespace}, apps)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	// update the application to two replicas
@@ -120,49 +119,39 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), apps)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-constconfigmaps", 2, retryInterval, timeout)
 	if err != nil {
-		t.Log(err)
-	}
-
-	// creates a new struct for the appsody application otherwise the probe values get overwritten
-	apps = &appsodyv1beta1.AppsodyApplication{}
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-constconfigmaps", Namespace: namespace}, apps)
-	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	// checks none of the values that were specified in the constants configmap are changed
 	if *apps.Spec.Expose == true {
 		t.Log("Expose in configmap constants is applied and not changed")
 	} else {
-		t.Log("Expose in configmap constants is not applied")
+		t.Fatal("Expose in configmap constants is not applied")
 	}
 
 	serviceType = corev1.ServiceTypeNodePort
 	if apps.Spec.Service.Port == 3000 && *apps.Spec.Service.Type == serviceType {
 		t.Log("Service from configmap constants is applied and not changed")
 	} else {
-		t.Log("Service in configmap constants is not applied")
-		t.Fail()
+		t.Fatal("Service in configmap constants is not applied")
 	}
 
 	port := intstr.IntOrString{IntVal: 3000}
 	if apps.Spec.ReadinessProbe.FailureThreshold == 12 && apps.Spec.ReadinessProbe.HTTPGet.Path == "/ready" && apps.Spec.ReadinessProbe.HTTPGet.Port == port && apps.Spec.ReadinessProbe.InitialDelaySeconds == 5 && apps.Spec.ReadinessProbe.PeriodSeconds == 2 && apps.Spec.ReadinessProbe.TimeoutSeconds == 1 {
 		t.Log("ReadinessProbe in configmap constants is applied and not changed")
 	} else {
-		t.Log("ReadinessProbe in configmap constants is not applied")
-		t.Fail()
+		t.Fatal("ReadinessProbe in configmap constants is not applied")
 	}
 
 	if apps.Spec.LivenessProbe.FailureThreshold == 8 && apps.Spec.LivenessProbe.HTTPGet.Path == "/live" && apps.Spec.LivenessProbe.HTTPGet.Port == port && apps.Spec.LivenessProbe.InitialDelaySeconds == 8 && apps.Spec.LivenessProbe.PeriodSeconds == 2 {
 		t.Log("LivenessProbe in configmap constants is applied and not changed")
 	} else {
-		t.Log("LivenessProbe in configmap constants is not applied")
-		t.Fail()
+		t.Fatal("LivenessProbe in configmap constants is not applied")
 	}
 
 }
