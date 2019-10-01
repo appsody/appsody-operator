@@ -36,11 +36,6 @@ jobs:
   - name: Run end-to-end tests
     stage: e2e test
     script:
-    - make restart-docker
-    - make build-oc-image
-    - make setup-cluster
-    - make oc-docker-login
-    - make push-oc-registry
     - make test-e2e
   - name: Build docker image and push
     stage: push

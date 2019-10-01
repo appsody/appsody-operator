@@ -47,9 +47,7 @@ oc-docker-login:
 	./scripts/docker-login.sh
 
 test-e2e: setup ## Run end-to-end tests
-	oc login -u system:admin
-	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --image $(shell oc registry info)/myproject/appsody-operator:${OPERATOR_IMAGE_TAG}
-
+	./scripts/e2e.sh
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
