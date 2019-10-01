@@ -13,6 +13,5 @@ oc cluster up
 oc login -u system:admin
 oc policy add-role-to-user registry-viewer developer
 oc policy add-role-to-user registry-editor developer
-oc policy add-role-to-user image-builder developer
 oc policy add-role-to-user registry-viewer system:service-accounts
 oc login -u developer

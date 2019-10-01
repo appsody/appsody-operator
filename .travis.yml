@@ -39,8 +39,6 @@ jobs:
     - make restart-docker
     - make build-oc-image
     - make setup-cluster
-    - $(oc whoami -t)
-    - $(oc registry info)
     - make oc-docker-login
     - make push-oc-registry
     - make test-e2e
