@@ -33,11 +33,11 @@ spec:
 
    Deploy your serverless application on [Knative](https://knative.dev) using a single toggle.
    
-   See our [**documentation**](https://github.com/appsody/appsody-operator/tree/master/doc/) for more information.
-   
    ### Kubernetes Application Navigator (kAppNav)
    
-   Automatically configures the Kubernetes resources for integration with [kAppNav](https://kappnav.io/).   
+   Automatically configures the Kubernetes resources for integration with [kAppNav](https://kappnav.io/).
+   
+   See our [**documentation**](https://github.com/appsody/appsody-operator/tree/master/doc/) for more information.
   
   icon:
   - base64data: PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1Ni43MSA1MC43NSI+PGRlZnM+PHN0eWxlPi5he2lzb2xhdGlvbjppc29sYXRlO30uYntvcGFjaXR5OjAuODt9LmIsLmV7bWl4LWJsZW5kLW1vZGU6bXVsdGlwbHk7fS5je2ZpbGw6I2VkOGUwMDt9LmR7ZmlsbDojYzQzMDJmO30uZXtmaWxsOiNhZjFmNjQ7b3BhY2l0eTowLjg1O308L3N0eWxlPjwvZGVmcz48dGl0bGU+QXNzZXQgMjwvdGl0bGU+PGcgY2xhc3M9ImEiPjxnIGNsYXNzPSJiIj48cGF0aCBjbGFzcz0iYyIgZD0iTTI1Ljg4LjI4Yy0yLjUtLjgxLTUuNTguMTQtOC42MywzLjA2TDMuODcsMTYuMTdDLTIuMjIsMjItMSwyOC44MSw2LjYyLDMxLjI3bDE2LjcsNS40MWM3LjYxLDIuNDYsMTIuNi0yLjMyLDExLjA4LTEwLjYyTDMxLjA4LDcuODJjLS43Ni00LjE1LTIuNjktNi43My01LjItNy41NFoiLz48L2c+PGcgY2xhc3M9ImIiPjxwYXRoIGNsYXNzPSJkIiBkPSJNMzcuOTQsMy4xNEExNS43MywxNS43MywwLDAsMCwzMi41NSw0LjZMMTQuNjYsMTIuNzNjLTQuNTcsMi4wNy03LjMxLDUuMjYtNy43Miw5LS4zOSwzLjUyLDEuNDIsNyw1LjA4LDkuNzRsMTUsMTEuMzFhMTIuMjgsMTIuMjgsMCwwLDAsOC4wNiwyLjhjNC43Ny0uMzEsOC4yOS00LjM1LDkuMi0xMC41M2wyLjg0LTE5LjQ0QzQ4LjEyLDksNDUuNTEsNiw0My44Nyw0Ljc1YTguNzksOC43OSwwLDAsMC01LjkzLTEuNjFaIi8+PC9nPjxwYXRoIGNsYXNzPSJlIiBkPSJNMzMuOCw1MC43MWMtMi45My0uMzMtNS41Ny0yLjM5LTcuNDktNS44OEwxNywyNy44Yy0yLjExLTMuODMtMi4zLTcuNDYtLjU0LTEwLjIyczUuMjEtNC4yNiw5Ljc2LTQuMjhsMjAuMjctLjA3YzQuNTYsMCw3LjkxLDEuNSw5LjQyLDQuMjVzMSw2LjM5LTEuNDUsMTAuMjNMNDMuNDksNDQuOGMtMi40NCwzLjgzLTUuNTgsNS45NC04LjgzLDZBNi4xMiw2LjEyLDAsMCwxLDMzLjgsNTAuNzFaIi8+PC9nPjwvc3ZnPg==
@@ -252,4 +252,5 @@ spec:
     url: https://github.com/appsody/appsody-operator/tree/master/doc/
   - name: Appsody
     url: https://appsody.dev
+  replaces: appsody-operator.v0.1.0
   version: 0.2.0
