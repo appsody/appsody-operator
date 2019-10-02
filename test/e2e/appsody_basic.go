@@ -13,6 +13,14 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+var (
+	retryInterval        = time.Second * 5
+	operatorTimeout      = time.Minute * 20
+	timeout              = time.Minute * 20
+	cleanupRetryInterval = time.Second * 1
+	cleanupTimeout       = time.Second * 5
+)
+
 // AppsodyBasicTest barebones deployment test that makes sure applications will deploy and scale.
 func AppsodyBasicTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)

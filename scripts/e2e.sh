@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DEFAULT_REGISTRY=172.30.1.1:5000
-
+BUILD_IMAGE=$DEFAULT_REGISTRY/myproject/appsody-operator:daily
 # Restart docker daemon for insecure registry access
 restart_daemon() {
 cat << EOF  | sudo tee /etc/docker/daemon.json
@@ -51,17 +51,16 @@ main() {
     echo "Restarting daemon for insecure registry..."
     restart_daemon
     echo "Building image..."
-    operator-sdk build $DEFAULT_REGISTRY/myproject/appsody-operator:daily
+    operator-sdk build $BUILD_IMAGE
     echo "Setting up cluster..."
     setup_cluster
     echo "Logging into local registry..."
     docker_login
     echo "Pushing image into registry..."
-    docker push $DEFAULT_REGISTRY/myproject/appsody-operator:daily
+    docker push $BUILD_IMAGE
     echo "Starting e2e tests..."
     oc login -u system:admin
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --image $DEFAULT_REGISTRY/myproject/appsody-operator:daily
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --image $BUILD_IMAGE --verbose
 }
 
 main
-

@@ -2,6 +2,7 @@ package e2e
 
 import (
 	goctx "context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -14,14 +15,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-)
-
-var (
-	retryInterval        = time.Second * 5
-	operatorTimeout      = time.Minute * 3
-	timeout              = time.Minute * 20
-	cleanupRetryInterval = time.Second * 1
-	cleanupTimeout       = time.Second * 5
 )
 
 // AppsodyBasicStorageTest check that when persistence is configured that a statefulset is deployed
@@ -38,10 +31,10 @@ func AppsodyBasicStorageTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-
-	// create one replica of the operator deployment in current namespace with provided name
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
+		deployments, err := f.KubeClient.AppsV1().Deployments(namespace).Get("appsody-operator", metav1.GetOptions{IncludeUninitialized: true})
+		t.Logf(fmt.Sprint(deployments.Status.Replicas))
 		t.Fatal(err)
 	}
 
