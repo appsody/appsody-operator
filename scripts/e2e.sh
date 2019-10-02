@@ -60,7 +60,7 @@ main() {
     docker push $BUILD_IMAGE
     echo "Starting e2e tests..."
     oc login -u system:admin
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --image $BUILD_IMAGE --verbose
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --go-test-flags "-timeout 20m" --image $BUILD_IMAGE --verbose
 }
 
 main
