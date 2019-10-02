@@ -253,3 +253,4 @@ spec:
   - name: Appsody
     url: https://appsody.dev
   version: 0.2.0
+  replaces: appsody-operator.v0.1.0
