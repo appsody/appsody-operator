@@ -42,7 +42,8 @@ docker_login() {
         if [[ "$i" == "30" ]]; then
             echo "Failed to connect to registry, logging state of default namespace: "
             oc login -u system:admin
-            oc get pods -n default
+            # POD_NAME=oc get pods -n default -l "deploymentconfig=docker-registry" -o jsonpath="{.items[*].metadata.name}"
+            # oc get pods $POD_NAME -o jsonpath="{.status.containerStatuses[0].ready}" -n default
             break;
         fi
     done

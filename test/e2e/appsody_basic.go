@@ -16,7 +16,7 @@ import (
 var (
 	retryInterval        = time.Second * 5
 	operatorTimeout      = time.Minute * 8
-	timeout              = time.Minute * 8
+	timeout              = time.Minute * 2
 	cleanupRetryInterval = time.Second * 1
 	cleanupTimeout       = time.Second * 5
 )
@@ -69,6 +69,7 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 1, retryInterval, timeout)
 	if err != nil {
+		util.FailureCleanup(t, f, namespace)
 		return err
 	}
 	// -- Run all scaling tests below based on the above example deployment of 1 pods ---

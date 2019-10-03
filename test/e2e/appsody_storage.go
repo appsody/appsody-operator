@@ -2,7 +2,6 @@ package e2e
 
 import (
 	goctx "context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -33,8 +32,7 @@ func AppsodyBasicStorageTest(t *testing.T) {
 	}
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		deployments, err := f.KubeClient.AppsV1().Deployments(namespace).Get("appsody-operator", metav1.GetOptions{IncludeUninitialized: true})
-		t.Logf(fmt.Sprint(deployments.Status.Replicas))
+		util.FailureCleanup(t, f, namespace)
 		t.Fatal(err)
 	}
 

@@ -1,6 +1,7 @@
 package util
 
 import (
+	goctx "context"
 	"testing"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MakeBasicAppsodyApplication : Create a simple Appsody App with provided number of replicas.
@@ -100,4 +102,33 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 
 	t.Log("Cluster context initialized.")
 	return ctx, nil
+}
+
+func FailureCleanup(t *testing.T, f *framework.Framework, ns string) {
+	options := &dynclient.ListOptions{
+		Namespace: ns,
+	}
+	podlist := &corev1.PodList{}
+	err := f.Client.List(goctx.TODO(), options, podlist)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("***** Logging pods in namespace: %s", ns)
+	for _, p := range podlist.Items {
+		t.Log("--------------------")
+		t.Log(p)
+	}
+
+	crlist := &appsodyv1beta1.AppsodyApplicationList{}
+	err = f.Client.List(goctx.TODO(), options, crlist)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("***** Logging Appsody Applications in namespace: %s", ns)
+	for _, application := range crlist.Items {
+		t.Log("-------------------")
+		t.Log(application)
+	}
 }
