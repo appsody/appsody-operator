@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DEFAULT_REGISTRY=172.30.1.1:5000
-BUILD_IMAGE=$DEFAULT_REGISTRY/myproject/appsody-operator:daily
+BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/appsody-operator:daily
 # Restart docker daemon for insecure registry access
 restart_daemon() {
 cat << EOF  | sudo tee /etc/docker/daemon.json
@@ -23,9 +23,7 @@ setup_cluster(){
     # Start a cluster and login
     oc cluster up
     oc login -u system:admin
-    oc policy add-role-to-user registry-viewer developer
-    oc policy add-role-to-user registry-editor developer
-    oc policy add-role-to-user registry-viewer system:service-accounts
+    oc adm policy add-role-to-user image-builder developer -n openshift
     oc login -u developer
 }
 
@@ -60,7 +58,7 @@ main() {
     docker push $BUILD_IMAGE
     echo "Starting e2e tests..."
     oc login -u system:admin
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --go-test-flags "-timeout 20m" --image $BUILD_IMAGE --verbose
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
 }
 
 main
