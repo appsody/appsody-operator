@@ -35,7 +35,7 @@ func AppsodyProbeTest(t *testing.T) {
 	// create one replica of the operator deployment in current namespace with provided name
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	libertyProbe := corev1.Handler{
@@ -47,7 +47,7 @@ func AppsodyProbeTest(t *testing.T) {
 
 	// run test for readiness probe and then liveness
 	if err = probeTest(t, f, ctx, libertyProbe); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 

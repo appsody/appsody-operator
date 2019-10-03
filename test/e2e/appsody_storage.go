@@ -32,8 +32,7 @@ func AppsodyBasicStorageTest(t *testing.T) {
 	}
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		util.FailureCleanup(t, f, namespace)
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-storage", namespace, 1)
@@ -48,15 +47,15 @@ func AppsodyBasicStorageTest(t *testing.T) {
 		RetryInterval: time.Second * 1,
 	})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	err = util.WaitForStatefulSet(t, f.KubeClient, namespace, "example-appsody-storage", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	// verify that removing the storage config returns it to a deployment not a stateful set
 	if err = updateStorageConfig(t, f, ctx, exampleAppsody); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
@@ -133,16 +132,16 @@ func AppsodyPersistenceTest(t *testing.T) {
 		RetryInterval: cleanupRetryInterval,
 	})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = util.WaitForStatefulSet(t, f.KubeClient, namespace, "example-appsody-persistence", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// again remove the storage configuration and see that it deploys correctly.
 	if err = updateStorageConfig(t, f, ctx, exampleAppsody); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }

@@ -104,7 +104,7 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 	return ctx, nil
 }
 
-func FailureCleanup(t *testing.T, f *framework.Framework, ns string) {
+func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure error) {
 	options := &dynclient.ListOptions{
 		Namespace: ns,
 	}
@@ -131,4 +131,6 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string) {
 		t.Log("-------------------")
 		t.Log(application)
 	}
+
+	t.Fatal(failure)
 }

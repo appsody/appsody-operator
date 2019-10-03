@@ -30,8 +30,7 @@ func AppsodyPullPolicyTest(t *testing.T) {
 	}
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		util.FailureCleanup(t, f, namespace)
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody pull policy test...", timestamp)
@@ -45,20 +44,20 @@ func AppsodyPullPolicyTest(t *testing.T) {
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), appsodyApplication, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-appsody-pullpolicy to reach 2 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	timestamp = time.Now().UTC()
 	t.Logf("%s - Deployment created, verifying pull policy...", timestamp)
 
 	if err = verifyPullPolicy(t, f, appsodyApplication); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 

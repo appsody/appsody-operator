@@ -76,12 +76,12 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	// wait for example-appsody-defaultconfigmaps to reach 1 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-defaultconfigmaps", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-defaultconfigmaps", Namespace: namespace}, apps)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// update the application to two replicas
@@ -90,12 +90,12 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), apps)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-defaultconfigmaps", 2, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// check that the default values from the default configmap have been applied to the fields that were not specified

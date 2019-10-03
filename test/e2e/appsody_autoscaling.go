@@ -43,13 +43,13 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), appsodyApplication, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-appsody-autoscaling to reach 1 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Check the name field that matches

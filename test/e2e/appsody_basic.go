@@ -15,8 +15,8 @@ import (
 
 var (
 	retryInterval        = time.Second * 5
-	operatorTimeout      = time.Minute * 8
-	timeout              = time.Minute * 2
+	operatorTimeout      = time.Minute * 4
+	timeout              = time.Minute * 4
 	cleanupRetryInterval = time.Second * 1
 	cleanupTimeout       = time.Second * 5
 )
@@ -69,8 +69,7 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 1, retryInterval, timeout)
 	if err != nil {
-		util.FailureCleanup(t, f, namespace)
-		return err
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	// -- Run all scaling tests below based on the above example deployment of 1 pods ---
 	// update the number of replicas and return if failure occurs
@@ -92,13 +91,13 @@ func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace stri
 	exampleAppsody.Spec.Replicas = &helper2
 	err = f.Client.Update(goctx.TODO(), exampleAppsody)
 	if err != nil {
-		return err
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-memcached to reach 2 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 2, retryInterval, timeout)
 	if err != nil {
-		return err
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	return err
 }
