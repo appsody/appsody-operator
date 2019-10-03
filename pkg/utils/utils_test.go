@@ -477,19 +477,29 @@ func TestCustomizeServiceMonitor(t *testing.T) {
 		allSMLabels[key] = value
 	}
 
+	// Expected values
+	appScheme := appsody.Spec.Monitoring.Endpoints[0].Scheme
+	appInterval := appsody.Spec.Monitoring.Endpoints[0].Interval
+	appPath := appsody.Spec.Monitoring.Endpoints[0].Path
+	appTLSConfig := appsody.Spec.Monitoring.Endpoints[0].TLSConfig
+	appBasicAuth := appsody.Spec.Monitoring.Endpoints[0].BasicAuth
+	appParams := appsody.Spec.Monitoring.Endpoints[0].Params
+	appScrapeTimeout := appsody.Spec.Monitoring.Endpoints[0].ScrapeTimeout
+	appBearerTokenFile := appsody.Spec.Monitoring.Endpoints[0].BearerTokenFile
+
 	testSM := []Test{
 		{"Service Monitor label for app.kubernetes.io/name", name, sm.Labels["app.kubernetes.io/name"]},
 		{"Service Monitor selector match labels", labelMatches, sm.Spec.Selector.MatchLabels},
 		{"Service Monitor endpoints port", strconv.Itoa(int(appsody.Spec.Service.Port)) + "-tcp", sm.Spec.Endpoints[0].Port},
 		{"Service Monitor all labels", allSMLabels, sm.Labels},
-		{"Service Monitor endpoints scheme", appsody.Spec.Monitoring.Endpoints[0].Scheme, sm.Spec.Endpoints[0].Scheme},
-		{"Service Monitor endpoints interval", appsody.Spec.Monitoring.Endpoints[0].Interval, sm.Spec.Endpoints[0].Interval},
-		{"Service Monitor endpoints path", appsody.Spec.Monitoring.Endpoints[0].Path, sm.Spec.Endpoints[0].Path},
-		{"Service Monitor endpoints TLSConfig", appsody.Spec.Monitoring.Endpoints[0].TLSConfig, sm.Spec.Endpoints[0].TLSConfig},
-		{"Service Monitor endpoints basicAuth", appsody.Spec.Monitoring.Endpoints[0].BasicAuth, sm.Spec.Endpoints[0].BasicAuth},
-		{"Service Monitor endpoints params", appsody.Spec.Monitoring.Endpoints[0].Params, sm.Spec.Endpoints[0].Params},
-		{"Service Monitor endpoints scrapeTimeout", appsody.Spec.Monitoring.Endpoints[0].ScrapeTimeout, sm.Spec.Endpoints[0].ScrapeTimeout},
-		{"Service Monitor endpoints bearerTokenFile", appsody.Spec.Monitoring.Endpoints[0].BearerTokenFile, sm.Spec.Endpoints[0].BearerTokenFile},
+		{"Service Monitor endpoints scheme", appScheme, sm.Spec.Endpoints[0].Scheme},
+		{"Service Monitor endpoints interval", appInterval, sm.Spec.Endpoints[0].Interval},
+		{"Service Monitor endpoints path", appPath, sm.Spec.Endpoints[0].Path},
+		{"Service Monitor endpoints TLSConfig", appTLSConfig, sm.Spec.Endpoints[0].TLSConfig},
+		{"Service Monitor endpoints basicAuth", appBasicAuth, sm.Spec.Endpoints[0].BasicAuth},
+		{"Service Monitor endpoints params", appParams, sm.Spec.Endpoints[0].Params},
+		{"Service Monitor endpoints scrapeTimeout", appScrapeTimeout, sm.Spec.Endpoints[0].ScrapeTimeout},
+		{"Service Monitor endpoints bearerTokenFile", appBearerTokenFile, sm.Spec.Endpoints[0].BearerTokenFile},
 	}
 
 	verifyTests(testSM, t)
