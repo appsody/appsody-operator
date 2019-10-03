@@ -23,7 +23,9 @@ setup_cluster(){
     # Start a cluster and login
     oc cluster up
     oc login -u system:admin
-    oc adm policy add-role-to-user image-builder developer -n openshift
+    oc adm policy add-role-to-user registry-viewer developer
+    oc adm policy add-role-to-user registry-editor developer
+    oc adm policy add-role-to-user system:image-builder developer -n openshift
     oc login -u developer
 }
 
@@ -38,6 +40,9 @@ docker_login() {
         # Timeout if registry has run into an issue of some sort.
         ((i++))
         if [[ "$i" == "30" ]]; then
+            echo "Failed to connect to registry, logging state of default namespace: "
+            oc login -u system:admin
+            oc get pods -n default
             break;
         fi
     done
