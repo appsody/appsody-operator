@@ -89,6 +89,7 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 	return nil
 }
 
+// InitializeContext - Create new test namespace and return test context object
 func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*framework.TestCtx, error) {
 	ctx := framework.NewTestCtx(t)
 	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
@@ -104,6 +105,7 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 	return ctx, nil
 }
 
+// FailureCleanup - Log current state of the namespace and exit with fatal
 func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure error) {
 	options := &dynclient.ListOptions{
 		Namespace: ns,

@@ -70,7 +70,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 
 	err = f.Client.Create(goctx.TODO(), apps, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-appsody-defaultconfigmaps to reach 1 replicas

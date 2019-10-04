@@ -35,15 +35,20 @@ docker_login() {
 
     until docker login -u appsody -p $(oc whoami -t) $DEFAULT_REGISTRY &> /dev/null
     do
-        echo "Waiting for oc registry pods to initialize ..."
+        echo "> Waiting for oc registry pods to initialize ..."
+        echo "Current state of registry: "
+        POD_NAME=oc get pods -n default -l "deploymentconfig=docker-registry" -o jsonpath="{.items[*].metadata.name}"
+        oc get pods $POD_NAME -o jsonpath="{.status.containerStatuses[0].ready}" -n default
         sleep 1
         # Timeout if registry has run into an issue of some sort.
         ((i++))
         if [[ "$i" == "30" ]]; then
-            echo "Failed to connect to registry, logging state of default namespace: "
+            echo "> Failed to connect to registry, logging state of default namespace: "
             oc login -u system:admin
-            # POD_NAME=oc get pods -n default -l "deploymentconfig=docker-registry" -o jsonpath="{.items[*].metadata.name}"
-            # oc get pods $POD_NAME -o jsonpath="{.status.containerStatuses[0].ready}" -n default
+            echo "Default pods:"
+            oc get pods -n default
+            echo "Default services:"
+            oc get svc -n default
             break;
         fi
     done
@@ -52,17 +57,17 @@ docker_login() {
 }
 
 main() {
-    echo "Restarting daemon for insecure registry..."
+    echo "****** Restarting daemon for insecure registry..."
     restart_daemon
-    echo "Building image..."
+    echo "****** Building image..."
     operator-sdk build $BUILD_IMAGE
-    echo "Setting up cluster..."
+    echo "****** Setting up cluster..."
     setup_cluster
-    echo "Logging into local registry..."
+    echo "****** Logging into local registry..."
     docker_login
-    echo "Pushing image into registry..."
+    echo "****** Pushing image into registry..."
     docker push $BUILD_IMAGE
-    echo "Starting e2e tests..."
+    echo "****** Starting e2e tests..."
     oc login -u system:admin
     operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
 }
