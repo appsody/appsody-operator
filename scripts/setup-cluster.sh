@@ -11,3 +11,4 @@ sudo mv oc kubectl /usr/local/bin/
 # Start a cluster and login
 oc cluster up --skip-registry-check=true
 oc login -u system:admin
+oc apply -f https://raw.githubusercontent.com/coreos/prometheus-operator/master/example/prometheus-operator-crd/servicemonitor.crd.yaml

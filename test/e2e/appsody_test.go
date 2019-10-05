@@ -19,6 +19,7 @@ func TestAppsodyApplication(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to add CR scheme to framework: %v", err)
 	}
+
 	t.Run("AppsodyPullPolicyTest", AppsodyPullPolicyTest)
 	t.Run("AppsodyBasicTest", AppsodyBasicTest)
 	t.Run("AppsodyStorageTest", AppsodyBasicStorageTest)
@@ -27,5 +28,5 @@ func TestAppsodyApplication(t *testing.T) {
 	t.Run("AppsodyAutoScalingTest", AppsodyAutoScalingTest)
 	t.Run("AppsodyConfigMapsDefaultTest", AppsodyConfigMapsDefaultTest)
 	t.Run("AppsodyConfigMapsConstTest", AppsodyConfigMapsConstTest)
-
+	t.Run("AppsodyServiceMonitorTest", AppsodyServiceMonitorTest)
 }
