@@ -114,7 +114,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	smScheme := sm.Spec.Endpoints[0].Scheme
 	smScrapeTimeout := sm.Spec.Endpoints[0].ScrapeTimeout
 	smInterval := sm.Spec.Endpoints[0].Interval
-	smBTK := sm.Spec.Endpoints[0].BearerTokenFile
+	smBTF := sm.Spec.Endpoints[0].BearerTokenFile
 
 	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/name"] != "example-appsody-sm" {
 		t.Fatal("The service monitor is not connected to the appsody application?")
@@ -144,7 +144,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 		t.Fatal("The service monitor interval default is incorrect")
 	}
 
-	if smBTK != "" {
+	if smBTF != "" {
 		t.Fatal("The service monitor bearer token file default is incorrect")
 	}
 
@@ -171,7 +171,7 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 		Interval:        "30s",
 		ScrapeTimeout:   "10s",
 		TLSConfig:       &prometheusv1.TLSConfig{InsecureSkipVerify: true},
-		BearerTokenFile: "myBTK",
+		BearerTokenFile: "myBTF",
 		BasicAuth:       &prometheusv1.BasicAuth{Username: username, Password: password},
 	}
 
@@ -219,7 +219,7 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 	smScheme := sm.Spec.Endpoints[0].Scheme
 	smScrapeTimeout := sm.Spec.Endpoints[0].ScrapeTimeout
 	smInterval := sm.Spec.Endpoints[0].Interval
-	smBTK := sm.Spec.Endpoints[0].BearerTokenFile
+	smBTF := sm.Spec.Endpoints[0].BearerTokenFile
 	smTLSConfig := sm.Spec.Endpoints[0].TLSConfig
 	smBasicAuth := sm.Spec.Endpoints[0].BasicAuth
 
@@ -251,7 +251,7 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 		t.Fatal("The service monitor interval is incorrect")
 	}
 
-	if smBTK != "myBTK" {
+	if smBTF != "myBTF" {
 		t.Fatal("The service monitor bearer token file is incorrect")
 	}
 
