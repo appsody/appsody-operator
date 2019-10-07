@@ -160,6 +160,6 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 		t.Fatal("LivenessProbe in configmap constants is not applied")
 	}
 
-	util.ResetConfigMap(t, "appsody-operator-constants", "deploy/stack_constants.yaml")
+	util.ResetConfigMap(t, f, configMap, "appsody-operator-constants", "deploy/stack_constants.yaml", namespace)
 
 }

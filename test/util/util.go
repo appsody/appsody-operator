@@ -1,8 +1,8 @@
 package util
 
 import (
-	"log"
-	"os/exec"
+	goctx "context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -11,9 +11,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 )
 
 // MakeBasicAppsodyApplication : Create a simple Appsody App with provided number of replicas.
@@ -105,19 +107,26 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 	return ctx, nil
 }
 
-// ResetConfigMap : Deletes altered configmaps and recreates the original ones
-func ResetConfigMap(t *testing.T, cmName string, file string) {
-	deleteCmd := exec.Command("oc", "delete", "cm", cmName)
-	log.Printf("Deleting the altered configmap...")
-	err := deleteCmd.Run()
+// ResetConfigMap : Resets the configmaps to original empty values
+func ResetConfigMap(t *testing.T, f *framework.Framework, configMap *corev1.ConfigMap, cmName string, fileName string, namespace string) {
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: cmName, Namespace: namespace}, configMap)
 	if err != nil {
-		t.Fatalf("Command finished with error: %v", err)
+		t.Fatal(err)
 	}
 
-	recreateCmd := exec.Command("oc", "apply", "-f", file)
-	log.Printf("Recreating the original configmap...")
-	err = recreateCmd.Run()
+	fData, err := ioutil.ReadFile(fileName)
 	if err != nil {
-		t.Fatalf("Command finished with error: %v", err)
+		t.Fatal(err)
+	}
+
+	configMap = &corev1.ConfigMap{}
+	err = yaml.Unmarshal(fData, configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configMap.Namespace = namespace
+	err = f.Client.Update(goctx.TODO(), configMap)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
