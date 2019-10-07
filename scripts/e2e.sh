@@ -36,9 +36,6 @@ docker_login() {
     until docker login -u appsody -p $(oc whoami -t) $DEFAULT_REGISTRY &> /dev/null
     do
         echo "> Waiting for oc registry pods to initialize ..."
-        echo "Current state of registry: "
-        POD_NAME=oc get pods -n default -l "deploymentconfig=docker-registry" -o jsonpath="{.items[*].metadata.name}"
-        oc get pods $POD_NAME -o jsonpath="{.status.containerStatuses[0].ready}" -n default
         sleep 1
         # Timeout if registry has run into an issue of some sort.
         ((i++))
