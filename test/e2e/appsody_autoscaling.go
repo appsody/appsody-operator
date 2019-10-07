@@ -33,6 +33,13 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
+
+	// Wait for the operator as the following configmaps won't exist until it has deployed
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody autoscaling test...", timestamp)
 

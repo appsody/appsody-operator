@@ -22,17 +22,27 @@ setup_cluster(){
 
     # Start a cluster and login
     oc cluster up
+    oc create secret docker-registry internal-registry --docker-email=unused --docker-password=$(oc whoami -t) --docker-username=unused --docker-server=$DEFAULT_REGISTRY
     oc login -u system:admin
+    # Link accounts to internal docker registry
+    oc create -f deploy/service_account.yaml
+    if oc secrets link appsody-operator internal-registry; then
+        echo "> Successfully linked registry secret to service account"
+    else
+        echo "> Failed to link registry secret to service account"
+    fi
+    # Add necessary roles to the developer user so he can interact with internal registry
     oc adm policy add-role-to-user registry-viewer developer
     oc adm policy add-role-to-user registry-editor developer
     oc adm policy add-role-to-user system:image-builder developer -n openshift
+    oc adm policy add-role-to-user system:image-builder system:serviceaccounts
     oc login -u developer
 }
 
 # Log in to docker daemon with openshift cluster registry
 docker_login() {
     i=0
-
+    # Cluster up doesn't wait for registry so have to poll for ready state
     until docker login -u appsody -p $(oc whoami -t) $DEFAULT_REGISTRY &> /dev/null
     do
         echo "> Waiting for oc registry pods to initialize ..."
@@ -50,7 +60,7 @@ docker_login() {
         fi
     done
 
-    echo "Logged into oc registry."
+    echo "> Logged into oc registry."
 }
 
 main() {
