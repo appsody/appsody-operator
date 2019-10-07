@@ -107,6 +107,7 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 
 // FailureCleanup - Log current state of the namespace and exit with fatal
 func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure error) {
+	t.Log("***** FAILURE")
 	options := &dynclient.ListOptions{
 		Namespace: ns,
 	}

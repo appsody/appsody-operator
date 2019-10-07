@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -428,6 +429,80 @@ func TestApplyConstants(t *testing.T) {
 		{"Constants VolumeMount Found", volumeMountBefore, volumeMountAfter},
 	}
 	verifyTests(testAC, t)
+}
+
+func TestCustomizeServiceMonitor(t *testing.T) {
+
+	logf.SetLogger(logf.ZapLogger(true))
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service}
+
+	params := map[string][]string{
+		"params": []string{"param1", "param2"},
+	}
+
+	// Endpoint for appsody
+	endpointApp := &prometheusv1.Endpoint{
+		Port:            "web",
+		Scheme:          "myScheme",
+		Interval:        "myInterval",
+		Path:            "myPath",
+		TLSConfig:       &prometheusv1.TLSConfig{},
+		BasicAuth:       &prometheusv1.BasicAuth{},
+		Params:          params,
+		ScrapeTimeout:   "myScrapeTimeout",
+		BearerTokenFile: "myBearerTokenFile",
+	}
+	endpointsApp := make([]prometheusv1.Endpoint, 1)
+	endpointsApp[0] = *endpointApp
+
+	// Endpoint for sm
+	endpointsSM := make([]prometheusv1.Endpoint, 0)
+
+	labelMap := map[string]string{"app": "my-app"}
+	selector := &metav1.LabelSelector{MatchLabels: labelMap}
+	smspec := &prometheusv1.ServiceMonitorSpec{Endpoints: endpointsSM, Selector: *selector}
+
+	sm, appsody := &prometheusv1.ServiceMonitor{Spec: *smspec}, createAppsodyApp(name, namespace, spec)
+	appsody.Spec.Monitoring = &appsodyv1beta1.AppsodyApplicationMonitoring{Labels: labelMap, Endpoints: endpointsApp}
+
+	CustomizeServiceMonitor(sm, appsody)
+
+	labelMatches := map[string]string{
+		"app.appsody.dev/monitor": "true",
+		"app.kubernetes.io/name":  name,
+	}
+
+	allSMLabels := GetLabels(appsody)
+	for key, value := range appsody.Spec.Monitoring.Labels {
+		allSMLabels[key] = value
+	}
+
+	// Expected values
+	appScheme := appsody.Spec.Monitoring.Endpoints[0].Scheme
+	appInterval := appsody.Spec.Monitoring.Endpoints[0].Interval
+	appPath := appsody.Spec.Monitoring.Endpoints[0].Path
+	appTLSConfig := appsody.Spec.Monitoring.Endpoints[0].TLSConfig
+	appBasicAuth := appsody.Spec.Monitoring.Endpoints[0].BasicAuth
+	appParams := appsody.Spec.Monitoring.Endpoints[0].Params
+	appScrapeTimeout := appsody.Spec.Monitoring.Endpoints[0].ScrapeTimeout
+	appBearerTokenFile := appsody.Spec.Monitoring.Endpoints[0].BearerTokenFile
+
+	testSM := []Test{
+		{"Service Monitor label for app.kubernetes.io/name", name, sm.Labels["app.kubernetes.io/name"]},
+		{"Service Monitor selector match labels", labelMatches, sm.Spec.Selector.MatchLabels},
+		{"Service Monitor endpoints port", strconv.Itoa(int(appsody.Spec.Service.Port)) + "-tcp", sm.Spec.Endpoints[0].Port},
+		{"Service Monitor all labels", allSMLabels, sm.Labels},
+		{"Service Monitor endpoints scheme", appScheme, sm.Spec.Endpoints[0].Scheme},
+		{"Service Monitor endpoints interval", appInterval, sm.Spec.Endpoints[0].Interval},
+		{"Service Monitor endpoints path", appPath, sm.Spec.Endpoints[0].Path},
+		{"Service Monitor endpoints TLSConfig", appTLSConfig, sm.Spec.Endpoints[0].TLSConfig},
+		{"Service Monitor endpoints basicAuth", appBasicAuth, sm.Spec.Endpoints[0].BasicAuth},
+		{"Service Monitor endpoints params", appParams, sm.Spec.Endpoints[0].Params},
+		{"Service Monitor endpoints scrapeTimeout", appScrapeTimeout, sm.Spec.Endpoints[0].ScrapeTimeout},
+		{"Service Monitor endpoints bearerTokenFile", appBearerTokenFile, sm.Spec.Endpoints[0].BearerTokenFile},
+	}
+
+	verifyTests(testSM, t)
 }
 
 func TestGetCondition(t *testing.T) {

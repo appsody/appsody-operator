@@ -326,6 +326,59 @@ To create a secured HTTPS route, see [secured routes](https://docs.openshift.com
 
 _This feature is only available if you are running on OKD or OpenShift._
 
+##### Canary deployment using `Route`
+
+You can easily test a new version of your application using the Canary deployment methodology by levering the traffic split capability built into OKD's `Route` resource.
+*  deploy the first version of the application using the instructions above with `expose:true`, which will create an OKD `Route`.
+*  when a new application version is available, deploy it via the Appsody Operator but this time choose `expose:false`.
+*  edit the first application's `Route` resource to split the traffic between the two services using the desired percentage.  
+
+Here's a screenshot of the split via the OKD UI:
+
+![Traffic Split](route.png)
+
+Here's the corresponding YAML, which you can edit using the OKD UI or simply using `oc get route <routeID>` and then `oc apply -f <routeYAML>`:
+
+```yaml
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  annotations:
+    openshift.io/host.generated: 'true'
+  creationTimestamp: '2019-09-18T19:09:07Z'
+  labels:
+    app: app1
+  name: canary-route
+  namespace: testing
+  resourceVersion: '378939'
+  selfLink: /apis/route.openshift.io/v1/namespaces/testing/routes/canary-route
+  uid: c9f9a45e-da47-11e9-baa4-00163e01b4da
+spec:
+  alternateBackends:
+    - kind: Service
+      name: app2
+      weight: 20
+  host: canary-route-testing.pompom1.fyre.ibm.com
+  port:
+    targetPort: 9080-tcp
+  to:
+    kind: Service
+    name: app1
+    weight: 80
+  wildcardPolicy: None
+status:
+  ingress:
+    - conditions:
+        - lastTransitionTime: '2019-09-18T19:09:07Z'
+          status: 'True'
+          type: Admitted
+      host: canary-route-testing.pompom1.fyre.ibm.com
+      routerName: router
+      wildcardPolicy: None
+```      
+
+*  once you are satisfied with the results you can simply route 100% of the traffic by switching the `Route`'s `spec.to` object to point to app2 at a weight of 100 and remove the `spec.alternateBackends` object. This can similarly done via the OKD UI.
+
 #### Knative deployment
 
 To expose your application as a Knative service externally, set `expose` to `true`:
