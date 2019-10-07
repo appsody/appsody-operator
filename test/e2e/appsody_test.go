@@ -26,7 +26,7 @@ func TestAppsodyApplication(t *testing.T) {
 	t.Run("AppsodyPersistenceTest", AppsodyPersistenceTest)
 	t.Run("AppsodyProbeTest", AppsodyProbeTest)
 	t.Run("AppsodyAutoScalingTest", AppsodyAutoScalingTest)
+	t.Run("AppsodyServiceMonitorTest", AppsodyServiceMonitorTest)
 	t.Run("AppsodyConfigMapsDefaultTest", AppsodyConfigMapsDefaultTest)
 	t.Run("AppsodyConfigMapsConstTest", AppsodyConfigMapsConstTest)
-	t.Run("AppsodyServiceMonitorTest", AppsodyServiceMonitorTest)
 }
