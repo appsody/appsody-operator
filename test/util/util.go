@@ -1,6 +1,8 @@
 package util
 
 import (
+	"log"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -87,6 +89,7 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 	return nil
 }
 
+// InitializeContext : Sets up initial context
 func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*framework.TestCtx, error) {
 	ctx := framework.NewTestCtx(t)
 	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
@@ -100,4 +103,21 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 
 	t.Log("Cluster context initialized.")
 	return ctx, nil
+}
+
+// ResetConfigMap : Deletes altered configmaps and recreates the original ones
+func ResetConfigMap(t *testing.T, cmName string, file string) {
+	deleteCmd := exec.Command("oc", "delete", "cm", cmName)
+	log.Printf("Deleting the altered configmap...")
+	err := deleteCmd.Run()
+	if err != nil {
+		t.Fatalf("Command finished with error: %v", err)
+	}
+
+	recreateCmd := exec.Command("oc", "apply", "-f", file)
+	log.Printf("Recreating the original configmap...")
+	err = recreateCmd.Run()
+	if err != nil {
+		t.Fatalf("Command finished with error: %v", err)
+	}
 }

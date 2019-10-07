@@ -130,4 +130,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	} else {
 		t.Fatal("LivenessProbe in configmap defaults is not applied")
 	}
+
+	util.ResetConfigMap(t, "appsody-operator-defaults", "deploy/stack_defaults.yaml")
+
 }
