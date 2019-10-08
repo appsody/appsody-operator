@@ -19,10 +19,10 @@ import (
 // AppsodyBasicStorageTest check that when persistence is configured that a statefulset is deployed
 func AppsodyBasicStorageTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	f := framework.Global
 
@@ -88,10 +88,10 @@ func updateStorageConfig(t *testing.T, f *framework.Framework, ctx *framework.Te
 // AppsodyPersistenceTest Verify the volume persistence claims.
 func AppsodyPersistenceTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	f := framework.Global
 

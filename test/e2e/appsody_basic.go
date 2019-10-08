@@ -24,10 +24,10 @@ var (
 // AppsodyBasicTest barebones deployment test that makes sure applications will deploy and scale.
 func AppsodyBasicTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {

@@ -19,6 +19,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
+// TODO: kAppNav tests
 var (
 	name               = "my-app"
 	namespace          = "appsody"

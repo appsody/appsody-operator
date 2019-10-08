@@ -23,10 +23,10 @@ import (
 func AppsodyAutoScalingTest(t *testing.T) {
 
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	f := framework.Global
 	namespace, err := ctx.GetNamespace()
