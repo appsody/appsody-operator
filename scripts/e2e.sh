@@ -18,18 +18,17 @@ setup_cluster(){
     cd openshift-origin-clien*
     sudo mv oc kubectl /usr/local/bin/
     cd ..
-    export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default)
-    export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator:daily
     # Start a cluster and login
     oc login $CLUSTER_URL --token=$CLUSTER_TOKEN
-    oc adm policy add-role-to-user system:image-builder system:serviceaccounts
+    export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default):5000
+    export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator:daily
 }
 
 # Log in to docker daemon with openshift cluster registry
 docker_login() {
     i=0
     # Cluster up doesn't wait for registry so have to poll for ready state
-    until docker login -u unused -p $(oc sa get-token builder -n default) $DEFAULT_REGISTRY &> /dev/null
+    until docker login -u unused -p $CLUSTER_TOKEN $DEFAULT_REGISTRY &> /dev/null
     do
         echo "> Waiting for oc registry pods to initialize ..."
         sleep 1
@@ -51,17 +50,16 @@ docker_login() {
 main() {
     echo "****** Restarting daemon for insecure registry..."
     restart_daemon
-    echo "****** Building image..."
-    operator-sdk build $BUILD_IMAGE
     echo "****** Setting up cluster..."
     setup_cluster
     echo "****** Logging into local registry..."
     docker_login
+    echo "****** Building image"
+    operator-sdk build $BUILD_IMAGE
     echo "****** Pushing image into registry..."
     docker push $BUILD_IMAGE
     echo "****** Starting e2e tests..."
-    oc login -u system:admin
-    operator-sdk test github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
 }
 
 main
