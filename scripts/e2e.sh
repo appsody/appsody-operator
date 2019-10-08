@@ -1,7 +1,6 @@
 #!/bin/bash
 
-DEFAULT_REGISTRY=172.30.1.1:5000
-BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/appsody-operator:daily
+
 # Restart docker daemon for insecure registry access
 restart_daemon() {
 cat << EOF  | sudo tee /etc/docker/daemon.json
@@ -19,25 +18,18 @@ setup_cluster(){
     cd openshift-origin-clien*
     sudo mv oc kubectl /usr/local/bin/
     cd ..
-
+    export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default)
+    export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator:daily
     # Start a cluster and login
-    oc cluster up
-    oc create secret docker-registry internal-registry --docker-email=unused --docker-password=$(oc whoami -t) --docker-username=unused --docker-server=$DEFAULT_REGISTRY
-    oc login -u system:admin
-    # Link accounts to internal docker registry
-    # Add necessary roles to the developer user so he can interact with internal registry
-    oc adm policy add-role-to-user registry-viewer developer
-    oc adm policy add-role-to-user registry-editor developer
-    oc adm policy add-role-to-user system:image-builder developer -n openshift
+    oc login $CLUSTER_URL --token=$CLUSTER_TOKEN
     oc adm policy add-role-to-user system:image-builder system:serviceaccounts
-    oc login -u developer
 }
 
 # Log in to docker daemon with openshift cluster registry
 docker_login() {
     i=0
     # Cluster up doesn't wait for registry so have to poll for ready state
-    until docker login -u appsody -p $(oc whoami -t) $DEFAULT_REGISTRY &> /dev/null
+    until docker login -u unused -p $(oc sa get-token builder -n default) $DEFAULT_REGISTRY &> /dev/null
     do
         echo "> Waiting for oc registry pods to initialize ..."
         sleep 1
@@ -45,7 +37,6 @@ docker_login() {
         ((i++))
         if [[ "$i" == "30" ]]; then
             echo "> Failed to connect to registry, logging state of default namespace: "
-            oc login -u system:admin
             echo "Default pods:"
             oc get pods -n default
             echo "Default services:"
@@ -70,7 +61,7 @@ main() {
     docker push $BUILD_IMAGE
     echo "****** Starting e2e tests..."
     oc login -u system:admin
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --namespace myproject --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
+    operator-sdk test github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
 }
 
 main
