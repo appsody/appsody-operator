@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -127,4 +128,407 @@ type AppsodyApplicationList struct {
 
 func init() {
 	SchemeBuilder.Register(&AppsodyApplication{}, &AppsodyApplicationList{})
+}
+
+// GetApplicationImage returns application image
+func (cr *AppsodyApplication) GetApplicationImage() string {
+	return cr.Spec.ApplicationImage
+}
+
+// GetPullPolicy returns image pull policy
+func (cr *AppsodyApplication) GetPullPolicy() *corev1.PullPolicy {
+	return cr.Spec.PullPolicy
+}
+
+// GetPullSecret returns secret name for docker registry credentials
+func (cr *AppsodyApplication) GetPullSecret() *string {
+	return cr.Spec.PullSecret
+}
+
+// GetServiceAccountName returns service account name
+func (cr *AppsodyApplication) GetServiceAccountName() *string {
+	return cr.Spec.ServiceAccountName
+}
+
+// GetReplicas returns number of replicas
+func (cr *AppsodyApplication) GetReplicas() *int32 {
+	return cr.Spec.Replicas
+}
+
+// GetLivenessProbe returns liveness probe
+func (cr *AppsodyApplication) GetLivenessProbe() *corev1.Probe {
+	return cr.Spec.LivenessProbe
+}
+
+// GetReadinessProbe returns readiness probe
+func (cr *AppsodyApplication) GetReadinessProbe() *corev1.Probe {
+	return cr.Spec.ReadinessProbe
+}
+
+// GetVolumes returns volumes slice
+func (cr *AppsodyApplication) GetVolumes() []corev1.Volume {
+	return cr.Spec.Volumes
+}
+
+// GetVolumeMounts returns volume mounts slice
+func (cr *AppsodyApplication) GetVolumeMounts() []corev1.VolumeMount {
+	return cr.Spec.VolumeMounts
+}
+
+// GetResourceConstraints returns resource constraints
+func (cr *AppsodyApplication) GetResourceConstraints() *corev1.ResourceRequirements {
+	return cr.Spec.ResourceConstraints
+}
+
+// GetExpose returns expose flag
+func (cr *AppsodyApplication) GetExpose() *bool {
+	return cr.Spec.Expose
+}
+
+// GetEnv returns slice of environment variables
+func (cr *AppsodyApplication) GetEnv() []corev1.EnvVar {
+	return cr.Spec.Env
+}
+
+// GetEnvFrom returns slice of environment variables from source
+func (cr *AppsodyApplication) GetEnvFrom() []corev1.EnvFromSource {
+	return cr.Spec.EnvFrom
+}
+
+// GetCreateKnativeService returns flag that toggles Knative service
+func (cr *AppsodyApplication) GetCreateKnativeService() *bool {
+	return cr.Spec.CreateKnativeService
+}
+
+// GetArchitecture returns slice of architectures
+func (cr *AppsodyApplication) GetArchitecture() []string {
+	return cr.Spec.Architecture
+}
+
+// GetAutoscaling returns autoscaling settings
+func (cr *AppsodyApplication) GetAutoscaling() common.BaseApplicationAutoscaling {
+	if cr.Spec.Autoscaling == nil {
+		return nil
+	}
+	return cr.Spec.Autoscaling
+}
+
+// GetStorage returns storage settings
+func (cr *AppsodyApplication) GetStorage() common.BaseApplicationStorage {
+	if cr.Spec.Storage == nil {
+		return nil
+	}
+	return cr.Spec.Storage
+}
+
+// GetService returns service settings
+func (cr *AppsodyApplication) GetService() common.BaseApplicationService {
+	if cr.Spec.Service == nil {
+		return nil
+	}
+	return cr.Spec.Service
+}
+
+// GetVersion returns application version
+func (cr *AppsodyApplication) GetVersion() string {
+	return cr.Spec.Version
+}
+
+// GetCreateAppDefinition returns a toggle for integration with kAppNav
+func (cr *AppsodyApplication) GetCreateAppDefinition() *bool {
+	return cr.Spec.CreateAppDefinition
+}
+
+// GetMonitoring returns monitoring settings
+func (cr *AppsodyApplication) GetMonitoring() common.BaseApplicationMonitoring {
+	if cr.Spec.Monitoring == nil {
+		return nil
+	}
+	return cr.Spec.Monitoring
+}
+
+// GetMinReplicas returns minimum replicas
+func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
+	return a.MinReplicas
+}
+
+// GetMaxReplicas returns maximum replicas
+func (a *AppsodyApplicationAutoScaling) GetMaxReplicas() int32 {
+	return a.MaxReplicas
+}
+
+// GetTargetCPUUtilizationPercentage returns target cpu usage
+func (a *AppsodyApplicationAutoScaling) GetTargetCPUUtilizationPercentage() *int32 {
+	return a.TargetCPUUtilizationPercentage
+}
+
+// GetSize returns pesistent volume size
+func (s *AppsodyApplicationStorage) GetSize() string {
+	return s.Size
+}
+
+// GetMountPath returns mount path for persistent volume
+func (s *AppsodyApplicationStorage) GetMountPath() string {
+	return s.MountPath
+}
+
+// GetVolumeClaimTemplate returns a template representing requested persitent volume
+func (s *AppsodyApplicationStorage) GetVolumeClaimTemplate() *corev1.PersistentVolumeClaim {
+	return s.VolumeClaimTemplate
+}
+
+// GetAnnotations returns a set of annotations to be added to the service
+func (s *AppsodyApplicationService) GetAnnotations() map[string]string {
+	return s.Annotations
+}
+
+// GetPort returns service port
+func (s *AppsodyApplicationService) GetPort() int32 {
+	return s.Port
+}
+
+// GetType returns service type
+func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
+	return s.Type
+}
+
+// GetLabels returns labels to be added on ServiceMonitor
+func (m *AppsodyApplicationMonitoring) GetLabels() map[string]string {
+	return m.Labels
+}
+
+// GetEndpoints returns endpoints to be added to ServiceMonitor
+func (m *AppsodyApplicationMonitoring) GetEndpoints() []prometheusv1.Endpoint {
+	return m.Endpoints
+}
+
+// Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
+func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
+
+	if cr.Spec.PullPolicy == nil {
+		cr.Spec.PullPolicy = defaults.PullPolicy
+		if cr.Spec.PullPolicy == nil {
+			pp := corev1.PullIfNotPresent
+			cr.Spec.PullPolicy = &pp
+		}
+	}
+
+	if cr.Spec.PullSecret == nil {
+		cr.Spec.PullSecret = defaults.PullSecret
+	}
+
+	if cr.Spec.ServiceAccountName == nil {
+		cr.Spec.ServiceAccountName = defaults.ServiceAccountName
+	}
+
+	if cr.Spec.ReadinessProbe == nil {
+		cr.Spec.ReadinessProbe = defaults.ReadinessProbe
+	}
+	if cr.Spec.LivenessProbe == nil {
+		cr.Spec.LivenessProbe = defaults.LivenessProbe
+	}
+	if cr.Spec.Env == nil {
+		cr.Spec.Env = defaults.Env
+	}
+	if cr.Spec.EnvFrom == nil {
+		cr.Spec.EnvFrom = defaults.EnvFrom
+	}
+
+	if cr.Spec.Volumes == nil {
+		cr.Spec.Volumes = defaults.Volumes
+	}
+
+	if cr.Spec.VolumeMounts == nil {
+		cr.Spec.VolumeMounts = defaults.VolumeMounts
+	}
+
+	if cr.Spec.ResourceConstraints == nil {
+		if defaults.ResourceConstraints != nil {
+			cr.Spec.ResourceConstraints = defaults.ResourceConstraints
+		} else {
+			cr.Spec.ResourceConstraints = &corev1.ResourceRequirements{}
+		}
+	}
+
+	if cr.Spec.Autoscaling == nil {
+		cr.Spec.Autoscaling = defaults.Autoscaling
+	}
+
+	if cr.Spec.Expose == nil {
+		cr.Spec.Expose = defaults.Expose
+	}
+
+	if cr.Spec.CreateKnativeService == nil {
+		cr.Spec.CreateKnativeService = defaults.CreateKnativeService
+	}
+
+	if cr.Spec.Service == nil {
+		cr.Spec.Service = defaults.Service
+	}
+
+	// This is to handle when there is no service in the CR nor defaults
+	if cr.Spec.Service == nil {
+		cr.Spec.Service = &AppsodyApplicationService{}
+	}
+
+	if cr.Spec.Service.Type == nil {
+		st := corev1.ServiceTypeClusterIP
+		cr.Spec.Service.Type = &st
+	}
+	if cr.Spec.Service.Port == 0 {
+		if defaults.Service != nil && defaults.Service.Port != 0 {
+			cr.Spec.Service.Port = defaults.Service.Port
+		} else {
+			cr.Spec.Service.Port = 8080
+		}
+	}
+
+	if constants != nil {
+		cr.applyConstants(defaults, constants)
+	}
+}
+
+func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
+
+	if constants.Replicas != nil {
+		cr.Spec.Replicas = constants.Replicas
+	}
+
+	if constants.Stack != "" {
+		cr.Spec.Stack = constants.Stack
+	}
+
+	if constants.ApplicationImage != "" {
+		cr.Spec.ApplicationImage = constants.ApplicationImage
+	}
+
+	if constants.PullPolicy != nil {
+		cr.Spec.PullPolicy = constants.PullPolicy
+	}
+
+	if constants.PullSecret != nil {
+		cr.Spec.PullSecret = constants.PullSecret
+	}
+
+	if constants.Expose != nil {
+		cr.Spec.Expose = constants.Expose
+	}
+
+	if constants.CreateKnativeService != nil {
+		cr.Spec.CreateKnativeService = constants.CreateKnativeService
+	}
+
+	if constants.ServiceAccountName != nil {
+		cr.Spec.ServiceAccountName = constants.ServiceAccountName
+	}
+
+	if constants.Architecture != nil {
+		cr.Spec.Architecture = constants.Architecture
+	}
+
+	if constants.ReadinessProbe != nil {
+		cr.Spec.ReadinessProbe = constants.ReadinessProbe
+	}
+
+	if constants.LivenessProbe != nil {
+		cr.Spec.LivenessProbe = constants.LivenessProbe
+	}
+
+	if constants.EnvFrom != nil {
+		for _, v := range constants.EnvFrom {
+
+			found := false
+			for _, v2 := range cr.Spec.EnvFrom {
+				if v2 == v {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.EnvFrom = append(cr.Spec.EnvFrom, v)
+			}
+		}
+	}
+
+	if constants.Env != nil {
+		for _, v := range constants.Env {
+			found := false
+			for _, v2 := range cr.Spec.Env {
+				if v2.Name == v.Name {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.Env = append(cr.Spec.Env, v)
+			}
+		}
+	}
+
+	if constants.Volumes != nil {
+		for _, v := range constants.Volumes {
+			found := false
+			for _, v2 := range cr.Spec.Volumes {
+				if v2.Name == v.Name {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.Volumes = append(cr.Spec.Volumes, v)
+			}
+		}
+	}
+
+	if constants.VolumeMounts != nil {
+		for _, v := range constants.VolumeMounts {
+			found := false
+			for _, v2 := range cr.Spec.VolumeMounts {
+				if v2.Name == v.Name {
+					found = true
+				}
+			}
+			if !found {
+				cr.Spec.VolumeMounts = append(cr.Spec.VolumeMounts, v)
+			}
+		}
+	}
+
+	if constants.ResourceConstraints != nil {
+		cr.Spec.ResourceConstraints = constants.ResourceConstraints
+	}
+
+	if constants.Service != nil {
+		if constants.Service.Type != nil {
+			cr.Spec.Service.Type = constants.Service.Type
+		}
+		if constants.Service.Port != 0 {
+			cr.Spec.Service.Port = constants.Service.Port
+		}
+	}
+
+	if constants.Autoscaling != nil {
+		cr.Spec.Autoscaling = constants.Autoscaling
+	}
+}
+
+// GetLabels returns set of labels to be added to all resources
+func (cr *AppsodyApplication) GetLabels() map[string]string {
+	labels := map[string]string{
+		"app.kubernetes.io/name":       cr.Name,
+		"app.kubernetes.io/managed-by": "appsody-operator",
+	}
+
+	if cr.Spec.Stack != "" {
+		labels["app.appsody.dev/stack"] = cr.Spec.Stack
+	}
+
+	if cr.Spec.Version != "" {
+		labels["app.kubernetes.io/version"] = cr.Spec.Version
+	}
+
+	for key, value := range cr.Labels {
+		if key != "app.kubernetes.io/name" {
+			labels[key] = value
+		}
+	}
+
+	return labels
 }
