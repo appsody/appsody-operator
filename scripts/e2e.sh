@@ -20,8 +20,23 @@ setup_cluster(){
     cd ..
     # Start a cluster and login
     oc login $CLUSTER_URL --token=$CLUSTER_TOKEN
-    export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default):5000
+    export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default)
     export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator:daily
+
+    # Just in case this is needed, TODO: verify necessity
+    oc policy add-role-to-user \
+        system:image-puller system:serviceaccount:default:travis-tests \
+        --namespace=openshift
+
+
+    # Create new docker secret to pull from the registry without back off
+    oc create secret docker-registry external-registry \
+        --docker-username=unused \
+        --docker-password=$(oc sa get-token travis-tests -n default) \
+        --docker-server=$DEFAULT_REGISTRY
+
+    # Assign the secret
+    oc secrets add serviceaccount/travis-tests secrets/external-registry --for=pull
 }
 
 # Log in to docker daemon with openshift cluster registry
