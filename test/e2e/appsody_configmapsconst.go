@@ -34,6 +34,12 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	f := framework.Global
 
+	// create one replica of the operator deployment in current namespace with provided name
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Values to be loaded in the constants configmap
 	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort}, "livenessProbe":{"failureThreshold": 8, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 8, "periodSeconds": 2}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}}`}
 	configMap := &corev1.ConfigMap{}
@@ -153,5 +159,7 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 	} else {
 		t.Fatal("LivenessProbe in configmap constants is not applied")
 	}
+
+	util.ResetConfigMap(t, f, configMap, "appsody-operator-constants", "deploy/stack_constants.yaml", namespace)
 
 }

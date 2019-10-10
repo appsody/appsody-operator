@@ -36,6 +36,12 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody autoscaling test...", timestamp)
 
+	// create one replica of the operator deployment in current namespace with provided name
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	// Make basic appsody application with 1 replica
 	replicas := int32(1)
 	appsodyApplication := util.MakeBasicAppsodyApplication(t, f, "example-appsody-autoscaling", namespace, replicas)

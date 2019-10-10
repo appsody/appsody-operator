@@ -1,6 +1,8 @@
 package util
 
 import (
+	goctx "context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -9,9 +11,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"sigs.k8s.io/yaml"
 )
 
 // MakeBasicAppsodyApplication : Create a simple Appsody App with provided number of replicas.
@@ -87,6 +91,7 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 	return nil
 }
 
+// InitializeContext : Sets up initial context
 func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*framework.TestCtx, error) {
 	ctx := framework.NewTestCtx(t)
 	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
@@ -100,4 +105,28 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 
 	t.Log("Cluster context initialized.")
 	return ctx, nil
+}
+
+// ResetConfigMap : Resets the configmaps to original empty values, this is required to allow tests to be run after the configmaps test
+func ResetConfigMap(t *testing.T, f *framework.Framework, configMap *corev1.ConfigMap, cmName string, fileName string, namespace string) {
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: cmName, Namespace: namespace}, configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fData, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configMap = &corev1.ConfigMap{}
+	err = yaml.Unmarshal(fData, configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configMap.Namespace = namespace
+	err = f.Client.Update(goctx.TODO(), configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
