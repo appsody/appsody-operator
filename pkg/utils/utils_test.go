@@ -574,6 +574,19 @@ func TestGetWatchNamespaces(t *testing.T) {
 	verifyTests(configMapConstTests, t)
 }
 
+func TestUpdateAppDefinition(t *testing.T) {
+	logf.SetLogger(logf.ZapLogger(true))
+
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service}
+	appsody := createAppsodyApp(name, namespace, spec)
+	// Check that app definition enabled by default
+	enabled := true
+	appDefinitionTests = []Test{
+		{"kAppNav enabled", &enabled, appsody.Spec.CreateAppDefinition},
+	}
+
+}
+
 // Helper Functions
 func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
 	app := &appsodyv1beta1.AppsodyApplication{
