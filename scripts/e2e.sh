@@ -58,8 +58,9 @@ main() {
     operator-sdk build $BUILD_IMAGE
     echo "****** Pushing image into registry..."
     docker push $BUILD_IMAGE
+    ## Use internal registry address as the pull will happen internally
     echo "****** Starting e2e tests..."
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $BUILD_IMAGE --verbose
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $(oc registry info)/openshift/application-operator:daily --verbose
 }
 
 main
