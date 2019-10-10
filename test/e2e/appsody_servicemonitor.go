@@ -77,7 +77,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}, appsody)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	// Adds the mandatory label to the application so it will be picked up by the prometheus operator
@@ -154,7 +154,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, namespace string, appsody *appsodyv1beta1.AppsodyApplication) {
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}, appsody)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	params := map[string][]string{

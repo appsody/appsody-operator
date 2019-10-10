@@ -107,7 +107,7 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 	return ctx, nil
 }
 
-// ResetConfigMap : Resets the configmaps to original empty values
+// ResetConfigMap : Resets the configmaps to original empty values, this is required to allow tests to be run after the configmaps test
 func ResetConfigMap(t *testing.T, f *framework.Framework, configMap *corev1.ConfigMap, cmName string, fileName string, namespace string) {
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: cmName, Namespace: namespace}, configMap)
 	if err != nil {
