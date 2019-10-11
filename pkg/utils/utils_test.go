@@ -580,8 +580,8 @@ func TestUpdateAppDefinition(t *testing.T) {
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service, Version: "v1alpha"}
 	app := createAppsodyApp(name, namespace, spec)
 
-	enabled := false
 	// Toggle app definition off [disabled]
+	enabled := false
 	app.Spec.CreateAppDefinition = &enabled
 	labels, annotations := createAppDefinitionTags(app)
 	UpdateAppDefinition(labels, annotations, app)
@@ -595,30 +595,30 @@ func TestUpdateAppDefinition(t *testing.T) {
 
 	// Toggle back on [active]
 	enabled = true
-	completeLabel, completeAnnotation := createAppDefinitionTags(app)
+	completeLabels, completeAnnotations := createAppDefinitionTags(app)
 	UpdateAppDefinition(labels, annotations, app)
 
 	appDefinitionTests = []Test{
-		{"Label set", labels["kappnav.app.auto-create"], completeLabel["kappnav.app.auto-create"]},
-		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotation["kappnav.app.auto-create.name"]},
-		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotation["kappnav.app.auto-create.kinds"]},
-		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotation["kappnav.app.auto-create.label"]},
-		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotation["kappnav.app.auto-create.labels-values"]},
-		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotation["kappnav.app.auto-create.version"]},
+		{"Label set", labels["kappnav.app.auto-create"], completeLabels["kappnav.app.auto-create"]},
+		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotations["kappnav.app.auto-create.name"]},
+		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotations["kappnav.app.auto-create.kinds"]},
+		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotations["kappnav.app.auto-create.label"]},
+		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotations["kappnav.app.auto-create.labels-values"]},
+		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotations["kappnav.app.auto-create.version"]},
 	}
 	verifyTests(appDefinitionTests, t)
 
-	app.Spec.CreateAppDefinition = nil
 	// Verify labels are still set when CreateApp is undefined [default]
+	app.Spec.CreateAppDefinition = nil
 	UpdateAppDefinition(labels, annotations, app)
 
 	appDefinitionTests = []Test{
-		{"Label set", labels["kappnav.app.auto-create"], completeLabel["kappnav.app.auto-create"]},
-		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotation["kappnav.app.auto-create.name"]},
-		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotation["kappnav.app.auto-create.kinds"]},
-		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotation["kappnav.app.auto-create.label"]},
-		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotation["kappnav.app.auto-create.labels-values"]},
-		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotation["kappnav.app.auto-create.version"]},
+		{"Label set", labels["kappnav.app.auto-create"], completeLabels["kappnav.app.auto-create"]},
+		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotations["kappnav.app.auto-create.name"]},
+		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotations["kappnav.app.auto-create.kinds"]},
+		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotations["kappnav.app.auto-create.label"]},
+		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotations["kappnav.app.auto-create.labels-values"]},
+		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotations["kappnav.app.auto-create.version"]},
 	}
 	verifyTests(appDefinitionTests, t)
 
