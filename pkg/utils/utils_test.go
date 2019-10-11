@@ -579,27 +579,21 @@ func TestUpdateAppDefinition(t *testing.T) {
 
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service, Version: "v1alpha"}
 	app := createAppsodyApp(name, namespace, spec)
-	// Check that app definition enabled by default
-	enabled := true
-	appDefinitionTests := []Test{
-		{"kAppNav enabled", enabled, *app.Spec.CreateAppDefinition},
-	}
-	verifyTests(appDefinitionTests, t)
 
-	enabled = false
-	// Toggle app definition off
+	enabled := false
+	// Toggle app definition off [disabled]
 	app.Spec.CreateAppDefinition = &enabled
 	labels, annotations := createAppDefinitionTags(app)
 	UpdateAppDefinition(labels, annotations, app)
 
-	appDefinitionTests = []Test{
+	appDefinitionTests := []Test{
 		{"Label unset", 0, len(labels)},
 		{"Annotation unset", 0, len(annotations)},
 	}
 
 	verifyTests(appDefinitionTests, t)
 
-	// Toggle back on
+	// Toggle back on [active]
 	enabled = true
 	completeLabel, completeAnnotation := createAppDefinitionTags(app)
 	UpdateAppDefinition(labels, annotations, app)
@@ -614,15 +608,18 @@ func TestUpdateAppDefinition(t *testing.T) {
 	}
 	verifyTests(appDefinitionTests, t)
 
-	// Verify labels are deleted properly now that they exist
-	enabled = false
+	app.Spec.CreateAppDefinition = nil
+	// Verify labels are still set when CreateApp is undefined [default]
 	UpdateAppDefinition(labels, annotations, app)
 
 	appDefinitionTests = []Test{
-		{"Label unset", 0, len(labels)},
-		{"Annotation unset", 0, len(annotations)},
+		{"Label set", labels["kappnav.app.auto-create"], completeLabel["kappnav.app.auto-create"]},
+		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotation["kappnav.app.auto-create.name"]},
+		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotation["kappnav.app.auto-create.kinds"]},
+		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotation["kappnav.app.auto-create.label"]},
+		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotation["kappnav.app.auto-create.labels-values"]},
+		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotation["kappnav.app.auto-create.version"]},
 	}
-
 	verifyTests(appDefinitionTests, t)
 
 }
