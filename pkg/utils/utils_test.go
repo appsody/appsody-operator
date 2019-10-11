@@ -577,17 +577,76 @@ func TestGetWatchNamespaces(t *testing.T) {
 func TestUpdateAppDefinition(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 
-	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service}
-	appsody := createAppsodyApp(name, namespace, spec)
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service, Version: "v1alpha"}
+	app := createAppsodyApp(name, namespace, spec)
 	// Check that app definition enabled by default
 	enabled := true
-	appDefinitionTests = []Test{
-		{"kAppNav enabled", &enabled, appsody.Spec.CreateAppDefinition},
+	appDefinitionTests := []Test{
+		{"kAppNav enabled", enabled, *app.Spec.CreateAppDefinition},
 	}
+	verifyTests(appDefinitionTests, t)
+
+	enabled = false
+	// Toggle app definition off
+	app.Spec.CreateAppDefinition = &enabled
+	labels, annotations := createAppDefinitionTags(app)
+	UpdateAppDefinition(labels, annotations, app)
+
+	appDefinitionTests = []Test{
+		{"Label unset", 0, len(labels)},
+		{"Annotation unset", 0, len(annotations)},
+	}
+
+	verifyTests(appDefinitionTests, t)
+
+	// Toggle back on
+	enabled = true
+	completeLabel, completeAnnotation := createAppDefinitionTags(app)
+	UpdateAppDefinition(labels, annotations, app)
+
+	appDefinitionTests = []Test{
+		{"Label set", labels["kappnav.app.auto-create"], completeLabel["kappnav.app.auto-create"]},
+		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotation["kappnav.app.auto-create.name"]},
+		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotation["kappnav.app.auto-create.kinds"]},
+		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotation["kappnav.app.auto-create.label"]},
+		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotation["kappnav.app.auto-create.labels-values"]},
+		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotation["kappnav.app.auto-create.version"]},
+	}
+	verifyTests(appDefinitionTests, t)
+
+	// Verify labels are deleted properly now that they exist
+	enabled = false
+	UpdateAppDefinition(labels, annotations, app)
+
+	appDefinitionTests = []Test{
+		{"Label unset", 0, len(labels)},
+		{"Annotation unset", 0, len(annotations)},
+	}
+
+	verifyTests(appDefinitionTests, t)
 
 }
 
 // Helper Functions
+// Unconditionally set the proper tags for an enabled appsody application
+func createAppDefinitionTags(app *appsodyv1beta1.AppsodyApplication) (map[string]string, map[string]string) {
+	// The purpose of this function demands all fields configured
+	if app.Spec.Version == "" {
+		app.Spec.Version = "v1alpha"
+	}
+	// set fields
+	label := map[string]string{
+		"kappnav.app.auto-create": "true",
+	}
+	annotations := map[string]string{
+		"kappnav.app.auto-create.name":          app.Name,
+		"kappnav.app.auto-create.kinds":         "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap",
+		"kappnav.app.auto-create.label":         "app.kubernetes.io/name",
+		"kappnav.app.auto-create.labels-values": app.Name,
+		"kappnav.app.auto-create.version":       app.Spec.Version,
+	}
+	return label, annotations
+}
 func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
 	app := &appsodyv1beta1.AppsodyApplication{
 		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},
