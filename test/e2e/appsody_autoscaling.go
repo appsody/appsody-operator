@@ -13,7 +13,6 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/types"
 	k "sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,17 +62,9 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	l := fields.Set(m)
 	selec := l.AsSelector()
 
-	apps := &appsodyv1beta1.AppsodyApplicationList{}
-	options := k.ListOptions{FieldSelector: selec}
-
-	apps = getAppsodyApplicationList(apps, t, f, options)
-
-	// Get last time the appsodyApplication resource was updated
-	updateTime := apps.Items[0].Status.Conditions[0].LastUpdateTime
-
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	appsodyApplication.Spec.ResourceConstraints = setResources("0.2")
@@ -81,29 +72,25 @@ func AppsodyAutoScalingTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
-	waitForHPA(t, f, options, *apps, updateTime)
+	hpa := &autoscalingv1.HorizontalPodAutoscalerList{}
+	options := k.ListOptions{FieldSelector: selec}
+	hpa = getHPA(hpa, t, f, options)
+
+	waitForHPA()
 
 	timestamp = time.Now().UTC()
 	t.Logf("%s - Deployment created, verifying autoscaling...", timestamp)
 
-	hpa := &autoscalingv1.HorizontalPodAutoscalerList{}
-	options2 := k.ListOptions{FieldSelector: selec}
-	hpa = getHPA(hpa, t, f, options2)
+	hpa = &autoscalingv1.HorizontalPodAutoscalerList{}
+	hpa = getHPA(hpa, t, f, options)
 
-	updateTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
-	minMaxTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
-	minBoundaryTest(t, f, appsodyApplication, apps, options, namespace, updateTime, hpa, options2)
+	updateTest(t, f, appsodyApplication, options, namespace, hpa, options)
+	minMaxTest(t, f, appsodyApplication, options, namespace, hpa, options)
+	minBoundaryTest(t, f, appsodyApplication, options, namespace, hpa, options)
 	incorrectFieldsTest(t, f, ctx)
-}
-
-func getAppsodyApplicationList(apps *appsodyv1beta1.AppsodyApplicationList, t *testing.T, f *framework.Framework, options k.ListOptions) *appsodyv1beta1.AppsodyApplicationList {
-	if err := f.Client.List(goctx.TODO(), &options, apps); err != nil {
-		t.Log(err)
-	}
-	return apps
 }
 
 func getHPA(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, f *framework.Framework, options2 k.ListOptions) *autoscalingv1.HorizontalPodAutoscalerList {
@@ -113,14 +100,9 @@ func getHPA(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, f *fra
 	return hpa
 }
 
-func waitForHPA(t *testing.T, f *framework.Framework, options k.ListOptions, apps appsodyv1beta1.AppsodyApplicationList, updateTime v1.Time) {
-	for {
-		if err := f.Client.List(goctx.TODO(), &options, &apps); err != nil {
-			t.Log(err)
-		}
-		if updateTime != apps.Items[0].Status.Conditions[0].LastUpdateTime {
-			break
-		}
+func waitForHPA() {
+	for i := 0; i < 3; i++ {
+		time.Sleep(4000 * time.Millisecond)
 	}
 }
 
@@ -153,16 +135,27 @@ func setAutoScale(values ...int32) *appsodyv1beta1.AppsodyApplicationAutoScaling
 }
 
 func checkValues(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, minReplicas int32, maxReplicas int32, utiliz int32) error {
-	if hpa.Items[0].Spec.MaxReplicas == maxReplicas && *hpa.Items[0].Spec.MinReplicas == minReplicas && *hpa.Items[0].Spec.TargetCPUUtilizationPercentage == utiliz {
-		return nil
+
+	if hpa.Items[0].Spec.MaxReplicas != maxReplicas {
+		t.Logf("Max replicas is set to: %d", hpa.Items[0].Spec.MaxReplicas)
+		return errors.New("Error: Max replicas is not correctly set")
 	}
-	return errors.New("Values are notsuccessfully set")
+
+	if *hpa.Items[0].Spec.MinReplicas != minReplicas {
+		t.Logf("Min replicas is set to: %d", *hpa.Items[0].Spec.MinReplicas)
+		return errors.New("Error: Min replicas is not correctly set")
+	}
+
+	if *hpa.Items[0].Spec.TargetCPUUtilizationPercentage != utiliz {
+		t.Logf("TargetCPUUtilization is set to: %d", *hpa.Items[0].Spec.TargetCPUUtilizationPercentage)
+		return errors.New("Error: TargetCPUUtilizationis is not correctly set")
+	}
+
+	return nil
 }
 
 // Updates the values and checks they are changed
-func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, apps *appsodyv1beta1.AppsodyApplicationList, options k.ListOptions, namespace string, updateTime v1.Time, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
-
-	apps = getAppsodyApplicationList(apps, t, f, options)
+func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, options k.ListOptions, namespace string, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
 
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
 	if err != nil {
@@ -177,7 +170,7 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 		t.Log(err)
 	}
 
-	waitForHPA(t, f, options, *apps, updateTime)
+	waitForHPA()
 
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Deployment created, verifying autoscaling...", timestamp)
@@ -186,16 +179,13 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	err = checkValues(hpa, t, 2, 3, 30)
 	if err != nil {
-		t.Log("Error: There should be an update since the values have been updated.")
-		t.Fail()
+		t.Fatal("Error: There should be an update since the values have been updated.")
 	}
 	t.Log("Values updated to new values successfully")
 }
 
 // Checks when max is less than min
-func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, apps *appsodyv1beta1.AppsodyApplicationList, options k.ListOptions, namespace string, updateTime v1.Time, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
-
-	apps = getAppsodyApplicationList(apps, t, f, options)
+func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, options k.ListOptions, namespace string, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
 
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
 	if err != nil {
@@ -207,10 +197,10 @@ func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
-	waitForHPA(t, f, options, *apps, updateTime)
+	waitForHPA()
 
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Deployment created, verifying autoscaling...", timestamp)
@@ -219,21 +209,18 @@ func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 
 	err = checkValues(hpa, t, 2, 3, 30)
 	if err != nil {
-		t.Log("Error: There should be no update since the minReplicas are greater than the maxReplicas")
-		t.Fail()
+		t.Fatal("Error: There should be no update since the minReplicas are greater than the maxReplicas")
 	}
 	t.Log("There is no update, due to the minReplicas being greater than the maxReplicas. The values remain the same")
 
 }
 
 // When min is set to less than 1
-func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, apps *appsodyv1beta1.AppsodyApplicationList, options k.ListOptions, namespace string, updateTime v1.Time, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
-
-	apps = getAppsodyApplicationList(apps, t, f, options)
+func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, options k.ListOptions, namespace string, hpa *autoscalingv1.HorizontalPodAutoscalerList, options2 k.ListOptions) {
 
 	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	appsodyApplication.Spec.ResourceConstraints = setResources("0.5")
@@ -241,10 +228,10 @@ func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *a
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
-	waitForHPA(t, f, options, *apps, updateTime)
+	waitForHPA()
 
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Deployment created, verifying autoscaling...", timestamp)
@@ -253,8 +240,7 @@ func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *a
 
 	err = checkValues(hpa, t, 2, 3, 30)
 	if err != nil {
-		t.Log("Error: There should be no update since the minReplicas are updated to a value less than 1")
-		t.Fail()
+		t.Fatal("Error: There should be no update since the minReplicas are updated to a value less than 1")
 	}
 	t.Log("There is no update, due to the minReplicas being less than 1. The values remain the same")
 }
@@ -291,17 +277,11 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 	l := fields.Set(m)
 	selec := l.AsSelector()
 
-	apps := &appsodyv1beta1.AppsodyApplicationList{}
 	options := k.ListOptions{FieldSelector: selec}
-
-	apps = getAppsodyApplicationList(apps, t, f, options)
-
-	// Get last time the appsodyApplication resource was updated
-	updateTime := apps.Items[0].Status.Conditions[0].LastUpdateTime
 
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling2", Namespace: namespace}, appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
 	appsodyApplication.Spec.ResourceConstraints = setResources("0.3")
@@ -309,22 +289,20 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 
 	err = f.Client.Update(goctx.TODO(), appsodyApplication)
 	if err != nil {
-		t.Log(err)
+		t.Fatal(err)
 	}
 
-	waitForHPA(t, f, options, *apps, updateTime)
+	waitForHPA()
 
 	timestamp = time.Now().UTC()
 	t.Logf("%s - Deployment created, verifying autoscaling...", timestamp)
 
 	hpa := &autoscalingv1.HorizontalPodAutoscalerList{}
-	options2 := k.ListOptions{FieldSelector: selec}
-	hpa = getHPA(hpa, t, f, options2)
+	hpa = getHPA(hpa, t, f, options)
 
 	if len(hpa.Items) == 0 {
 		t.Log("The mandatory fields were not set so autoscaling is not enabled")
 	} else {
-		t.Log("Error: The mandatory fields were not set so autoscaling should not be enabled")
-		t.Fail()
+		t.Fatal("Error: The mandatory fields were not set so autoscaling should not be enabled")
 	}
 }
