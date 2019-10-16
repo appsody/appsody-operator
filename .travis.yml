@@ -35,10 +35,10 @@ jobs:
     - make unit-test
   - name: Run end-to-end tests
     stage: e2e test
-    script: 
+    script:
     - make setup-cluster
     - make test-e2e
-  - name: Build docker image and push 
+  - name: Build docker image and push
     stage: push
     script:
     - make build-image

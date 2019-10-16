@@ -14,7 +14,7 @@ SRC_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: help setup setup-cluster tidy build unit-test test-e2e generate build-image push-image gofmt golint clean install-crd install-rbac install-operator install-all uninstall-all
 
-help: 
+help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Ensure Operator SDK is installed
