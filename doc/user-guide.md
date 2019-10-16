@@ -79,7 +79,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `storage.volumeClaimTemplate` | A YAML object representing a [volumeClaimTemplate](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#components) component of a `StatefulSet`. |
 | `monitoring.labels` | Labels to set on [ServiceMonitor](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
 | `monitoring.endpoints` | A YAML snippet representing an array of [Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint) component from ServiceMonitor. |
-| `createAppDefinition`   | A boolean to toggle the automatic configuration of `AppsodyApplication`'s Kubernetes resources to allow creation of an application definition by [kAppNav](https://kappnav.io/). The default value is `true`. See [Application Navigator](#kubernetes-application-navigator-(kappnav)-support) for more information. |
+| `createAppDefinition`   | A boolean to toggle the automatic configuration of `AppsodyApplication`'s Kubernetes resources to allow creation of an application definition by [kAppNav](https://kappnav.io/). The default value is `true`. See [Application Navigator](#kubernetes-application-navigator-kappnav-support) for more information. |
 
 ### Basic usage
 
@@ -276,8 +276,6 @@ spec:
         insecureSkipVerify: true
 ```
 
-__
-
 ### Knative support
 
 Appsody Operator can deploy serverless applications with [Knative](https://knative.dev/docs/) on a Kubernetes cluster. To achieve this, the operator creates a [Knative `Service`](https://github.com/knative/serving/blob/master/docs/spec/spec.md#service) resource which manages the whole life cycle of a workload.
@@ -297,9 +295,11 @@ spec:
 
 By setting this parameter, the operator creates a Knative service in the cluster and populates the resource with applicable `AppsodyApplication` fields. Also, it ensures non-Knative resources including Kubernetes `Service`, `Route`, `Deployment` and etc. are deleted.
 
-The CRD fields that are used to populate the Knative service resource includes `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
+The CRD fields which are used to populate the Knative service resource include `applicationImage`, `serviceAccountName`, `livenessProbe`, `readinessProbe`, `service.Port`, `volumes`, `volumeMounts`, `env`, `envFrom`, `pullSecret` and `pullPolicy`.
 
 For more details on how to configure Knative for tasks such as enabling HTTPS connections and setting up a custom domain, checkout [Knative Documentation](https://knative.dev/docs/serving/).
+
+_Autoscaling related fields in `AppsodyApplication` are not used to configure Knative Pod Autoscaler (KPA). To learn more about how to configure KPA, see [Configuring the Autoscaler](https://knative.dev/docs/serving/configuring-the-autoscaler/)._
 
 _This feature is only available if you have Knative installed on your cluster._
 
@@ -329,55 +329,38 @@ _This feature is only available if you are running on OKD or OpenShift._
 ##### Canary deployment using `Route`
 
 You can easily test a new version of your application using the Canary deployment methodology by levering the traffic split capability built into OKD's `Route` resource.
-*  deploy the first version of the application using the instructions above with `expose:true`, which will create an OKD `Route`.
-*  when a new application version is available, deploy it via the Appsody Operator but this time choose `expose:false`.
+*  deploy the first version of the application using the instructions above with `expose: true`, which will create an OKD `Route`.
+*  when a new application version is available, deploy it via the Appsody Operator but this time choose `expose: false`.
 *  edit the first application's `Route` resource to split the traffic between the two services using the desired percentage.  
 
-Here's a screenshot of the split via the OKD UI:
+    Here is a screenshot of the split via the OKD UI:
 
-![Traffic Split](route.png)
+    ![Traffic Split](route.png)
 
-Here's the corresponding YAML, which you can edit using the OKD UI or simply using `oc get route <routeID>` and then `oc apply -f <routeYAML>`:
+    Here is the corresponding YAML, which you can edit using the OKD UI or simply using `oc get route <routeID>` and then `oc apply -f <routeYAML>`:
 
-```yaml
-apiVersion: route.openshift.io/v1
-kind: Route
-metadata:
-  annotations:
-    openshift.io/host.generated: 'true'
-  creationTimestamp: '2019-09-18T19:09:07Z'
-  labels:
-    app: app1
-  name: canary-route
-  namespace: testing
-  resourceVersion: '378939'
-  selfLink: /apis/route.openshift.io/v1/namespaces/testing/routes/canary-route
-  uid: c9f9a45e-da47-11e9-baa4-00163e01b4da
-spec:
-  alternateBackends:
-    - kind: Service
-      name: app2
-      weight: 20
-  host: canary-route-testing.pompom1.fyre.ibm.com
-  port:
-    targetPort: 9080-tcp
-  to:
-    kind: Service
-    name: app1
-    weight: 80
-  wildcardPolicy: None
-status:
-  ingress:
-    - conditions:
-        - lastTransitionTime: '2019-09-18T19:09:07Z'
-          status: 'True'
-          type: Admitted
-      host: canary-route-testing.pompom1.fyre.ibm.com
-      routerName: router
-      wildcardPolicy: None
-```      
+    ```yaml
+    apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      labels:
+        app: my-appsody-app-1
+      name: canary-route
+    spec:
+      alternateBackends:
+        - kind: Service
+          name: my-appsody-app-2
+          weight: 20
+      host: canary-route-testing.my-host.com
+      port:
+        targetPort: 9080-tcp
+      to:
+        kind: Service
+        name: my-appsody-app-1
+        weight: 80
+    ```      
 
-*  once you are satisfied with the results you can simply route 100% of the traffic by switching the `Route`'s `spec.to` object to point to app2 at a weight of 100 and remove the `spec.alternateBackends` object. This can similarly done via the OKD UI.
+*  once you are satisfied with the results you can simply route 100% of the traffic by switching the `Route`'s `spec.to` object to point to `my-appsody-app-2` at a weight of 100 and remove the `spec.alternateBackends` object. This can similarly be done via the OKD UI.
 
 #### Knative deployment
 

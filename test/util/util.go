@@ -2,6 +2,7 @@ package util
 
 import (
 	goctx "context"
+	"io/ioutil"
 	"testing"
 	"time"
 
@@ -10,10 +11,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 // MakeBasicAppsodyApplication : Create a simple Appsody App with provided number of replicas.
@@ -89,7 +92,7 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 	return nil
 }
 
-// InitializeContext - Create new test namespace and return test context object
+// InitializeContext : Sets up initial context
 func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*framework.TestCtx, error) {
 	ctx := framework.NewTestCtx(t)
 	err := ctx.InitializeClusterResources(&framework.CleanupOptions{
@@ -105,7 +108,30 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 	return ctx, nil
 }
 
-// FailureCleanup - Log current state of the namespace and exit with fatal
+// ResetConfigMap : Resets the configmaps to original empty values, this is required to allow tests to be run after the configmaps test
+func ResetConfigMap(t *testing.T, f *framework.Framework, configMap *corev1.ConfigMap, cmName string, fileName string, namespace string) {
+	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: cmName, Namespace: namespace}, configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	fData, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	configMap = &corev1.ConfigMap{}
+	err = yaml.Unmarshal(fData, configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	configMap.Namespace = namespace
+	err = f.Client.Update(goctx.TODO(), configMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// FailureCleanup : Log current state of the namespace and exit with fatal
 func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure error) {
 	t.Log("***** FAILURE")
 	options := &dynclient.ListOptions{
@@ -113,9 +139,6 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 	}
 	podlist := &corev1.PodList{}
 	err := f.Client.List(goctx.TODO(), options, podlist)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	t.Logf("***** Logging pods in namespace: %s", ns)
 	for _, p := range podlist.Items {

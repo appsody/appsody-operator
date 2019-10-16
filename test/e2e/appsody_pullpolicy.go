@@ -35,6 +35,12 @@ func AppsodyPullPolicyTest(t *testing.T) {
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody pull policy test...", timestamp)
 
+	// create one replica of the operator deployment in current namespace with provided name
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	replicas := int32(1)
 	policy := k.PullAlways
 
