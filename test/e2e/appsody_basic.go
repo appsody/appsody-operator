@@ -41,11 +41,11 @@ func AppsodyBasicTest(t *testing.T) {
 	// create one replica of the operator deployment in current namespace with provided name
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
@@ -69,7 +69,7 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 1, retryInterval, timeout)
 	if err != nil {
-		util.FailureCleanup(t, f, namespace, err)
+		return err
 	}
 	// -- Run all scaling tests below based on the above example deployment of 1 pods ---
 	// update the number of replicas and return if failure occurs
@@ -91,13 +91,13 @@ func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace stri
 	exampleAppsody.Spec.Replicas = &helper2
 	err = f.Client.Update(goctx.TODO(), exampleAppsody)
 	if err != nil {
-		util.FailureCleanup(t, f, namespace, err)
+		return err
 	}
 
 	// wait for example-memcached to reach 2 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 2, retryInterval, timeout)
 	if err != nil {
-		util.FailureCleanup(t, f, namespace, err)
+		return err
 	}
 	return err
 }

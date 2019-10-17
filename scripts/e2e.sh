@@ -1,18 +1,6 @@
 #!/bin/bash
 
-
-# Restart docker daemon for insecure registry access
-restart_daemon() {
-cat << EOF  | sudo tee /etc/docker/daemon.json
-  {
-      "insecure-registries" : [ "172.30.0.0/16" ]
-  }
-EOF
-
-sudo systemctl restart docker
-}
-
-setup_cluster(){
+login_cluster(){
     # Install kubectl and oc
     curl -L https://github.com/openshift/origin/releases/download/v3.11.0/openshift-origin-client-tools-v3.11.0-0cbc58b-linux-64bit.tar.gz | tar xvz
     cd openshift-origin-clien*
@@ -20,6 +8,7 @@ setup_cluster(){
     cd ..
     # Start a cluster and login
     oc login $CLUSTER_URL --token=$CLUSTER_TOKEN
+    # Set variables for rest of script to use
     export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default)
     export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily
 }
@@ -35,6 +24,7 @@ docker_login() {
         # Timeout if registry has run into an issue of some sort.
         ((i++))
         if [[ "$i" == "30" ]]; then
+            # Log relevant info in case the registry is down
             echo "> Failed to connect to registry, logging state of default namespace: "
             echo "Default pods:"
             oc get pods -n default
@@ -50,13 +40,12 @@ docker_login() {
 cleanup() {
     # Remove image from the local registry after test has finished
     oc delete imagestream application-operator-$TRAVIS_BUILD_NUMBER -n openshift
+    # ---- Extend cleanup as needed below ----
 }
 
 main() {
-    echo "****** Restarting daemon for insecure registry..."
-    restart_daemon
-    echo "****** Setting up cluster..."
-    setup_cluster
+    echo "****** Logging into remote cluster..."
+    login_cluster
     echo "****** Logging into local registry..."
     docker_login
     echo "****** Building image"
@@ -65,8 +54,7 @@ main() {
     docker push $BUILD_IMAGE
     ## Use internal registry address as the pull will happen internally
     echo "****** Starting e2e tests..."
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $(oc registry info)/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily --verbose
-
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 35m" --image $(oc registry info)/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily --verbose
     echo "****** Cleaning up tests..."
     cleanup
 }
