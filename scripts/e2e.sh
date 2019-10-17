@@ -21,7 +21,7 @@ setup_cluster(){
     # Start a cluster and login
     oc login $CLUSTER_URL --token=$CLUSTER_TOKEN
     export DEFAULT_REGISTRY=$(oc get route docker-registry -o jsonpath="{ .spec.host }" -n default)
-    export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator:daily
+    export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily
 }
 
 # Log in to docker daemon with openshift cluster registry
@@ -47,6 +47,11 @@ docker_login() {
     echo "> Logged into oc registry."
 }
 
+cleanup() {
+    # Remove image from the local registry after test has finished
+    oc delete imagestream application-operator-$TRAVIS_BUILD_NUMBER -n openshift
+}
+
 main() {
     echo "****** Restarting daemon for insecure registry..."
     restart_daemon
@@ -60,7 +65,10 @@ main() {
     docker push $BUILD_IMAGE
     ## Use internal registry address as the pull will happen internally
     echo "****** Starting e2e tests..."
-    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $(oc registry info)/openshift/application-operator:daily --verbose
+    operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 25m" --image $(oc registry info)/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily --verbose
+
+    echo "****** Cleaning up tests..."
+    cleanup
 }
 
 main
