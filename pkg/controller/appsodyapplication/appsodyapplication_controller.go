@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/appsody/appsody-operator/pkg/common"
+
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
@@ -244,6 +246,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	// Fetch the AppsodyApplication instance
 	instance := &appsodyv1beta1.AppsodyApplication{}
+	var ba common.BaseApplication
+	ba = instance
 	err = r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -259,9 +263,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if ok {
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
-			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+			instance.Initialize(stackDefaults, r.StackConstants[instance.Spec.Stack])
 		} else {
-			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants["generic"])
+			instance.Initialize(stackDefaults, r.StackConstants["generic"])
 		}
 	} else {
 		stackDefaults, ok = r.StackDefaults["generic"]
@@ -271,9 +275,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
-			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants[instance.Spec.Stack])
+			instance.Initialize(stackDefaults, r.StackConstants[instance.Spec.Stack])
 		} else {
-			appsodyutils.Initialize(instance, stackDefaults, r.StackConstants["generic"])
+			instance.Initialize(stackDefaults, r.StackConstants["generic"])
 		}
 	}
 
@@ -367,7 +371,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
-		appsodyutils.CustomizeService(svc, instance)
+		appsodyutils.CustomizeService(svc, ba)
 		svc.Annotations = instance.Spec.Service.Annotations
 		if instance.Spec.Monitoring != nil {
 			svc.Labels["app.appsody.dev/monitor"] = "true"
