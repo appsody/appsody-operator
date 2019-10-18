@@ -13,30 +13,6 @@ login_cluster(){
     export BUILD_IMAGE=$DEFAULT_REGISTRY/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily
 }
 
-# Log in to docker daemon with openshift cluster registry
-docker_login() {
-    i=0
-    # Cluster up doesn't wait for registry so have to poll for ready state
-    until docker login -u unused -p $CLUSTER_TOKEN $DEFAULT_REGISTRY &> /dev/null
-    do
-        echo "> Waiting for oc registry pods to initialize ..."
-        sleep 1
-        # Timeout if registry has run into an issue of some sort.
-        ((i++))
-        if [[ "$i" == "30" ]]; then
-            # Log relevant info in case the registry is down
-            echo "> Failed to connect to registry, logging state of default namespace: "
-            echo "Default pods:"
-            oc get pods -n default
-            echo "Default services:"
-            oc get svc -n default
-            break;
-        fi
-    done
-
-    echo "> Logged into oc registry."
-}
-
 cleanup() {
     # Remove image from the local registry after test has finished
     oc delete imagestream application-operator-$TRAVIS_BUILD_NUMBER -n openshift
@@ -47,7 +23,7 @@ main() {
     echo "****** Logging into remote cluster..."
     login_cluster
     echo "****** Logging into local registry..."
-    docker_login
+    docker login -u unused -p $CLUSTER_TOKEN $DEFAULT_REGISTRY
     echo "****** Building image"
     operator-sdk build $BUILD_IMAGE
     echo "****** Pushing image into registry..."

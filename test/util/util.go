@@ -101,6 +101,9 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 		RetryInterval: retryInterval,
 	})
 	if err != nil {
+		if ctx != nil {
+			ctx.Cleanup()
+		}
 		return nil, err
 	}
 
@@ -139,6 +142,9 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 	}
 	podlist := &corev1.PodList{}
 	err := f.Client.List(goctx.TODO(), options, podlist)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Logf("***** Logging pods in namespace: %s", ns)
 	for _, p := range podlist.Items {

@@ -20,9 +20,6 @@ help:
 setup: ## Ensure Operator SDK is installed
 	./scripts/install-operator-sdk.sh ${OPERATOR_SDK_RELEASE_VERSION}
 
-setup-cluster: ## Install `oc` and starts OpenShift on Docker
-	./scripts/setup-cluster.sh
-
 tidy: ## Clean up Go modules by adding missing and removing unused modules
 	go mod tidy
 
@@ -35,9 +32,19 @@ unit-test: ## Run unit tests
 test-e2e: setup ## Run end-to-end tests
 	./scripts/e2e.sh
 
+test-e2e-locally: setup
+	kubectl apply -f scripts/servicemonitor.crd.yaml
+	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace ${WATCH_NAMESPACE}
+
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
+
+build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}"
+	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+
+push-image: ## Push operator image
+	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 gofmt: ## Format the Go code with `gofmt`
 	@gofmt -s -l -w $(SRC_FILES)
