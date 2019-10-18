@@ -22,16 +22,23 @@ import (
 func AppsodyAutoScalingTest(t *testing.T) {
 
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	f := framework.Global
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
+
+	// Wait for the operator as the following configmaps won't exist until it has deployed
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody autoscaling test...", timestamp)
 
@@ -48,13 +55,13 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), appsodyApplication, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-appsody-autoscaling to reach 1 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Check the name field that matches

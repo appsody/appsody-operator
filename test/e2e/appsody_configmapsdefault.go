@@ -20,10 +20,10 @@ import (
 func AppsodyConfigMapsDefaultTest(t *testing.T) {
 
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -41,6 +41,12 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	// Values to be loaded into the default configmap
 	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort, "annotations":{"prometheus.io/scrape": true}}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}, "livenessProbe":{"failureThreshold": 12, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2}}`}
 	configMap := &corev1.ConfigMap{}
+
+	// Wait for the operator as the following configmaps won't exist until it has deployed
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
 
 	// Gets the configmap that contains the default values that will be applied to unspecified fields in the appsody application
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "appsody-operator-defaults", Namespace: namespace}, configMap)
@@ -76,18 +82,18 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 
 	err = f.Client.Create(goctx.TODO(), apps, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-appsody-defaultconfigmaps to reach 1 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-defaultconfigmaps", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-defaultconfigmaps", Namespace: namespace}, apps)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// update the application to two replicas
@@ -96,12 +102,12 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), apps)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-defaultconfigmaps", 2, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// check that the default values from the default configmap have been applied to the fields that were not specified

@@ -316,7 +316,7 @@ func TestInitialize(t *testing.T) {
 	}
 	constants := &appsodyv1beta1.AppsodyApplicationSpec{}
 
-	Initialize(appsody, defaults, constants)
+	appsody.Initialize(defaults, constants)
 	defNilPP := *appsody.Spec.PullPolicy
 	defResConNil := *appsody.Spec.ResourceConstraints
 	servType := *appsody.Spec.Service.Type
@@ -341,7 +341,7 @@ func TestInitialize(t *testing.T) {
 		CreateKnativeService: &createKNS,
 		Service:              service,
 	}
-	Initialize(appsody, defaults, constants)
+	appsody.Initialize(defaults, constants)
 
 	testIAV := []Test{
 		{"Appsody PullPolicy is nil", pullPolicy, *appsody.Spec.PullPolicy},
@@ -367,6 +367,7 @@ func TestInitialize(t *testing.T) {
 	verifyTests(testIAV, t)
 }
 
+/*
 func TestApplyConstants(t *testing.T) {
 	logf.SetLogger(logf.ZapLogger(true))
 	emptyService := &appsodyv1beta1.AppsodyApplicationService{Port: 0}
@@ -392,7 +393,7 @@ func TestApplyConstants(t *testing.T) {
 		Service:              service,
 		Autoscaling:          autoscaling,
 	}
-	applyConstants(appsody, defaults, constants)
+	appsody.applyConstants(defaults, constants)
 	// if cond in for len of envFrom, Env, Volumes, and VolumeMounts should stay the same
 	envFromBefore := len(appsody.Spec.EnvFrom)
 	envBefore := len(appsody.Spec.Env)
@@ -430,6 +431,7 @@ func TestApplyConstants(t *testing.T) {
 	}
 	verifyTests(testAC, t)
 }
+*/
 
 func TestCustomizeServiceMonitor(t *testing.T) {
 
@@ -472,7 +474,7 @@ func TestCustomizeServiceMonitor(t *testing.T) {
 		"app.kubernetes.io/name":  name,
 	}
 
-	allSMLabels := GetLabels(appsody)
+	allSMLabels := appsody.GetLabels()
 	for key, value := range appsody.Spec.Monitoring.Labels {
 		allSMLabels[key] = value
 	}
@@ -574,7 +576,76 @@ func TestGetWatchNamespaces(t *testing.T) {
 	verifyTests(configMapConstTests, t)
 }
 
+func TestUpdateAppDefinition(t *testing.T) {
+	logf.SetLogger(logf.ZapLogger(true))
+
+	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service, Version: "v1alpha"}
+	app := createAppsodyApp(name, namespace, spec)
+
+	// Toggle app definition off [disabled]
+	enabled := false
+	app.Spec.CreateAppDefinition = &enabled
+	labels, annotations := createAppDefinitionTags(app)
+	UpdateAppDefinition(labels, annotations, app)
+
+	appDefinitionTests := []Test{
+		{"Label unset", 0, len(labels)},
+		{"Annotation unset", 0, len(annotations)},
+	}
+
+	verifyTests(appDefinitionTests, t)
+
+	// Toggle back on [active]
+	enabled = true
+	completeLabels, completeAnnotations := createAppDefinitionTags(app)
+	UpdateAppDefinition(labels, annotations, app)
+
+	appDefinitionTests = []Test{
+		{"Label set", labels["kappnav.app.auto-create"], completeLabels["kappnav.app.auto-create"]},
+		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotations["kappnav.app.auto-create.name"]},
+		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotations["kappnav.app.auto-create.kinds"]},
+		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotations["kappnav.app.auto-create.label"]},
+		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotations["kappnav.app.auto-create.labels-values"]},
+		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotations["kappnav.app.auto-create.version"]},
+	}
+	verifyTests(appDefinitionTests, t)
+
+	// Verify labels are still set when CreateApp is undefined [default]
+	app.Spec.CreateAppDefinition = nil
+	UpdateAppDefinition(labels, annotations, app)
+
+	appDefinitionTests = []Test{
+		{"Label set", labels["kappnav.app.auto-create"], completeLabels["kappnav.app.auto-create"]},
+		{"Annotation name set", annotations["kappnav.app.auto-create.name"], completeAnnotations["kappnav.app.auto-create.name"]},
+		{"Annotation kinds set", annotations["kappnav.app.auto-create.kinds"], completeAnnotations["kappnav.app.auto-create.kinds"]},
+		{"Annotation label set", annotations["kappnav.app.auto-create.label"], completeAnnotations["kappnav.app.auto-create.label"]},
+		{"Annotation labels-values", annotations["kappnav.app.auto-create.labels-values"], completeAnnotations["kappnav.app.auto-create.labels-values"]},
+		{"Annotation version set", annotations["kappnav.app.auto-create.version"], completeAnnotations["kappnav.app.auto-create.version"]},
+	}
+	verifyTests(appDefinitionTests, t)
+
+}
+
 // Helper Functions
+// Unconditionally set the proper tags for an enabled appsody application
+func createAppDefinitionTags(app *appsodyv1beta1.AppsodyApplication) (map[string]string, map[string]string) {
+	// The purpose of this function demands all fields configured
+	if app.Spec.Version == "" {
+		app.Spec.Version = "v1alpha"
+	}
+	// set fields
+	label := map[string]string{
+		"kappnav.app.auto-create": "true",
+	}
+	annotations := map[string]string{
+		"kappnav.app.auto-create.name":          app.Name,
+		"kappnav.app.auto-create.kinds":         "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap",
+		"kappnav.app.auto-create.label":         "app.kubernetes.io/name",
+		"kappnav.app.auto-create.labels-values": app.Name,
+		"kappnav.app.auto-create.version":       app.Spec.Version,
+	}
+	return label, annotations
+}
 func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) *appsodyv1beta1.AppsodyApplication {
 	app := &appsodyv1beta1.AppsodyApplication{
 		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},

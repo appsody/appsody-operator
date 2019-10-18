@@ -13,13 +13,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
+var (
+	retryInterval        = time.Second * 5
+	operatorTimeout      = time.Minute * 4
+	timeout              = time.Minute * 4
+	cleanupRetryInterval = time.Second * 1
+	cleanupTimeout       = time.Second * 5
+)
+
 // AppsodyBasicTest barebones deployment test that makes sure applications will deploy and scale.
 func AppsodyBasicTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -33,11 +41,11 @@ func AppsodyBasicTest(t *testing.T) {
 	// create one replica of the operator deployment in current namespace with provided name
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	if err = appsodyBasicScaleTest(t, f, ctx); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
