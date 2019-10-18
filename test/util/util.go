@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
 
@@ -78,7 +79,7 @@ func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, rep
 			return false, err
 		}
 
-		if int(statefulset.Status.CurrentReplicas) == replicas {
+		if int(statefulset.Status.ReadyReplicas) == replicas {
 			return true, nil
 		}
 		t.Logf("Waiting for full availability of %s statefulset (%d/%d)\n", n, statefulset.Status.CurrentReplicas, replicas)
@@ -100,6 +101,9 @@ func InitializeContext(t *testing.T, clean, retryInterval time.Duration) (*frame
 		RetryInterval: retryInterval,
 	})
 	if err != nil {
+		if ctx != nil {
+			ctx.Cleanup()
+		}
 		return nil, err
 	}
 
@@ -113,7 +117,6 @@ func ResetConfigMap(t *testing.T, f *framework.Framework, configMap *corev1.Conf
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	fData, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		t.Fatal(err)
@@ -129,4 +132,37 @@ func ResetConfigMap(t *testing.T, f *framework.Framework, configMap *corev1.Conf
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+// FailureCleanup : Log current state of the namespace and exit with fatal
+func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure error) {
+	t.Log("***** FAILURE")
+	options := &dynclient.ListOptions{
+		Namespace: ns,
+	}
+	podlist := &corev1.PodList{}
+	err := f.Client.List(goctx.TODO(), options, podlist)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("***** Logging pods in namespace: %s", ns)
+	for _, p := range podlist.Items {
+		t.Log("--------------------")
+		t.Log(p)
+	}
+
+	crlist := &appsodyv1beta1.AppsodyApplicationList{}
+	err = f.Client.List(goctx.TODO(), options, crlist)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("***** Logging Appsody Applications in namespace: %s", ns)
+	for _, application := range crlist.Items {
+		t.Log("-------------------")
+		t.Log(application)
+	}
+
+	t.Fatal(failure)
 }

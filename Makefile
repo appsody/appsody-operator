@@ -14,14 +14,11 @@ SRC_FILES := $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 
 .PHONY: help setup setup-cluster tidy build unit-test test-e2e generate build-image push-image gofmt golint clean install-crd install-rbac install-operator install-all uninstall-all
 
-help: 
+help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 setup: ## Ensure Operator SDK is installed
 	./scripts/install-operator-sdk.sh ${OPERATOR_SDK_RELEASE_VERSION}
-
-setup-cluster: ## Install `oc` and starts OpenShift on Docker
-	./scripts/setup-cluster.sh
 
 tidy: ## Clean up Go modules by adding missing and removing unused modules
 	go mod tidy
@@ -33,6 +30,10 @@ unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
 test-e2e: setup ## Run end-to-end tests
+	./scripts/e2e.sh
+
+test-e2e-locally: setup
+	kubectl apply -f scripts/servicemonitor.crd.yaml
 	operator-sdk test local github.com/appsody/appsody-operator/test/e2e --verbose --debug --up-local --namespace ${WATCH_NAMESPACE}
 
 generate: setup ## Invoke `k8s` and `openapi` generators
@@ -61,7 +62,7 @@ clean: ## Clean binary artifacts
 
 install-crd: ## Installs operator CRD in the daily directory
 	kubectl apply -f deploy/releases/daily/appsody-app-crd.yaml
-	
+
 install-rbac: ## Installs RBAC objects required for the operator to in a cluster-wide manner
 	sed -i.bak -e "s/APPSODY_OPERATOR_NAMESPACE/${OPERATOR_NAMESPACE}/" deploy/releases/daily/appsody-app-cluster-rbac.yaml
 	kubectl apply -f deploy/releases/daily/appsody-app-cluster-rbac.yaml

@@ -20,10 +20,10 @@ import (
 func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
@@ -44,10 +44,16 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort}, "livenessProbe":{"failureThreshold": 8, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 8, "periodSeconds": 2}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}}`}
 	configMap := &corev1.ConfigMap{}
 
+	// Wait for the operator as the following configmaps won't exist until it has deployed
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
 	// Gets the configmap that contains the constant values that will be applied to the appsody application and cannot be changed
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "appsody-operator-constants", Namespace: namespace}, configMap)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Sets constant values
@@ -55,7 +61,7 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), configMap)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Creating a basic appsody application that specifies new values for fields that are already assigned from the constants configmap
@@ -103,20 +109,20 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	err = f.Client.Create(goctx.TODO(), apps, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// wait for example-appsody-constconfigmaps to reach 1 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-constconfigmaps", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// creates a new struct for the appsody application otherwise the probe values get overwritten
 	apps = &appsodyv1beta1.AppsodyApplication{}
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-constconfigmaps", Namespace: namespace}, apps)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// update the application to two replicas
@@ -125,12 +131,12 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), apps)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-constconfigmaps", 2, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// checks none of the values that were specified in the constants configmap are changed

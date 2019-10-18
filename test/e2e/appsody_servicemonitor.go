@@ -2,6 +2,7 @@ package e2e
 
 import (
 	goctx "context"
+	"errors"
 	"testing"
 	"time"
 
@@ -34,13 +35,14 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 
 	// Adds the prometheus resources to the scheme
 	if err = prometheusv1.AddToScheme(f.Scheme); err != nil {
-		t.Fatalf("Unable to add prometheus scheme: (%v)", err)
+		t.Logf("Unable to add prometheus scheme: (%v)", err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// create one replica of the operator deployment in current namespace with provided name
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	helper := int32(1)
@@ -49,12 +51,12 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	// Create application deployment and wait
 	err = f.Client.Create(goctx.TODO(), appsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-sm", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Returns a list of the service monitor with the specified label
@@ -68,16 +70,16 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	// If there are no service monitors deployed an error will be thrown below
 	err = f.Client.List(goctx.TODO(), &options, smList)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	if len(smList.Items) != 0 {
-		t.Fatal("There is another service monitor running")
+		util.FailureCleanup(t, f, namespace, errors.New("There is another service monitor running"))
 	}
 
 	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}, appsody)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Adds the mandatory label to the application so it will be picked up by the prometheus operator
@@ -91,18 +93,18 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 
 	err = f.Client.Update(goctx.TODO(), appsody)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-sm", 2, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// If there are no service monitors deployed an error will be thrown below
 	err = f.Client.List(goctx.TODO(), &options, smList)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Gets the service monitor
@@ -117,35 +119,35 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	smBTF := sm.Spec.Endpoints[0].BearerTokenFile
 
 	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/name"] != "example-appsody-sm" {
-		t.Fatal("The service monitor is not connected to the appsody application?")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor is not connected to the appsody application?"))
 	}
 
 	if smPath != "" {
-		t.Fatal("The service monitor path default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor path default is incorrect"))
 	}
 
 	if smPort != "3000-tcp" {
-		t.Fatal("The service monitor port default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor port default is incorrect"))
 	}
 
 	if smParams != nil {
-		t.Fatal("The service monitor params default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor params default is incorrect"))
 	}
 
 	if smScheme != "" {
-		t.Fatal("The service monitor scheme default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor scheme default is incorrect"))
 	}
 
 	if smScrapeTimeout != "" {
-		t.Fatal("The service monitor scrape timeout default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor scrape timeout default is incorrect"))
 	}
 
 	if smInterval != "" {
-		t.Fatal("The service monitor interval default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor interval default is incorrect"))
 	}
 
 	if smBTF != "" {
-		t.Fatal("The service monitor bearer token file default is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor bearer token file default is incorrect"))
 	}
 
 	testSettingAppsodyServiceMonitor(t, f, namespace, appsody)
@@ -188,12 +190,12 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 
 	err = f.Client.Update(goctx.TODO(), appsody)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-sm", 3, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Returns a list of the service monitor with the specified label
@@ -207,7 +209,7 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 	// If there are no service monitors deployed an error will be thrown below
 	err = f.Client.List(goctx.TODO(), &options, smList)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Gets the service monitor
@@ -224,43 +226,43 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 	smBasicAuth := sm.Spec.Endpoints[0].BasicAuth
 
 	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/name"] != "example-appsody-sm" {
-		t.Fatal("The service monitor is not connected to the appsody application?")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor is not connected to the appsody application?"))
 	}
 
 	if smPath != "/path" {
-		t.Fatal("The service monitor path is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor path is incorrect"))
 	}
 
 	if smPort != "3000-tcp" {
-		t.Fatal("The service monitor port is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor port is incorrect"))
 	}
 
 	if smParams == nil {
-		t.Fatal("The service monitor params is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor params is incorrect"))
 	}
 
 	if smScheme != "myScheme" {
-		t.Fatal("The service monitor scheme is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor scheme is incorrect"))
 	}
 
 	if smScrapeTimeout != "10s" {
-		t.Fatal("The service monitor scrape timeout is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor scrape timeout is incorrect"))
 	}
 
 	if smInterval != "30s" {
-		t.Fatal("The service monitor interval is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor interval is incorrect"))
 	}
 
 	if smBTF != "myBTF" {
-		t.Fatal("The service monitor bearer token file is incorrect")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor bearer token file is incorrect"))
 	}
 
 	if smTLSConfig == nil {
-		t.Fatal("The service monitor TLSConfig is not set")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor TLSConfig is not set"))
 	}
 
 	if smBasicAuth == nil {
-		t.Fatal("The service monitor basic auth is not set")
+		util.FailureCleanup(t, f, namespace, errors.New("The service monitor basic auth is not set"))
 	}
 
 }

@@ -16,21 +16,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var (
-	retryInterval        = time.Second * 5
-	operatorTimeout      = time.Minute * 3
-	timeout              = time.Minute * 20
-	cleanupRetryInterval = time.Second * 1
-	cleanupTimeout       = time.Second * 5
-)
-
 // AppsodyBasicStorageTest check that when persistence is configured that a statefulset is deployed
 func AppsodyBasicStorageTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	f := framework.Global
 
@@ -38,11 +30,9 @@ func AppsodyBasicStorageTest(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
 	}
-
-	// create one replica of the operator deployment in current namespace with provided name
 	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-storage", namespace, 1)
@@ -57,15 +47,15 @@ func AppsodyBasicStorageTest(t *testing.T) {
 		RetryInterval: time.Second * 1,
 	})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	err = util.WaitForStatefulSet(t, f.KubeClient, namespace, "example-appsody-storage", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 	// verify that removing the storage config returns it to a deployment not a stateful set
 	if err = updateStorageConfig(t, f, ctx, exampleAppsody); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
@@ -98,10 +88,10 @@ func updateStorageConfig(t *testing.T, f *framework.Framework, ctx *framework.Te
 // AppsodyPersistenceTest Verify the volume persistence claims.
 func AppsodyPersistenceTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
-	defer ctx.Cleanup()
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer ctx.Cleanup()
 
 	f := framework.Global
 
@@ -142,16 +132,16 @@ func AppsodyPersistenceTest(t *testing.T) {
 		RetryInterval: cleanupRetryInterval,
 	})
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	err = util.WaitForStatefulSet(t, f.KubeClient, namespace, "example-appsody-persistence", 1, retryInterval, timeout)
 	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// again remove the storage configuration and see that it deploys correctly.
 	if err = updateStorageConfig(t, f, ctx, exampleAppsody); err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
