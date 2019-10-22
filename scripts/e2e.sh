@@ -31,8 +31,11 @@ main() {
     docker push $BUILD_IMAGE
     echo "****** Starting e2e tests..."
     operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 35m" --image $(oc registry info)/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily --verbose
+    result=$?
     echo "****** Cleaning up tests..."
     cleanup
+
+    return $result
 }
 
 main

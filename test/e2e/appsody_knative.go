@@ -2,12 +2,17 @@ package e2e
 
 import (
 	goctx "context"
+	"errors"
+	"regexp"
 	"testing"
 	"time"
 
 	"github.com/appsody/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
+	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // AppsodyKNativeTest verify functionality of kNative option in appsody
@@ -42,8 +47,38 @@ func AppsodyKNativeTest(t *testing.T) {
 		util.FailureCleanup(t, f, namespace, err)
 	}
 
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-knative", 1, retryInterval, timeout)
+	err = verifyKnativeDeployment(t, f, namespace, "example-appsody-knative", retryInterval, timeout)
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
+}
+
+func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string, retryInterval, timeout time.Duration) error {
+	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
+		options := &dynclient.ListOptions{
+			Namespace: ns,
+		}
+
+		serviceList := &corev1.ServiceList{}
+		listError := f.Client.List(goctx.TODO(), options, serviceList)
+		if listError != nil {
+			return true, err
+		}
+		// verify that the three extra services were created by knative
+		services := 0
+		for _, svc := range serviceList.Items {
+			matched, failure := regexp.MatchString(n+"*", svc.GetName())
+			if failure != nil {
+				return true, failure
+			}
+			if matched {
+				services++
+			}
+		}
+		if services <= 1 {
+			return true, errors.New("Could not find knative services")
+		}
+		return true, nil
+	})
+	return err
 }

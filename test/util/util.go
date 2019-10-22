@@ -48,7 +48,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			},
 			ReadinessProbe: &corev1.Probe{
 				Handler:             probe,
-				InitialDelaySeconds: 1, // minor adjustment
+				InitialDelaySeconds: 1,
 				TimeoutSeconds:      1,
 				PeriodSeconds:       5,
 				SuccessThreshold:    1,
@@ -56,7 +56,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			},
 			LivenessProbe: &corev1.Probe{
 				Handler:             probe,
-				InitialDelaySeconds: 4, // minor adjustment
+				InitialDelaySeconds: 4,
 				TimeoutSeconds:      1,
 				PeriodSeconds:       5,
 				SuccessThreshold:    1,
