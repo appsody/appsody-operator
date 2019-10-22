@@ -69,6 +69,7 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 		for _, svc := range serviceList.Items {
 			matched, failure := regexp.MatchString(n+"*", svc.GetName())
 			if failure != nil {
+				t.Log("Failure during regex matching")
 				return true, failure
 			}
 			if matched {
@@ -76,9 +77,30 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 			}
 		}
 		if services <= 1 {
-			return true, errors.New("Could not find knative services")
+			t.Log("Waiting for kNative Services to start...")
+			return false, nil
 		}
-		return true, nil
+		// Use list approach so that we can regex for the knative generated deployment
+		deploymentList := &corev1.PodList{}
+		listError = f.Client.List(goctx.TODO(), options, deploymentList)
+		if listError != nil {
+			return true, listError
+		}
+
+		for _, dep := range deploymentList.Items {
+			matched, failure := regexp.MatchString(n+"*", dep.GetName())
+			if failure != nil {
+				return true, failure
+			}
+
+			if matched {
+				t.Log("All knative resources ready!")
+				return true, nil
+			}
+			t.Logf("Waiting for knative deployment of %s", n)
+			return false, nil
+		}
+		return true, errors.New("Some or all knative resources were not found, see logs below.")
 	})
 	return err
 }
