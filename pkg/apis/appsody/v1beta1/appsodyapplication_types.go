@@ -12,82 +12,82 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
-	Version              string                         `json:"version,omitempty"`
-	ApplicationImage     string                         `json:"applicationImage"`
-	Replicas             *int32                         `json:"replicas,omitempty"`
-	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy           *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
-	PullSecret           *string                        `json:"pullSecret,omitempty"`
-	Volumes              []corev1.Volume                `json:"volumes,omitempty"`
-	VolumeMounts         []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
-	ResourceConstraints  *corev1.ResourceRequirements   `json:"resourceConstraints,omitempty"`
-	ReadinessProbe       *corev1.Probe                  `json:"readinessProbe,omitempty"`
-	LivenessProbe        *corev1.Probe                  `json:"livenessProbe,omitempty"`
-	Service              *AppsodyApplicationService     `json:"service,omitempty"`
-	Expose               *bool                          `json:"expose,omitempty"`
-	EnvFrom              []corev1.EnvFromSource         `json:"envFrom,omitempty"`
-	Env                  []corev1.EnvVar                `json:"env,omitempty"`
-	ServiceAccountName   *string                        `json:"serviceAccountName,omitempty"`
-	Architecture         []string                       `json:"architecture,omitempty"`
-	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
-	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
-	Stack                string                         `json:"stack,omitempty"`
-	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
-	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty"`
+	Version              string                         `json:"version,omitempty" yaml:"version,omitempty"`
+	ApplicationImage     string                         `json:"applicaitonImage" yaml:"applicationImage"`
+	Replicas             *int32                         `json:"replicas,omitempty" yaml:"replicas,omitempty"`
+	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty" yaml:"autoscaling,omitempty"`
+	PullPolicy           *corev1.PullPolicy             `json:"pullPolicy,omitempty" yaml:"pullPolicy,omitempty"`
+	PullSecret           *string                        `json:"pullSecret,omitempty" yaml:"pullSecret,omitempty"`
+	Volumes              []corev1.Volume                `json:"volumes,omitempty" yaml:"volumes,omitempty"`
+	VolumeMounts         []corev1.VolumeMount           `json:"volumeMounts,omitempty" yaml:"volumeMounts,omitempty"`
+	ResourceConstraints  *corev1.ResourceRequirements   `json:"resourceConstraints,omitempty" yaml:"resourceConstraints,omitempty"`
+	ReadinessProbe       *corev1.Probe                  `json:"readinessProbe,omitempty" yaml:"readinessProbe,omitempty"`
+	LivenessProbe        *corev1.Probe                  `json:"livenessProbe,omitempty" yaml:"livenessProbe,omitempty"`
+	Service              *AppsodyApplicationService     `json:"service,omitempty" yaml:"service,omitempty"`
+	Expose               *bool                          `json:"expose,omitempty" yaml:"expose,omitempty"`
+	EnvFrom              []corev1.EnvFromSource         `json:"envFrom,omitempty" yaml:"envFrom,omitempty"`
+	Env                  []corev1.EnvVar                `json:"env,omitempty" yaml:"env,omitempty"`
+	ServiceAccountName   *string                        `json:"serviceAccountName,omitempty" yaml:"serviceAccountName,omitempty"`
+	Architecture         []string                       `json:"architecture,omitempty" yaml:"architecture,omitempty"`
+	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty" yaml:"storage,omitempty"`
+	CreateKnativeService *bool                          `json:"createKnativeService,omitempty" yaml:"createKnativeService,omitempty"`
+	Stack                string                         `json:"stack,omitempty" yaml:"stack,omitempty"`
+	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
+	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty" yaml:"createAppDefinition,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
 // +k8s:openapi-gen=true
 type AppsodyApplicationAutoScaling struct {
-	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
-	MinReplicas                    *int32 `json:"minReplicas,omitempty"`
+	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty" yaml:"targetCPUUtilizationPercentage,omitempty"`
+	MinReplicas                    *int32 `json:"minReplicas,omitempty" yaml:"minReplicas,omitempty"`
 
 	// +kubebuilder:validation:Minimum=1
-	MaxReplicas int32 `json:"maxReplicas,omitempty"`
+	MaxReplicas int32 `json:"maxReplicas,omitempty" yaml:"maxReplicas,omitempty"`
 }
 
 // AppsodyApplicationService ...
 // +k8s:openapi-gen=true
 type AppsodyApplicationService struct {
-	Type *corev1.ServiceType `json:"type,omitempty"`
+	Type *corev1.ServiceType `json:"type,omitempty" yaml:"type,omitempty"`
 
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
-	Port int32 `json:"port,omitempty"`
+	Port int32 `json:"port,omitempty" yaml:"port,omitempty"`
 
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
 // +k8s:openapi-gen=true
 type AppsodyApplicationStorage struct {
 	// +kubebuilder:validation:Pattern=^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
-	Size                string                        `json:"size,omitempty"`
-	MountPath           string                        `json:"mountPath,omitempty"`
-	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
+	Size                string                        `json:"size,omitempty" yaml:"size,omitempty"`
+	MountPath           string                        `json:"mountPath,omitempty" yaml:"mountPath,omitempty"`
+	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty" yaml:"volumeClaimTemplate,omitempty"`
 }
 
 // AppsodyApplicationMonitoring ...
 type AppsodyApplicationMonitoring struct {
-	Labels    map[string]string       `json:"labels,omitempty"`
-	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
+	Labels    map[string]string       `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty" yaml:"endpoints,omitempty"`
 }
 
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
-	Conditions []StatusCondition `json:"conditions,omitempty"`
+	Conditions []StatusCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
 // StatusCondition ...
 // +k8s:openapi-gen=true
 type StatusCondition struct {
-	LastTransitionTime *metav1.Time           `json:"lastTransitionTime,omitempty"`
-	LastUpdateTime     metav1.Time            `json:"lastUpdateTime,omitempty"`
-	Reason             string                 `json:"reason,omitempty"`
-	Message            string                 `json:"message,omitempty"`
-	Status             corev1.ConditionStatus `json:"status,omitempty"`
-	Type               StatusConditionType    `json:"type,omitempty"`
+	LastTransitionTime *metav1.Time           `json:"lastTransitionTime,omitempty" yaml:"lastTransitionTime,omitempty"`
+	LastUpdateTime     metav1.Time            `json:"lastUpdateTime,omitempty" yaml:"lastUpdateTime,omitempty"`
+	Reason             string                 `json:"reason,omitempty" yaml:"reason,omitempty"`
+	Message            string                 `json:"message,omitempty" yaml:"message,omitempty"`
+	Status             corev1.ConditionStatus `json:"status,omitempty" yaml:"status,omitempty"`
+	Type               StatusConditionType    `json:"type,omitempty" yaml:"type,omitempty"`
 }
 
 // StatusConditionType ...
@@ -110,20 +110,20 @@ const (
 // +kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].message",priority="1",description="Failure message from reconcile condition"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority="0",description="Age of the resource"
 type AppsodyApplication struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.TypeMeta   `json:",inline" yaml:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
 
-	Spec   AppsodyApplicationSpec   `json:"spec,omitempty"`
-	Status AppsodyApplicationStatus `json:"status,omitempty"`
+	Spec   AppsodyApplicationSpec   `json:"spec,omitempty" yaml:"spec,omitempty"`
+	Status AppsodyApplicationStatus `json:"status,omitempty" yaml:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // AppsodyApplicationList contains a list of AppsodyApplication
 type AppsodyApplicationList struct {
-	metav1.TypeMeta `json:",inline"`
-	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AppsodyApplication `json:"items"`
+	metav1.TypeMeta `json:",inline" yaml:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Items           []AppsodyApplication `json:"items" yaml:"items"`
 }
 
 func init() {
