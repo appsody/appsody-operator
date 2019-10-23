@@ -2,6 +2,7 @@ package e2e
 
 import (
 	goctx "context"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -65,8 +66,10 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 		}
 		// verify that the knative services were created, indicating knative setting worked
 		services := 0
+		expression := fmt.Sprintf("%s*", n)
 		for _, svc := range serviceList.Items {
-			matched, failure := regexp.MatchString(n+"*", svc.GetName())
+			matched, failure := regexp.MatchString(expression, svc.GetName())
+			t.Logf("Matching %s against regexp %s", svc.GetName(), expression)
 			if failure != nil {
 				t.Log("Failure during regex matching")
 				return true, failure
@@ -75,12 +78,12 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 				services++
 			}
 		}
-		t.Logf("Found %d services matching: %s", services, n+"*")
+		t.Logf("Found %d services matching: %s", services, expression)
 		if services <= 1 {
 			t.Logf("Waiting for %d services", 3-services)
 			return false, nil
 		}
-		return true, nil
+		return false, nil
 	})
 	return err
 }
