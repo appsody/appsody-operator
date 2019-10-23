@@ -271,7 +271,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		stackDefaults, ok = r.StackDefaults["generic"]
 		if !ok {
 			err = fmt.Errorf("Failed to find stack neither `%v` nor `generic` in the ConfigMap holding default values", instance.Spec.Stack)
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 		_, ok = r.StackConstants[instance.Spec.Stack]
 		if ok {
@@ -285,7 +285,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	// If there's any validation error, don't bother with requeuing
 	if err != nil {
 		reqLogger.Error(err, "Error validating AppsodyApplication")
-		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		return reconcile.Result{}, nil
 	}
 
@@ -293,7 +293,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
 		reqLogger.Error(err, "Error updating AppsodyApplication")
-		return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	}
 
 	if currentGen == 1 {
@@ -313,14 +313,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile ServiceAccount")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 	} else {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(serviceAccount)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 	}
 
@@ -333,7 +333,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile Knative Service")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
 		// Clean up non-Knative resources
@@ -348,22 +348,22 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		err = r.DeleteResources(resources)
 		if err != nil {
 			reqLogger.Error(err, "Failed to clean up non-Knative resources")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
-		return r.ManageSuccess(appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
 	}
 
 	// Check if Knative is supported and delete Knative service if supported
 	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); err != nil {
 		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
-		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	} else if ok {
 		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(ksvc)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete Knative Service")
-			r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 	} else {
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
@@ -384,7 +384,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	})
 	if err != nil {
 		reqLogger.Error(err, "Failed to reconcile Service")
-		return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	}
 
 	if instance.Spec.Storage != nil {
@@ -394,7 +394,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete Deployment")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 		svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
 		err = r.CreateOrUpdate(svc, instance, func() error {
@@ -405,7 +405,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile headless Service")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
@@ -417,7 +417,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile StatefulSet")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
 	} else {
@@ -426,7 +426,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		err = r.DeleteResource(statefulSet)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete Statefulset")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
 		// Delete StatefulSet if exists
@@ -435,7 +435,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete headless Service")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(deploy, instance, func() error {
@@ -445,7 +445,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		})
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile Deployment")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
 	}
@@ -459,20 +459,20 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile HorizontalPodAutoscaler")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 	} else {
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(hpa)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete HorizontalPodAutoscaler")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 	}
 
 	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String()); err != nil {
 		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
-		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	} else if ok {
 		if instance.Spec.Expose != nil && *instance.Spec.Expose {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
@@ -482,14 +482,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			})
 			if err != nil {
 				reqLogger.Error(err, "Failed to reconcile Route")
-				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 		} else {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
 			err = r.DeleteResource(route)
 			if err != nil {
 				reqLogger.Error(err, "Failed to delete Route")
-				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 		}
 	} else {
@@ -498,7 +498,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String()); err != nil {
 		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
-		r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	} else if ok {
 		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
 			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
@@ -508,14 +508,14 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			})
 			if err != nil {
 				reqLogger.Error(err, "Failed to reconcile ServiceMonitor")
-				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 		} else {
 			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
 			err = r.DeleteResource(sm)
 			if err != nil {
 				reqLogger.Error(err, "Failed to delete ServiceMonitor")
-				return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 		}
 
@@ -523,5 +523,5 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 	}
 
-	return r.ManageSuccess(appsodyv1beta1.StatusConditionTypeReconciled, instance)
+	return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
 }

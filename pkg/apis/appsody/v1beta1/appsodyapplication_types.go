@@ -247,6 +247,11 @@ func (cr *AppsodyApplication) GetMonitoring() common.BaseApplicationMonitoring {
 	return cr.Spec.Monitoring
 }
 
+// GetStatus returns AppsodyApplication status
+func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
+	return &cr.Status
+}
+
 // GetMinReplicas returns minimum replicas
 func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
 	return a.MinReplicas
@@ -531,4 +536,112 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	}
 
 	return labels
+}
+
+// GetType returns status condition type
+func (c *StatusCondition) GetType() common.StatusConditionType {
+	return common.StatusConditionTypeReconciled
+}
+
+// SetType returns status condition type
+func (c *StatusCondition) SetType(ct common.StatusConditionType) {
+	c.Type = StatusConditionTypeReconciled
+}
+
+// GetLastTransitionTime return time of last status change
+func (c *StatusCondition) GetLastTransitionTime() *metav1.Time {
+	return c.LastTransitionTime
+}
+
+// SetLastTransitionTime sets time of last status change
+func (c *StatusCondition) SetLastTransitionTime(t *metav1.Time) {
+	c.LastTransitionTime = t
+}
+
+// GetLastUpdateTime return time of last status update
+func (c *StatusCondition) GetLastUpdateTime() metav1.Time {
+	return c.LastUpdateTime
+}
+
+// SetLastUpdateTime sets time of last status update
+func (c *StatusCondition) SetLastUpdateTime(t metav1.Time) {
+	c.LastUpdateTime = t
+}
+
+// GetMessage return condition's message
+func (c *StatusCondition) GetMessage() string {
+	return c.Message
+}
+
+// SetMessage sets condition's message
+func (c *StatusCondition) SetMessage(m string) {
+	c.Message = m
+}
+
+// GetReason return condition's message
+func (c *StatusCondition) GetReason() string {
+	return c.Reason
+}
+
+// SetReason sets condition's reason
+func (c *StatusCondition) SetReason(r string) {
+	c.Reason = r
+}
+
+// GetStatus return condition's status
+func (c *StatusCondition) GetStatus() corev1.ConditionStatus {
+	return c.Status
+}
+
+// SetStatus sets condition's status
+func (c *StatusCondition) SetStatus(s corev1.ConditionStatus) {
+	c.Status = s
+}
+
+// NewCondition returns new condition
+func (s *AppsodyApplicationStatus) NewCondition() common.StatusCondition {
+	return &StatusCondition{}
+}
+
+// GetConditions returns slice of conditions
+func (s *AppsodyApplicationStatus) GetConditions() []common.StatusCondition {
+	var conditions = []common.StatusCondition{}
+	for i := range s.Conditions {
+		conditions[i] = &s.Conditions[i]
+	}
+	return conditions
+}
+
+// GetCondition ...
+func (s *AppsodyApplicationStatus) GetCondition(t common.StatusConditionType) common.StatusCondition {
+
+	for i := range s.Conditions {
+		if s.Conditions[i].GetType() == t {
+			return &s.Conditions[i]
+		}
+	}
+	return nil
+}
+
+// SetCondition ...
+func (s *AppsodyApplicationStatus) SetCondition(c common.StatusCondition) {
+
+	condition := &StatusCondition{}
+	found := false
+	for i := range s.Conditions {
+		if s.Conditions[i].GetType() == c.GetType() {
+			condition = &s.Conditions[i]
+			found = true
+		}
+	}
+
+	condition.SetLastTransitionTime(c.GetLastTransitionTime())
+	condition.SetLastUpdateTime(c.GetLastUpdateTime())
+	condition.SetReason(c.GetReason())
+	condition.SetMessage(c.GetMessage())
+	condition.SetStatus(c.GetStatus())
+	condition.SetType(c.GetType())
+	if !found {
+		s.Conditions = append(s.Conditions, *condition)
+	}
 }
