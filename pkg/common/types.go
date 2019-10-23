@@ -3,6 +3,44 @@ package common
 import (
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+// StatusConditionType ...
+type StatusConditionType string
+
+// StatusCondition ...
+type StatusCondition interface {
+	GetLastTransitionTime() *metav1.Time
+	SetLastTransitionTime(*metav1.Time)
+
+	GetLastUpdateTime() metav1.Time
+	SetLastUpdateTime(metav1.Time)
+
+	GetReason() string
+	SetReason(string)
+
+	GetMessage() string
+	SetMessage(string)
+
+	GetStatus() corev1.ConditionStatus
+	SetStatus(corev1.ConditionStatus)
+
+	GetType() StatusConditionType
+	SetType(StatusConditionType)
+}
+
+// BaseApplicationStatus returns base appplication status
+type BaseApplicationStatus interface {
+	GetConditions() []StatusCondition
+	GetCondition(StatusConditionType) StatusCondition
+	SetCondition(StatusCondition)
+	NewCondition() StatusCondition
+}
+
+const (
+	// StatusConditionTypeReconciled ...
+	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
 )
 
 // BaseApplicationAutoscaling represents basic HPA configuration
@@ -56,4 +94,5 @@ type BaseApplication interface {
 	GetCreateAppDefinition() *bool
 	GetMonitoring() BaseApplicationMonitoring
 	GetLabels() map[string]string
+	GetStatus() BaseApplicationStatus
 }
