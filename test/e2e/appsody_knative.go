@@ -3,6 +3,7 @@ package e2e
 import (
 	goctx "context"
 	"errors"
+	"fmt"
 	"regexp"
 	"testing"
 	"time"
@@ -11,6 +12,7 @@ import (
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	corev1 "k8s.io/api/core/v1"
+	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -80,15 +82,20 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 			t.Log("Waiting for kNative Services to start...")
 			return false, nil
 		}
+
 		// Use list approach so that we can regex for the knative generated deployment
-		deploymentList := &corev1.PodList{}
-		listError = f.Client.List(goctx.TODO(), options, deploymentList)
+		// podList := &corev1.PodList{}
+		deployments, listError := f.KubeClient.AppsV1().Deployments(ns).List(meta.ListOptions{})
+		// listError = f.Client.List(goctx.TODO(), options, podList)
 		if listError != nil {
 			return true, listError
 		}
 
-		for _, dep := range deploymentList.Items {
-			matched, failure := regexp.MatchString(n+"*", dep.GetName())
+		for _, dep := range deployments.Items {
+			rexp := fmt.Sprintf("%s*", n)
+			t.Logf("Looking for deployment matching: %s", rexp)
+			t.Logf("Current deployment name: %s", dep.GetName())
+			matched, failure := regexp.MatchString(rexp, dep.GetName())
 			if failure != nil {
 				return true, failure
 			}
@@ -100,7 +107,7 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 			t.Logf("Waiting for knative deployment of %s", n)
 			return false, nil
 		}
-		return true, errors.New("Some or all knative resources were not found, see logs below.")
+		return true, errors.New("Some or all knative resources failed to start, see logs below for details")
 	})
 	return err
 }
