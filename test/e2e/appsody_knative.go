@@ -85,7 +85,7 @@ func verifyKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string,
 
 		// Use list approach so that we can regex for the knative generated deployment
 		// podList := &corev1.PodList{}
-		deployments, listError := f.KubeClient.AppsV1().Deployments(ns).List(meta.ListOptions{})
+		deployments, listError := f.KubeClient.AppsV1().Deployments(ns).List(meta.ListOptions{IncludeUninitialized: true})
 		// listError = f.Client.List(goctx.TODO(), options, podList)
 		if listError != nil {
 			return true, listError
