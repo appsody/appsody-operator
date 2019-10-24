@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/appsody/appsody-operator/pkg/common"
+
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -154,7 +156,7 @@ func TestManageError(t *testing.T) {
 
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 
-	rec, err := r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, appsody)
+	rec, err := r.ManageError(err, common.StatusConditionTypeReconciled, appsody)
 
 	testME := []Test{
 		{"ManageError Requeue", true, rec.Requeue},
@@ -172,7 +174,7 @@ func TestManageSuccess(t *testing.T) {
 	cl := fakeclient.NewFakeClient(objs...)
 	r := NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 
-	r.ManageSuccess(appsodyv1beta1.StatusConditionTypeReconciled, appsody)
+	r.ManageSuccess(common.StatusConditionTypeReconciled, appsody)
 
 	testMS := []Test{
 		{"ManageSuccess New Condition Status", corev1.ConditionTrue, appsody.Status.Conditions[0].Status},

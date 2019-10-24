@@ -7,6 +7,7 @@ import (
 	"time"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	"github.com/appsody/appsody-operator/pkg/common"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,36 +148,38 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(name string, ns string) (*corev1.
 }
 
 // ManageError ...
-func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1beta1.StatusConditionType, cr *appsodyv1beta1.AppsodyApplication) (reconcile.Result, error) {
-	r.GetRecorder().Event(cr, "Warning", "ProcessingError", issue.Error())
+func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
 
-	oldCondition := GetCondition(conditionType, &cr.Status)
+	s := ba.GetStatus()
+	rObj := ba.(runtime.Object)
+	r.GetRecorder().Event(rObj, "Warning", "ProcessingError", issue.Error())
+
+	oldCondition := s.GetCondition(conditionType)
 	if oldCondition == nil {
 		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
-	lastUpdate := oldCondition.LastUpdateTime.Time
-	lastStatus := oldCondition.Status
+	lastUpdate := oldCondition.GetLastUpdateTime().Time
+	lastStatus := oldCondition.GetStatus()
 
 	// Keep the old `LastTransitionTime` when status has not changed
 	nowTime := metav1.Now()
-	transitionTime := oldCondition.LastTransitionTime
+	transitionTime := oldCondition.GetLastTransitionTime()
 	if lastStatus == corev1.ConditionTrue {
 		transitionTime = &nowTime
 	}
 
-	newCondition := appsodyv1beta1.StatusCondition{
-		LastTransitionTime: transitionTime,
-		LastUpdateTime:     nowTime,
-		Reason:             string(apierrors.ReasonForError(issue)),
-		Type:               conditionType,
-		Message:            issue.Error(),
-		Status:             corev1.ConditionFalse,
-	}
+	newCondition := s.NewCondition()
+	newCondition.SetLastTransitionTime(transitionTime)
+	newCondition.SetLastUpdateTime(nowTime)
+	newCondition.SetReason(string(apierrors.ReasonForError(issue)))
+	newCondition.SetType(conditionType)
+	newCondition.SetMessage(issue.Error())
+	newCondition.SetStatus(corev1.ConditionFalse)
 
-	SetCondition(newCondition, &cr.Status)
+	s.SetCondition(newCondition)
 
-	err := r.GetClient().Status().Update(context.Background(), cr)
+	err := r.GetClient().Status().Update(context.Background(), rObj)
 	if err != nil {
 		log.Error(err, "Unable to update status")
 		return reconcile.Result{
@@ -195,7 +198,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1beta1.S
 	if lastUpdate.IsZero() || lastStatus == corev1.ConditionTrue {
 		retryInterval = time.Second
 	} else {
-		retryInterval = newCondition.LastUpdateTime.Sub(lastUpdate).Round(time.Second)
+		retryInterval = newCondition.GetLastUpdateTime().Sub(lastUpdate).Round(time.Second)
 	}
 
 	return reconcile.Result{
@@ -205,30 +208,30 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType appsodyv1beta1.S
 }
 
 // ManageSuccess ...
-func (r *ReconcilerBase) ManageSuccess(conditionType appsodyv1beta1.StatusConditionType, cr *appsodyv1beta1.AppsodyApplication) (reconcile.Result, error) {
-	oldCondition := GetCondition(conditionType, &cr.Status)
+func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
+	s := ba.GetStatus()
+	oldCondition := s.GetCondition(conditionType)
 	if oldCondition == nil {
 		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	// Keep the old `LastTransitionTime` when status has not changed
 	nowTime := metav1.Now()
-	transitionTime := oldCondition.LastTransitionTime
-	if oldCondition.Status == corev1.ConditionFalse {
+	transitionTime := oldCondition.GetLastTransitionTime()
+	if oldCondition.GetStatus() == corev1.ConditionFalse {
 		transitionTime = &nowTime
 	}
 
-	statusCondition := appsodyv1beta1.StatusCondition{
-		LastTransitionTime: transitionTime,
-		LastUpdateTime:     nowTime,
-		Type:               conditionType,
-		Reason:             "",
-		Message:            "",
-		Status:             corev1.ConditionTrue,
-	}
+	statusCondition := s.NewCondition()
+	statusCondition.SetLastTransitionTime(transitionTime)
+	statusCondition.SetLastUpdateTime(nowTime)
+	statusCondition.SetReason("")
+	statusCondition.SetMessage("")
+	statusCondition.SetStatus(corev1.ConditionTrue)
 
-	SetCondition(statusCondition, &cr.Status)
-	err := r.GetClient().Status().Update(context.Background(), cr)
+	s.SetCondition(statusCondition)
+	rObj := ba.(runtime.Object)
+	err := r.GetClient().Status().Update(context.Background(), rObj)
 	if err != nil {
 		log.Error(err, "Unable to update status")
 		return reconcile.Result{
