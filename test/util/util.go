@@ -7,6 +7,7 @@ import (
 	"time"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -165,4 +166,34 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 	}
 
 	t.Fatal(failure)
+}
+
+// WaitForKnativeDeployment : ...
+func WaitForKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string, retryInterval, timeout time.Duration) error {
+	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
+		ksvcList := &servingv1alpha1.ServiceList{}
+		lerr := getKnativeServices(ns, f, ksvcList)
+		if lerr != nil {
+			return true, lerr
+		}
+
+		for _, ksvc := range ksvcList.Items {
+			if ksvc.GetName() == n {
+				return true, nil
+			}
+			t.Logf("knative service %s does not match %s", ksvc.GetName(), n)
+		}
+		t.Logf("Waiting for knative service %s...", n)
+		return false, nil
+	})
+	return err
+}
+
+func getKnativeServices(ns string, f *framework.Framework, ksvcList *servingv1alpha1.ServiceList) error {
+	options := &dynclient.ListOptions{
+		Namespace: ns,
+	}
+
+	err := f.Client.List(goctx.TODO(), options, ksvcList)
+	return err
 }
