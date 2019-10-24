@@ -168,32 +168,34 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 	t.Fatal(failure)
 }
 
-// WaitForKnativeDeployment : ...
+// WaitForKnativeDeployment : Poll for ksvc creation when createKnativeService is set to true
 func WaitForKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string, retryInterval, timeout time.Duration) error {
 	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
-		ksvcList := &servingv1alpha1.ServiceList{}
-		lerr := getKnativeServices(ns, f, ksvcList)
+		ksvc := &servingv1alpha1.ServiceList{}
+		lerr := getKnativeServices(n, ns, f, ksvc)
 		if lerr != nil {
-			return true, lerr
+			if apierrors.IsNotFound(lerr) {
+				t.Logf("Waiting for knative service %s...", n)
+				return false, nil
+			}
+			// issue retrieving ksvc
+			return false, lerr
 		}
 
-		for _, ksvc := range ksvcList.Items {
-			if ksvc.GetName() == n {
-				return true, nil
-			}
-			t.Logf("knative service %s does not match %s", ksvc.GetName(), n)
-		}
-		t.Logf("Waiting for knative service %s...", n)
-		return false, nil
+		t.Logf("Found knative service %s", n)
+		return true, nil
 	})
 	return err
 }
 
-func getKnativeServices(ns string, f *framework.Framework, ksvcList *servingv1alpha1.ServiceList) error {
-	options := &dynclient.ListOptions{
-		Namespace: ns,
+func getKnativeServices(n, ns string, f *framework.Framework, ksvcList *servingv1alpha1.ServiceList) error {
+	ksvc := &servingv1alpha1.Service{}
+	// add to scheme to framework can find the resource
+	err := servingv1alpha1.AddToScheme(f.Scheme)
+	if err != nil {
+		return err
 	}
-
-	err := f.Client.List(goctx.TODO(), options, ksvcList)
+	// get resource
+	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: n, Namespace: ns}, ksvc)
 	return err
 }
