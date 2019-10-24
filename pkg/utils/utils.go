@@ -10,6 +10,8 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	appsv1 "k8s.io/api/apps/v1"
@@ -19,6 +21,26 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+// CustomizeBuildConfig ...
+func CustomizeBuildConfig(buildConfig *buildv1.BuildConfig, ba common.BaseApplication) {
+	buildConfig.Labels = ba.GetLabels()
+	buildConfig.Spec = *ba.GetBuildConfig()
+
+	// TODO: add a check for output==nil
+	if buildConfig.Spec.Output.To == nil {
+		obj := ba.(metav1.Object)
+		buildConfig.Spec.Output.To.Kind = "ImageStreamTag"
+		buildConfig.Spec.Output.To.Name = obj.GetName()
+		buildConfig.Spec.Output.To.Namespace = obj.GetNamespace()
+	}
+}
+
+// CustomizeImageStream ...
+func CustomizeImageStream(is *imagev1.ImageStream, ba common.BaseApplication) {
+	is.Labels = ba.GetLabels()
+	is.Spec.LookupPolicy = imagev1.ImageLookupPolicy{Local: true}
+}
 
 // CustomizeDeployment ...
 func CustomizeDeployment(deploy *appsv1.Deployment, ba common.BaseApplication) {

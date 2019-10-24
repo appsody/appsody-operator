@@ -15,13 +15,17 @@ import (
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	buildv1 "github.com/openshift/api/build/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -129,16 +133,20 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
+			// log.Info("UpdateFunc", "e", e)
 			// Ignore updates to CR status in which case metadata.Generation does not change
 			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
+			// log.Info("UpdateFunc", "e", e)
 			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
+			// log.Info("UpdateFunc", "e", e)
 			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
+			// log.Info("UpdateFunc", "e", e)
 			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 	}
@@ -149,17 +157,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	/*
-		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator", Namespace: "default"}}}, &handler.EnqueueRequestForObject{})
-		if err != nil {
-			return err
-		}
+	// // Watch for changes to build
+	// err = c.Watch(&source.Kind{Type: &buildv1.Build{}}, &handler.EnqueueRequestForOwner{
+	// 	IsController: true,
+	// 	OwnerType:    &buildv1.BuildConfig{},
+	// }, pred)
+	// if err != nil {
+	// 	return err
+	// }
 
-		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
-		if err != nil {
-			return err
-		}
-	*/
 	return nil
 }
 
@@ -322,6 +328,44 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
+	}
+
+	if instance.Spec.BuildConfig != nil {
+		is := &imagev1.ImageStream{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(is, instance, func() error {
+			appsodyutils.CustomizeImageStream(is, instance)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcole ImageStream")
+			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		}
+
+		buildConfig := &buildv1.BuildConfig{ObjectMeta: defaultMeta}
+		err = r.CreateOrUpdate(buildConfig, instance, func() error {
+			appsodyutils.CustomizeBuildConfig(buildConfig, instance)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcole BuildConfig")
+			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+		}
+
+
+		
+		// // Returns a list of the service monitor with the specified label
+		// l := labels.Set(map[string]string{"buildConfig": instance.GetName()})
+		// selector := l.AsSelector()
+		// buildList := buildv1.BuildList{}
+
+		// err = r.GetClient().List(context.TODO(), &client.ListOptions{LabelSelector: selector}, &buildList)
+		// if err != nil {
+		// 	// Error reading the object - requeue the request.
+		// 	return reconcile.Result{}, err
+		// }
+
+		// reqLogger.Info("**RECONCILE LOOP**", "buildList", buildList)
+		// return reconcile.Result{}, nil
 	}
 
 	if instance.Spec.CreateKnativeService != nil && *instance.Spec.CreateKnativeService {

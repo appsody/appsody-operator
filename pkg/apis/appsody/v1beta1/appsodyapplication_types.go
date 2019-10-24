@@ -3,6 +3,7 @@ package v1beta1
 import (
 	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -13,7 +14,8 @@ import (
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
 	Version              string                         `json:"version,omitempty"`
-	ApplicationImage     string                         `json:"applicationImage"`
+	ApplicationImage     string                         `json:"applicationImage,omitempty"`
+	BuildConfig          *buildv1.BuildConfigSpec       `json:"buildConfig,omitempty"`
 	Replicas             *int32                         `json:"replicas,omitempty"`
 	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
 	PullPolicy           *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
@@ -133,6 +135,11 @@ func init() {
 // GetApplicationImage returns application image
 func (cr *AppsodyApplication) GetApplicationImage() string {
 	return cr.Spec.ApplicationImage
+}
+
+// GetBuildConfig returns build config
+func (cr *AppsodyApplication) GetBuildConfig() *buildv1.BuildConfigSpec {
+	return cr.Spec.BuildConfig
 }
 
 // GetPullPolicy returns image pull policy

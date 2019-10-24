@@ -2,6 +2,7 @@ package common
 
 import (
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	buildv1 "github.com/openshift/api/build/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -73,6 +74,7 @@ type BaseApplicationMonitoring interface {
 // BaseApplication represents basic kubernetes application
 type BaseApplication interface {
 	GetApplicationImage() string
+	GetBuildConfig() *buildv1.BuildConfigSpec
 	GetPullPolicy() *corev1.PullPolicy
 	GetPullSecret() *string
 	GetServiceAccountName() *string
