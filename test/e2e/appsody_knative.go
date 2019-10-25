@@ -13,7 +13,7 @@ import (
 	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// AppsodyKNativeTest verify functionality of kNative option in appsody
+// AppsodyKnativeTest : Create application with knative service enabled to verify feature
 func AppsodyKnativeTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
 	if err != nil {
