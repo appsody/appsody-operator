@@ -3,6 +3,7 @@ package controller
 import (
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	osappsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -32,6 +33,10 @@ func AddToManager(m manager.Manager) error {
 	}
 
 	if err := imagev1.AddToScheme(m.GetScheme()); err != nil {
+		return err
+	}
+
+	if err := osappsv1.AddToScheme(m.GetScheme()); err != nil {
 		return err
 	}
 

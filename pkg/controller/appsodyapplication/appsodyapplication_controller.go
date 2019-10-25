@@ -23,9 +23,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -133,20 +132,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	pred := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
-			// log.Info("UpdateFunc", "e", e)
 			// Ignore updates to CR status in which case metadata.Generation does not change
 			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
-			// log.Info("UpdateFunc", "e", e)
 			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		DeleteFunc: func(e event.DeleteEvent) bool {
-			// log.Info("UpdateFunc", "e", e)
 			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 		GenericFunc: func(e event.GenericEvent) bool {
-			// log.Info("UpdateFunc", "e", e)
 			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
 		},
 	}
@@ -157,14 +152,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// // Watch for changes to build
-	// err = c.Watch(&source.Kind{Type: &buildv1.Build{}}, &handler.EnqueueRequestForOwner{
-	// 	IsController: true,
-	// 	OwnerType:    &buildv1.BuildConfig{},
-	// }, pred)
-	// if err != nil {
-	// 	return err
-	// }
+	// Watch for changes to ImageStream
+	err = c.Watch(&source.Kind{Type: &imagev1.ImageStream{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+	})
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -337,8 +332,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return nil
 		})
 		if err != nil {
-			reqLogger.Error(err, "Failed to reconcole ImageStream")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			reqLogger.Error(err, "Failed to reconcile ImageStream")
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
 		buildConfig := &buildv1.BuildConfig{ObjectMeta: defaultMeta}
@@ -347,25 +342,40 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return nil
 		})
 		if err != nil {
-			reqLogger.Error(err, "Failed to reconcole BuildConfig")
-			return r.ManageError(err, appsodyv1beta1.StatusConditionTypeReconciled, instance)
+			reqLogger.Error(err, "Failed to reconcile BuildConfig")
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
-
-		
-		// // Returns a list of the service monitor with the specified label
-		// l := labels.Set(map[string]string{"buildConfig": instance.GetName()})
-		// selector := l.AsSelector()
-		// buildList := buildv1.BuildList{}
-
-		// err = r.GetClient().List(context.TODO(), &client.ListOptions{LabelSelector: selector}, &buildList)
+		// deployConfig := &osappsv1.DeploymentConfig{ObjectMeta: defaultMeta}
+		// err = r.CreateOrUpdate(deployConfig, instance, func() error {
+		// 	instance.Spec.ApplicationImage = instance.Name + ":latest"
+		// 	appsodyutils.CustomizeDeploymentConfig(deployConfig, instance)
+		// 	deployConfig.Spec.Template = &corev1.PodTemplateSpec{}
+		// 	appsodyutils.CustomizePodSpec(deployConfig.Spec.Template, instance)
+		// 	return nil
+		// })
 		// if err != nil {
-		// 	// Error reading the object - requeue the request.
-		// 	return reconcile.Result{}, err
+		// 	reqLogger.Error(err, "Failed to reconcile DeploymentConfig")
+		// 	return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		// }
 
-		// reqLogger.Info("**RECONCILE LOOP**", "buildList", buildList)
-		// return reconcile.Result{}, nil
+		is = &imagev1.ImageStream{}
+		err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, is)
+		if err != nil {
+			reqLogger.Error(err, "Failed to get ImageStream")
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+
+		reqLogger.Info("ImageStream is not ready yet", "ImageStream", is)
+
+		if is.Status.Tags != nil {
+			instance.Spec.ApplicationImage = is.Status.Tags[0].Items[0].DockerImageReference
+			err = r.GetClient().Update(context.TODO(), instance)
+			if err != nil {
+				reqLogger.Error(err, "Error updating AppsodyApplication")
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+		}
 	}
 
 	if instance.Spec.CreateKnativeService != nil && *instance.Spec.CreateKnativeService {

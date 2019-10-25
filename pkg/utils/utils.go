@@ -10,6 +10,7 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	osappsv1 "github.com/openshift/api/apps/v1"
 	buildv1 "github.com/openshift/api/build/v1"
 	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -30,9 +31,20 @@ func CustomizeBuildConfig(buildConfig *buildv1.BuildConfig, ba common.BaseApplic
 	// TODO: add a check for output==nil
 	if buildConfig.Spec.Output.To == nil {
 		obj := ba.(metav1.Object)
-		buildConfig.Spec.Output.To.Kind = "ImageStreamTag"
-		buildConfig.Spec.Output.To.Name = obj.GetName()
-		buildConfig.Spec.Output.To.Namespace = obj.GetNamespace()
+		buildConfig.Spec.Output.To = &corev1.ObjectReference{
+			Kind:      "ImageStreamTag",
+			Name:      obj.GetName() + ":latest",
+			Namespace: obj.GetNamespace(),
+		}
+	}
+
+	buildConfig.Spec.Triggers = []buildv1.BuildTriggerPolicy{
+		{
+			Type: buildv1.ConfigChangeBuildTriggerType,
+		},
+		{
+			Type: buildv1.ImageChangeBuildTriggerType,
+		},
 	}
 }
 
@@ -40,6 +52,41 @@ func CustomizeBuildConfig(buildConfig *buildv1.BuildConfig, ba common.BaseApplic
 func CustomizeImageStream(is *imagev1.ImageStream, ba common.BaseApplication) {
 	is.Labels = ba.GetLabels()
 	is.Spec.LookupPolicy = imagev1.ImageLookupPolicy{Local: true}
+}
+
+// CustomizeDeploymentConfig ...
+func CustomizeDeploymentConfig(deploy *osappsv1.DeploymentConfig, ba common.BaseApplication) {
+	deploy.Labels = ba.GetLabels()
+
+	obj := ba.(metav1.Object)
+
+	if ba.GetReplicas() == nil {
+		deploy.Spec.Replicas = 1
+	} else {
+		deploy.Spec.Replicas = *ba.GetReplicas()
+	}
+
+	deploy.Spec.Selector = map[string]string{
+		"app.kubernetes.io/name": obj.GetName(),
+	}
+
+	deploy.Spec.Triggers = osappsv1.DeploymentTriggerPolicies{
+		{
+			Type: osappsv1.DeploymentTriggerOnImageChange,
+			ImageChangeParams: &osappsv1.DeploymentTriggerImageChangeParams{
+				Automatic:      true,
+				ContainerNames: []string{"app"},
+				From: corev1.ObjectReference{
+					Kind:      "ImageStreamTag",
+					Name:      obj.GetName() + ":latest",
+					Namespace: obj.GetNamespace(),
+				},
+			},
+		},
+		{
+			Type: osappsv1.DeploymentTriggerOnConfigChange,
+		},
+	}
 }
 
 // CustomizeDeployment ...
