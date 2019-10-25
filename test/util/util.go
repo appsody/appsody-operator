@@ -7,6 +7,7 @@ import (
 	"time"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -48,7 +49,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			},
 			ReadinessProbe: &corev1.Probe{
 				Handler:             probe,
-				InitialDelaySeconds: 1, // minor adjustment
+				InitialDelaySeconds: 1,
 				TimeoutSeconds:      1,
 				PeriodSeconds:       5,
 				SuccessThreshold:    1,
@@ -56,7 +57,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 			},
 			LivenessProbe: &corev1.Probe{
 				Handler:             probe,
-				InitialDelaySeconds: 4, // minor adjustment
+				InitialDelaySeconds: 4,
 				TimeoutSeconds:      1,
 				PeriodSeconds:       5,
 				SuccessThreshold:    1,
@@ -165,4 +166,30 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 	}
 
 	t.Fatal(failure)
+}
+
+// WaitForKnativeDeployment : Poll for ksvc creation when createKnativeService is set to true
+func WaitForKnativeDeployment(t *testing.T, f *framework.Framework, ns, n string, retryInterval, timeout time.Duration) error {
+	// add to scheme to framework can find the resource
+	err := servingv1alpha1.AddToScheme(f.Scheme)
+	if err != nil {
+		return err
+	}
+
+	err = wait.Poll(retryInterval, timeout, func() (done bool, err error) {
+		ksvc := &servingv1alpha1.ServiceList{}
+		lerr := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: n, Namespace: ns}, ksvc)
+		if lerr != nil {
+			if apierrors.IsNotFound(lerr) {
+				t.Logf("Waiting for knative service %s...", n)
+				return false, nil
+			}
+			// issue retrieving ksvc
+			return false, lerr
+		}
+
+		t.Logf("Found knative service %s", n)
+		return true, nil
+	})
+	return err
 }
