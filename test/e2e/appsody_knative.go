@@ -29,29 +29,31 @@ func AppsodyKnativeTest(t *testing.T) {
 
 	f := framework.Global
 
-	if isKnativeInstalled(t, f) {
-		err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
-		if err != nil {
-			util.FailureCleanup(t, f, namespace, err)
-		}
-		knativeBool := true
-		applicationName := "example-appsody-knative"
-
-		exampleAppsody := util.MakeBasicAppsodyApplication(t, f, applicationName, namespace, 1)
-		exampleAppsody.Spec.CreateKnativeService = &knativeBool
-
-		// Create application deployment and wait
-		err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
-		if err != nil {
-			util.FailureCleanup(t, f, namespace, err)
-		}
-
-		err = util.WaitForKnativeDeployment(t, f, namespace, applicationName, retryInterval, timeout)
-		if err != nil {
-			util.FailureCleanup(t, f, namespace, err)
-		}
-	} else {
+	// catch cases where running tests locally with a cluster that does not have knative
+	if !isKnativeInstalled(t, f) {
 		t.Log("Knative is not installed on this cluster, skipping AppsodyKnativeTest...")
+		return
+	}
+
+	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+	knativeBool := true
+	applicationName := "example-appsody-knative"
+
+	exampleAppsody := util.MakeBasicAppsodyApplication(t, f, applicationName, namespace, 1)
+	exampleAppsody.Spec.CreateKnativeService = &knativeBool
+
+	// Create application deployment and wait
+	err = f.Client.Create(goctx.TODO(), exampleAppsody, &framework.CleanupOptions{TestContext: ctx, Timeout: time.Second, RetryInterval: time.Second})
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	err = util.WaitForKnativeDeployment(t, f, namespace, applicationName, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
