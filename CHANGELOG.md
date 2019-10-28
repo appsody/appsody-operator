@@ -18,7 +18,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Changed the label corresponding to the `Stack` information from `app.appsody.dev/stack` to `stack.appsody.dev/id`. ([#168](https://github.com/appsody/appsody-operator/issues/168))
+- Changed the label corresponding to the Appsody Stack information from `app.appsody.dev/stack` to `stack.appsody.dev/id`. ([#168](https://github.com/appsody/appsody-operator/issues/168))
 
 ## [0.2.0]
 
