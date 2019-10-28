@@ -1,4 +1,4 @@
-# Appsody Operator
+# Appsody Operator v0.2.1
 
 ## Changelog
 
