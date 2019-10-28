@@ -522,7 +522,7 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	}
 
 	if cr.Spec.Stack != "" {
-		labels["app.appsody.dev/stack"] = cr.Spec.Stack
+		labels["stack.appsody.dev/id"] = cr.Spec.Stack
 	}
 
 	if cr.Spec.Version != "" {
