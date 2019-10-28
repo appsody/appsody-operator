@@ -332,7 +332,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return nil
 		})
 		if err != nil {
-			reqLogger.Error(err, "Failed to reconcile ImageStream")
+			reqLogger.Error(err, "Failed to reconcile Image Stream")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
@@ -342,7 +342,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return nil
 		})
 		if err != nil {
-			reqLogger.Error(err, "Failed to reconcile BuildConfig")
+			reqLogger.Error(err, "Failed to reconcile Build Config")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
@@ -359,10 +359,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		// 	return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		// }
 
-		is = &imagev1.ImageStream{}
+		is = &imagev1.ImageStream{ObjectMeta: defaultMeta}
 		err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, is)
 		if err != nil {
-			reqLogger.Error(err, "Failed to get ImageStream")
+			reqLogger.Error(err, "Failed to get Image Stream")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
@@ -375,6 +375,22 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				reqLogger.Error(err, "Error updating AppsodyApplication")
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
+		} else {
+			return r.ManageSuccess(common.StatusConditionTypeAvailable, instance)
+		}
+	} else {
+		buildConfig := &buildv1.BuildConfig{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(buildConfig)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete Build Config")
+			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+
+		imageStream := &imagev1.ImageStream{ObjectMeta: defaultMeta}
+		err = r.DeleteResource(imageStream)
+		if err != nil {
+			reqLogger.Error(err, "Failed to delete Image Stream")
+			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 	}
 
