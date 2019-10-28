@@ -107,7 +107,7 @@ If applications require specific permissions but still want the operator to crea
 
 ### Labels
 
-By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack` and `app.kubernetes.io/version` (only when `version` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
+By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.kubernetes.io/version` (when `version` is defined) and `stack.appsody.dev/id` (when `stack` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
