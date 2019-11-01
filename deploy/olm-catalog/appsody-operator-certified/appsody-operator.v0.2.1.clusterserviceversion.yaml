@@ -6,7 +6,7 @@ metadata:
     capabilities: Seamless Upgrades
     categories: Application Runtime
     certified: 'true'
-    containerImage: registry.connect.redhat.com/ibm/appsody-application-operator:0.2.1
+    containerImage: registry.connect.redhat.com/ibm/appsody-application-operator:0.2.1.0
     createdAt: 2019-10-29 09:00:00
     description: Deploys Appsody based applications
     repository: https://github.com/appsody/appsody-operator
@@ -226,7 +226,7 @@ spec:
                       fieldPath: metadata.name
                 - name: OPERATOR_NAME
                   value: appsody-operator
-                image: registry.connect.redhat.com/ibm/appsody-application-operator:0.2.1
+                image: registry.connect.redhat.com/ibm/appsody-application-operator:0.2.1.0
                 imagePullPolicy: Always
                 name: appsody-operator
                 resources: {}
