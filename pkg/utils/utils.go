@@ -23,6 +23,7 @@ import (
 // CustomizeDeployment ...
 func CustomizeDeployment(deploy *appsv1.Deployment, ba common.BaseApplication) {
 	deploy.Labels = ba.GetLabels()
+	deploy.Annotations = ba.GetAnnotations()
 
 	obj := ba.(metav1.Object)
 	deploy.Spec.Replicas = ba.GetReplicas()
@@ -42,6 +43,7 @@ func CustomizeDeployment(deploy *appsv1.Deployment, ba common.BaseApplication) {
 // CustomizeStatefulSet ...
 func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, ba common.BaseApplication) {
 	statefulSet.Labels = ba.GetLabels()
+	statefulSet.Annotations = ba.GetAnnotations()
 	statefulSet.Spec.Replicas = ba.GetReplicas()
 	obj := ba.(metav1.Object)
 	statefulSet.Spec.ServiceName = obj.GetName() + "-headless"
@@ -85,6 +87,7 @@ func UpdateAppDefinition(labels map[string]string, annotations map[string]string
 func CustomizeRoute(route *routev1.Route, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)
 	route.Labels = ba.GetLabels()
+	route.Annotations = ba.GetAnnotations()
 	route.Spec.To.Kind = "Service"
 	route.Spec.To.Name = obj.GetName()
 	weight := int32(100)
@@ -103,6 +106,7 @@ func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
 // CustomizeService ...
 func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 	svc.Labels = ba.GetLabels()
+	svc.Annotations = ba.GetAnnotations()
 	obj := ba.(metav1.Object)
 
 	if len(svc.Spec.Ports) == 0 {
@@ -121,6 +125,7 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 // CustomizePodSpec ...
 func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	pts.Labels = ba.GetLabels()
+	pts.Annotations = ba.GetAnnotations()
 	obj := ba.(metav1.Object)
 	if len(pts.Spec.Containers) == 0 {
 		pts.Spec.Containers = append(pts.Spec.Containers, corev1.Container{})
@@ -170,9 +175,10 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 		} else {
 			pvc = &corev1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "pvc",
-					Namespace: obj.GetNamespace(),
-					Labels:    ba.GetLabels(),
+					Name:        "pvc",
+					Namespace:   obj.GetNamespace(),
+					Labels:      ba.GetLabels(),
+					Annotations: ba.GetAnnotations(),
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Resources: corev1.ResourceRequirements{
@@ -212,6 +218,7 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 // CustomizeServiceAccount ...
 func CustomizeServiceAccount(sa *corev1.ServiceAccount, ba common.BaseApplication) {
 	sa.Labels = ba.GetLabels()
+	sa.Annotations = ba.GetAnnotations()
 	if ba.GetPullSecret() != nil {
 		if len(sa.ImagePullSecrets) == 0 {
 			sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{
@@ -264,6 +271,7 @@ func CustomizeAffinity(a *corev1.Affinity, ba common.BaseApplication) {
 // CustomizeKnativeService ...
 func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplication) {
 	ksvc.Labels = ba.GetLabels()
+	ksvc.Annotations = ba.GetAnnotations()
 	obj := ba.(metav1.Object)
 
 	// If `expose` is not set to `true`, make Knative route a private route by adding `serving.knative.dev/visibility: cluster-local`
@@ -285,6 +293,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 		ksvc.Spec.Template.Spec.Containers[0].Ports = append(ksvc.Spec.Template.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
 	ksvc.Spec.Template.ObjectMeta.Labels = ba.GetLabels()
+	ksvc.Spec.Template.ObjectMeta.Annotations = ba.GetAnnotations()
 
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetApplicationImage()
@@ -327,6 +336,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 // CustomizeHPA ...
 func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, ba common.BaseApplication) {
 	hpa.Labels = ba.GetLabels()
+	hpa.Annotations = ba.GetAnnotations()
 	obj := ba.(metav1.Object)
 
 	hpa.Spec.MaxReplicas = ba.GetAutoscaling().GetMaxReplicas()

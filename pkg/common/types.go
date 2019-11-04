@@ -95,4 +95,5 @@ type BaseApplication interface {
 	GetMonitoring() BaseApplicationMonitoring
 	GetLabels() map[string]string
 	GetStatus() BaseApplicationStatus
+	GetAnnotations() map[string]string
 }

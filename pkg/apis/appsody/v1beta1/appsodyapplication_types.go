@@ -514,6 +514,17 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 	}
 }
 
+// GetAnnotations returns a set of annotations to be added to all resources
+func (cr *AppsodyApplication) GetAnnotations() map[string]string {
+	annotations := map[string]string{}
+
+	for key, value := range cr.Annotations {
+		annotations[key] = value
+	}
+
+	return annotations
+}
+
 // GetLabels returns set of labels to be added to all resources
 func (cr *AppsodyApplication) GetLabels() map[string]string {
 	labels := map[string]string{
