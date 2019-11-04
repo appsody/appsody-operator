@@ -133,7 +133,7 @@ kind: AppsodyApplication
 metadata:
   name: my-appsody-app
   annotations:
-    annotation-key: annotation-value
+    my-annotation-key: my-annotation-value
 spec:
   stack: java-microprofile
   applicationImage: quay.io/my-repo/my-app:1.0

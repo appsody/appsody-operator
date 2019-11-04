@@ -381,6 +381,7 @@ func requiredFieldMessage(fieldPaths ...string) string {
 // CustomizeServiceMonitor ...
 func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, ba common.BaseApplication) {
 	sm.Labels = ba.GetLabels()
+	sm.Annotations = ba.GetAnnotations()
 	obj := ba.(metav1.Object)
 	sm.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: map[string]string{
