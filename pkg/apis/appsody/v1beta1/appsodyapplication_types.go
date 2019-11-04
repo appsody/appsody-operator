@@ -525,6 +525,21 @@ func (cr *AppsodyApplication) GetAnnotations() map[string]string {
 	return annotations
 }
 
+// GetServiceAnnotations returns a set of annotations to be added to the service
+func (cr *AppsodyApplication) GetServiceAnnotations() map[string]string {
+	annotations := map[string]string{}
+
+	for key, value := range cr.Spec.Service.Annotations {
+		annotations[key] = value
+	}
+
+	for key, value := range cr.Annotations {
+		annotations[key] = value
+	}
+
+	return annotations
+}
+
 // GetLabels returns set of labels to be added to all resources
 func (cr *AppsodyApplication) GetLabels() map[string]string {
 	labels := map[string]string{

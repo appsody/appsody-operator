@@ -106,7 +106,7 @@ func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
 // CustomizeService ...
 func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 	svc.Labels = ba.GetLabels()
-	svc.Annotations = ba.GetAnnotations()
+	svc.Annotations = ba.GetServiceAnnotations()
 	obj := ba.(metav1.Object)
 
 	if len(svc.Spec.Ports) == 0 {
