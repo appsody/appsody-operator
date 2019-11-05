@@ -372,6 +372,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
 		appsodyutils.CustomizeService(svc, ba)
+		svc.Annotations = appsodyutils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
 		if instance.Spec.Monitoring != nil {
 			svc.Labels["app.appsody.dev/monitor"] = "true"
 		} else {
