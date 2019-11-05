@@ -170,10 +170,9 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 		} else {
 			pvc = &corev1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "pvc",
-					Namespace:   obj.GetNamespace(),
-					Labels:      ba.GetLabels(),
-					Annotations: MergeMaps(pvc.Annotations, ba.GetAnnotations()),
+					Name:      "pvc",
+					Namespace: obj.GetNamespace(),
+					Labels:    ba.GetLabels(),
 				},
 				Spec: corev1.PersistentVolumeClaimSpec{
 					Resources: corev1.ResourceRequirements{
@@ -186,7 +185,7 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 					},
 				},
 			}
-
+			pvc.Annotations = MergeMaps(pvc.Annotations, ba.GetAnnotations())
 		}
 		statefulSet.Spec.VolumeClaimTemplates = append(statefulSet.Spec.VolumeClaimTemplates, *pvc)
 	}
@@ -212,7 +211,6 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 
 // CustomizeServiceAccount ...
 func CustomizeServiceAccount(sa *corev1.ServiceAccount, ba common.BaseApplication) {
-	obj := ba.(metav1.Object)
 	sa.Labels = ba.GetLabels()
 	sa.Annotations = MergeMaps(sa.Annotations, ba.GetAnnotations())
 
