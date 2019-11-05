@@ -527,13 +527,9 @@ func (cr *AppsodyApplication) GetAnnotations() map[string]string {
 
 // GetServiceAnnotations returns a set of annotations to be added to the service
 func (cr *AppsodyApplication) GetServiceAnnotations() map[string]string {
-	annotations := map[string]string{}
+	annotations := cr.GetAnnotations()
 
 	for key, value := range cr.Spec.Service.Annotations {
-		annotations[key] = value
-	}
-
-	for key, value := range cr.Annotations {
 		annotations[key] = value
 	}
 
