@@ -125,7 +125,7 @@ _After the initial deployment of `AppsodyApplication`, any changes to its labels
 
 ### Annotations
 
-To add new annotations into all resources created for an `AppsodyApplication`, specify them in your CR as key/value pairs.
+To add new annotations into all resources created for an `AppsodyApplication`, specify them in your CR as key/value pairs. Annotations specified in CR would override any annotations specified on a resource, except for the annotations set on `Service` using `service.annotations`.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
