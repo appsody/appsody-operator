@@ -123,6 +123,24 @@ spec:
 
 _After the initial deployment of `AppsodyApplication`, any changes to its labels would be applied only when one of the parameters from `spec` is updated._
 
+### Annotations
+
+To add new annotations into all resources created for an `AppsodyApplication`, specify them in your CR as key/value pairs.
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+  annotations:
+    my-annotation-key: my-annotation-value
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+```
+
+_After the initial deployment of `AppsodyApplication`, any changes to its annotations would be applied only when one of the parameters from `spec` is updated._
+
 ### Environment variables
 
 You can set environment variables for your application container. To set environment variables, specify `env` and/or `envFrom` fields in your CR. The environment variables can come directly from key/value pairs, `ConfigMap`s or `Secret`s.

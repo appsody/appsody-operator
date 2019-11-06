@@ -538,6 +538,11 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	return labels
 }
 
+// GetAnnotations returns set of annotations to be added to all resources
+func (cr *AppsodyApplication) GetAnnotations() map[string]string {
+	return cr.Annotations
+}
+
 // GetType returns status condition type
 func (c *StatusCondition) GetType() common.StatusConditionType {
 	return common.StatusConditionTypeReconciled

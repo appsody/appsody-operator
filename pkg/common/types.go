@@ -94,5 +94,6 @@ type BaseApplication interface {
 	GetCreateAppDefinition() *bool
 	GetMonitoring() BaseApplicationMonitoring
 	GetLabels() map[string]string
+	GetAnnotations() map[string]string
 	GetStatus() BaseApplicationStatus
 }
