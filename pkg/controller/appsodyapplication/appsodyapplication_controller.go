@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/appsody/appsody-operator/pkg/common"
 
@@ -385,6 +386,25 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if err != nil {
 		reqLogger.Error(err, "Failed to reconcile Service")
 		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+	}
+
+	if instance.Spec.Service.Provider != nil {
+		secretName := strings.Join([]string{instance.Name, instance.Namespace, "binding"}, "-")
+
+		meta := metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: instance.Namespace,
+		}
+
+		providerSecret := &corev1.Secret{ObjectMeta: meta}
+		err = r.CreateOrUpdate(providerSecret, instance, func() error {
+			appsodyutils.CustomizeProviderSecret(providerSecret, ba)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile provider secret")
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
 	}
 
 	if instance.Spec.Storage != nil {

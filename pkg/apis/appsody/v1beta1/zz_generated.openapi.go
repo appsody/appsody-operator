@@ -11,13 +11,15 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplication":            schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStorage(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition":               schema_pkg_apis_appsody_v1beta1_StatusCondition(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplication":                schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService":         schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceConsumer": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationServiceConsumer(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceProvider": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationServiceProvider(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":            schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":          schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage":         schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStorage(ref),
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition":                   schema_pkg_apis_appsody_v1beta1_StatusCondition(ref),
 	}
 }
 
@@ -124,6 +126,104 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 									},
 								},
 							},
+						},
+					},
+					"protocol": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"provider": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceProvider"),
+						},
+					},
+					"consumers": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceConsumer"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceConsumer", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceProvider"},
+	}
+}
+
+func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationServiceConsumer(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AppsodyApplicationServiceConsumer represents service consumer configuration",
+				Properties: map[string]spec.Schema{
+					"serviceName": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"category": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"mount": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationServiceProvider(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AppsodyApplicationServiceProvider represents service provider configuration",
+				Properties: map[string]spec.Schema{
+					"category": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"context": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"secret": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"protocol": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 				},

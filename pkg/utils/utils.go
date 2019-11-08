@@ -116,6 +116,19 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 	}
 }
 
+// CustomizeProviderSecret ...
+func CustomizeProviderSecret(secret *corev1.Secret, ba common.BaseApplication) {
+	obj := ba.(metav1.Object)
+	secret.Labels = ba.GetLabels()
+	secret.Annotations = MergeMaps(secret.Annotations, ba.GetAnnotations())
+
+	prefix := obj.GetName() + "-" + obj.GetNamespace() + "-"
+	data := make(map[string][]byte)
+	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvider().GetProtocol(), obj.GetName(), obj.GetNamespace())
+	data[prefix+"url"] = []byte(url)
+	secret.Data = data
+}
+
 // CustomizePodSpec ...
 func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)

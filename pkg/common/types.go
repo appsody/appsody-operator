@@ -77,6 +77,7 @@ type BaseApplicationServiceProvider interface {
 	GetCategory() string
 	GetContext() string
 	GetSecret() string
+	GetProtocol() string
 }
 
 // BaseApplicationServiceConsumer represents service consumer configuration
@@ -84,7 +85,7 @@ type BaseApplicationServiceConsumer interface {
 	GetServiceName() string
 	GetNamespace() string
 	GetCategory() string
-	GetMountPath() string
+	GetMount() string
 }
 
 // BaseApplication represents basic kubernetes application

@@ -67,6 +67,7 @@ type AppsodyApplicationServiceProvider struct {
 	Category string `json:"category,omitempty"`
 	Context  string `json:"context,omitempty"`
 	Secret   string `json:"secret,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
 }
 
 // AppsodyApplicationServiceConsumer represents service consumer configuration
@@ -75,7 +76,7 @@ type AppsodyApplicationServiceConsumer struct {
 	ServiceName string `json:"serviceName,omitempty"`
 	Namespace   string `json:"namespace,omitempty"`
 	Category    string `json:"category,omitempty"`
-	MountPath   string `json:"mountpath,omitempty"`
+	Mount       string `json:"mount,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
@@ -337,6 +338,11 @@ func (p *AppsodyApplicationServiceProvider) GetSecret() string {
 	return p.Secret
 }
 
+// GetProtocol returns protocol of a service provider configuration
+func (p *AppsodyApplicationServiceProvider) GetProtocol() string {
+	return p.Protocol
+}
+
 // GetConsumers returns a list of service consumers' configuration
 func (s *AppsodyApplicationService) GetConsumers() []common.BaseApplicationServiceConsumer {
 	var con []common.BaseApplicationServiceConsumer
@@ -361,9 +367,9 @@ func (c *AppsodyApplicationServiceConsumer) GetCategory() string {
 	return c.Category
 }
 
-// GetMountPath returns mount path of a service consumer configuration
-func (c *AppsodyApplicationServiceConsumer) GetMountPath() string {
-	return c.MountPath
+// GetMount returns mount path of a service consumer configuration
+func (c *AppsodyApplicationServiceConsumer) GetMount() string {
+	return c.Mount
 }
 
 // GetLabels returns labels to be added on ServiceMonitor

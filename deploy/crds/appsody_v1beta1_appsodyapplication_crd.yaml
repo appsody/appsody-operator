@@ -276,11 +276,37 @@ spec:
                   additionalProperties:
                     type: string
                   type: object
+                consumers:
+                  items:
+                    properties:
+                      category:
+                        type: string
+                      mount:
+                        type: string
+                      namespace:
+                        type: string
+                      serviceName:
+                        type: string
+                    type: object
+                  type: array
                 port:
                   format: int32
                   maximum: 65536
                   minimum: 1
                   type: integer
+                protocol:
+                  type: string
+                provider:
+                  properties:
+                    category:
+                      type: string
+                    context:
+                      type: string
+                    protocol:
+                      type: string
+                    secret:
+                      type: string
+                  type: object
                 type:
                   type: string
               type: object
