@@ -22,28 +22,27 @@ import (
 
 // CustomizeDeployment ...
 func CustomizeDeployment(deploy *appsv1.Deployment, ba common.BaseApplication) {
-	deploy.Labels = ba.GetLabels()
-
 	obj := ba.(metav1.Object)
-	deploy.Spec.Replicas = ba.GetReplicas()
+	deploy.Labels = ba.GetLabels()
+	deploy.Annotations = MergeMaps(deploy.Annotations, ba.GetAnnotations())
 
+	deploy.Spec.Replicas = ba.GetReplicas()
 	deploy.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app.kubernetes.io/name": obj.GetName(),
 		},
 	}
 
-	if deploy.Annotations == nil {
-		deploy.Annotations = make(map[string]string)
-	}
 	UpdateAppDefinition(deploy.Labels, deploy.Annotations, ba)
 }
 
 // CustomizeStatefulSet ...
 func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, ba common.BaseApplication) {
-	statefulSet.Labels = ba.GetLabels()
-	statefulSet.Spec.Replicas = ba.GetReplicas()
 	obj := ba.(metav1.Object)
+	statefulSet.Labels = ba.GetLabels()
+	statefulSet.Annotations = MergeMaps(statefulSet.Annotations, ba.GetAnnotations())
+
+	statefulSet.Spec.Replicas = ba.GetReplicas()
 	statefulSet.Spec.ServiceName = obj.GetName() + "-headless"
 	statefulSet.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{
@@ -51,9 +50,6 @@ func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 		},
 	}
 
-	if statefulSet.Annotations == nil {
-		statefulSet.Annotations = make(map[string]string)
-	}
 	UpdateAppDefinition(statefulSet.Labels, statefulSet.Annotations, ba)
 }
 
@@ -85,6 +81,7 @@ func UpdateAppDefinition(labels map[string]string, annotations map[string]string
 func CustomizeRoute(route *routev1.Route, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)
 	route.Labels = ba.GetLabels()
+	route.Annotations = MergeMaps(route.Annotations, ba.GetAnnotations())
 	route.Spec.To.Kind = "Service"
 	route.Spec.To.Name = obj.GetName()
 	weight := int32(100)
@@ -102,8 +99,9 @@ func ErrorIsNoMatchesForKind(err error, kind string, version string) bool {
 
 // CustomizeService ...
 func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
-	svc.Labels = ba.GetLabels()
 	obj := ba.(metav1.Object)
+	svc.Labels = ba.GetLabels()
+	svc.Annotations = MergeMaps(svc.Annotations, ba.GetAnnotations())
 
 	if len(svc.Spec.Ports) == 0 {
 		svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
@@ -120,8 +118,10 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 
 // CustomizePodSpec ...
 func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
-	pts.Labels = ba.GetLabels()
 	obj := ba.(metav1.Object)
+	pts.Labels = ba.GetLabels()
+	pts.Annotations = MergeMaps(pts.Annotations, ba.GetAnnotations())
+
 	if len(pts.Spec.Containers) == 0 {
 		pts.Spec.Containers = append(pts.Spec.Containers, corev1.Container{})
 	}
@@ -185,7 +185,7 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 					},
 				},
 			}
-
+			pvc.Annotations = MergeMaps(pvc.Annotations, ba.GetAnnotations())
 		}
 		statefulSet.Spec.VolumeClaimTemplates = append(statefulSet.Spec.VolumeClaimTemplates, *pvc)
 	}
@@ -212,6 +212,8 @@ func CustomizePersistence(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 // CustomizeServiceAccount ...
 func CustomizeServiceAccount(sa *corev1.ServiceAccount, ba common.BaseApplication) {
 	sa.Labels = ba.GetLabels()
+	sa.Annotations = MergeMaps(sa.Annotations, ba.GetAnnotations())
+
 	if ba.GetPullSecret() != nil {
 		if len(sa.ImagePullSecrets) == 0 {
 			sa.ImagePullSecrets = append(sa.ImagePullSecrets, corev1.LocalObjectReference{
@@ -225,7 +227,6 @@ func CustomizeServiceAccount(sa *corev1.ServiceAccount, ba common.BaseApplicatio
 
 // CustomizeAffinity ...
 func CustomizeAffinity(a *corev1.Affinity, ba common.BaseApplication) {
-
 	a.NodeAffinity = &corev1.NodeAffinity{
 		RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelector{
 			NodeSelectorTerms: []corev1.NodeSelectorTerm{
@@ -263,8 +264,9 @@ func CustomizeAffinity(a *corev1.Affinity, ba common.BaseApplication) {
 
 // CustomizeKnativeService ...
 func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplication) {
-	ksvc.Labels = ba.GetLabels()
 	obj := ba.(metav1.Object)
+	ksvc.Labels = ba.GetLabels()
+	MergeMaps(ksvc.Annotations, ba.GetAnnotations())
 
 	// If `expose` is not set to `true`, make Knative route a private route by adding `serving.knative.dev/visibility: cluster-local`
 	// to the Knative service. If `serving.knative.dev/visibility: XYZ` is defined in cr.Labels, `expose` always wins.
@@ -285,6 +287,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 		ksvc.Spec.Template.Spec.Containers[0].Ports = append(ksvc.Spec.Template.Spec.Containers[0].Ports, corev1.ContainerPort{})
 	}
 	ksvc.Spec.Template.ObjectMeta.Labels = ba.GetLabels()
+	ksvc.Spec.Template.ObjectMeta.Annotations = MergeMaps(ksvc.Spec.Template.ObjectMeta.Annotations, ba.GetAnnotations())
 
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetApplicationImage()
@@ -326,8 +329,9 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 
 // CustomizeHPA ...
 func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, ba common.BaseApplication) {
-	hpa.Labels = ba.GetLabels()
 	obj := ba.(metav1.Object)
+	hpa.Labels = ba.GetLabels()
+	hpa.Annotations = MergeMaps(hpa.Annotations, ba.GetAnnotations())
 
 	hpa.Spec.MaxReplicas = ba.GetAutoscaling().GetMaxReplicas()
 	hpa.Spec.MinReplicas = ba.GetAutoscaling().GetMinReplicas()
@@ -370,8 +374,10 @@ func requiredFieldMessage(fieldPaths ...string) string {
 
 // CustomizeServiceMonitor ...
 func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, ba common.BaseApplication) {
-	sm.Labels = ba.GetLabels()
 	obj := ba.(metav1.Object)
+	sm.Labels = ba.GetLabels()
+	sm.Annotations = MergeMaps(sm.Annotations, ba.GetAnnotations())
+
 	sm.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app.kubernetes.io/name":  obj.GetName(),
@@ -458,4 +464,18 @@ func GetWatchNamespaces() ([]string, error) {
 	}
 
 	return watchNamespaces, nil
+}
+
+// MergeMaps returns a map containing the union of al the key-value pairs from the input maps. The order of the maps passed into the
+// func, defines the importance. e.g. if (keyA, value1) is in map1, and (keyA, value2) is in map2, mergeMaps(map1, map2) would contain (keyA, value2).
+func MergeMaps(maps ...map[string]string) map[string]string {
+	dest := make(map[string]string)
+
+	for i := range maps {
+		for key, value := range maps[i] {
+			dest[key] = value
+		}
+	}
+
+	return dest
 }

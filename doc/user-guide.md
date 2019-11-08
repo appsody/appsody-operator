@@ -107,7 +107,7 @@ If applications require specific permissions but still want the operator to crea
 
 ### Labels
 
-By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.appsody.dev/stack` and `app.kubernetes.io/version` (only when `version` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
+By default, the operator adds the following labels into all resources created for an `AppsodyApplication` CR: `app.kubernetes.io/name`, `app.kubernetes.io/managed-by`, `app.kubernetes.io/version` (when `version` is defined) and `stack.appsody.dev/id` (when `stack` is defined). You can set new labels in addition to the pre-existing ones or overwrite them, excluding the `app.kubernetes.io/name` label. To set labels, specify them in your CR as key/value pairs.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -122,6 +122,24 @@ spec:
 ```
 
 _After the initial deployment of `AppsodyApplication`, any changes to its labels would be applied only when one of the parameters from `spec` is updated._
+
+### Annotations
+
+To add new annotations into all resources created for an `AppsodyApplication`, specify them in your CR as key/value pairs. Annotations specified in CR would override any annotations specified on a resource, except for the annotations set on `Service` using `service.annotations`.
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+  annotations:
+    my-annotation-key: my-annotation-value
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+```
+
+_After the initial deployment of `AppsodyApplication`, any changes to its annotations would be applied only when one of the parameters from `spec` is updated._
 
 ### Environment variables
 

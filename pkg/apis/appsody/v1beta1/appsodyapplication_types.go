@@ -522,7 +522,7 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	}
 
 	if cr.Spec.Stack != "" {
-		labels["app.appsody.dev/stack"] = cr.Spec.Stack
+		labels["stack.appsody.dev/id"] = cr.Spec.Stack
 	}
 
 	if cr.Spec.Version != "" {
@@ -536,6 +536,11 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	}
 
 	return labels
+}
+
+// GetAnnotations returns set of annotations to be added to all resources
+func (cr *AppsodyApplication) GetAnnotations() map[string]string {
+	return cr.Annotations
 }
 
 // GetType returns status condition type

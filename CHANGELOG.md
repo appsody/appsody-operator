@@ -10,6 +10,22 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.2.2]
+
+### Added
+
+- Allow users to add new annotations or override default annotations for resources created by the operator via setting annotations on `AppsodyApplication` CRs. ([#177](https://github.com/appsody/appsody-operator/issues/177))
+
+## [0.2.1]
+
+### Added
+
+- Added documentation on how to do canary testing with the standard `Route` resource. ([#143](https://github.com/appsody/appsody-operator/issues/143))
+
+### Changed
+
+- Changed the label corresponding to the Appsody Stack information from `app.appsody.dev/stack` to `stack.appsody.dev/id`. ([#169](https://github.com/appsody/appsody-operator/issues/169))
+
 ## [0.2.0]
 
 ### Added
@@ -33,6 +49,8 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.2.2...HEAD
+[0.2.1]: https://github.com/appsody/appsody-operator/compare/0.2.1...v0.2.2
+[0.2.1]: https://github.com/appsody/appsody-operator/compare/v0.2.0...0.2.1
 [0.2.0]: https://github.com/appsody/appsody-operator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/appsody/appsody-operator/releases/tag/v0.1.0
