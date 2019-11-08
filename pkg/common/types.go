@@ -57,17 +57,34 @@ type BaseApplicationStorage interface {
 	GetVolumeClaimTemplate() *corev1.PersistentVolumeClaim
 }
 
-// BaseApplicationService epresents basic service configuration
+// BaseApplicationService represents basic service configuration
 type BaseApplicationService interface {
 	GetPort() int32
 	GetType() *corev1.ServiceType
 	GetAnnotations() map[string]string
+	GetProvider() BaseApplicationServiceProvider
+	GetConsumers() []BaseApplicationServiceConsumer
 }
 
-// BaseApplicationMonitoring epresents basic service configuration
+// BaseApplicationMonitoring represents basic service monitoring configuration
 type BaseApplicationMonitoring interface {
 	GetLabels() map[string]string
 	GetEndpoints() []prometheusv1.Endpoint
+}
+
+// BaseApplicationServiceProvider represents service provider configuration
+type BaseApplicationServiceProvider interface {
+	GetCategory() string
+	GetContext() string
+	GetSecret() string
+}
+
+// BaseApplicationServiceConsumer represents service consumer configuration
+type BaseApplicationServiceConsumer interface {
+	GetServiceName() string
+	GetNamespace() string
+	GetCategory() string
+	GetMountPath() string
 }
 
 // BaseApplication represents basic kubernetes application

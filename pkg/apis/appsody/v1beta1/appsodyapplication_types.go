@@ -55,7 +55,27 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
 
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Annotations map[string]string                    `json:"annotations,omitempty"`
+	Protocol    string                               `json:"protocol,omitempty"`
+	Provider    *AppsodyApplicationServiceProvider   `json:"provider,omitempty"`
+	Consumers   []*AppsodyApplicationServiceConsumer `json:"consumers,omitempty"`
+}
+
+// AppsodyApplicationServiceProvider represents service provider configuration
+// +k8s:openapi-gen=true
+type AppsodyApplicationServiceProvider struct {
+	Category string `json:"category,omitempty"`
+	Context  string `json:"context,omitempty"`
+	Secret   string `json:"secret,omitempty"`
+}
+
+// AppsodyApplicationServiceConsumer represents service consumer configuration
+// +k8s:openapi-gen=true
+type AppsodyApplicationServiceConsumer struct {
+	ServiceName string `json:"serviceName,omitempty"`
+	Namespace   string `json:"namespace,omitempty"`
+	Category    string `json:"category,omitempty"`
+	MountPath   string `json:"mountpath,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
@@ -295,6 +315,55 @@ func (s *AppsodyApplicationService) GetPort() int32 {
 // GetType returns service type
 func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 	return s.Type
+}
+
+// GetProvider returns service provider configuration
+func (s *AppsodyApplicationService) GetProvider() common.BaseApplicationServiceProvider {
+	return s.Provider
+}
+
+// GetCategory returns category of a service provider configuration
+func (p *AppsodyApplicationServiceProvider) GetCategory() string {
+	return p.Category
+}
+
+// GetContext returns context of a service provider configuration
+func (p *AppsodyApplicationServiceProvider) GetContext() string {
+	return p.Context
+}
+
+// GetSecret returns secret of a service provider configuration
+func (p *AppsodyApplicationServiceProvider) GetSecret() string {
+	return p.Secret
+}
+
+// GetConsumers returns a list of service consumers' configuration
+func (s *AppsodyApplicationService) GetConsumers() []common.BaseApplicationServiceConsumer {
+	var con []common.BaseApplicationServiceConsumer
+
+	con[0] = s.Consumers[0]
+	return con
+	// return s.GetConsumers()
+}
+
+// GetServiceName returns service name of a service consumer configuration
+func (c *AppsodyApplicationServiceConsumer) GetServiceName() string {
+	return c.ServiceName
+}
+
+// GetNamespace returns namespace of a service consumer configuration
+func (c *AppsodyApplicationServiceConsumer) GetNamespace() string {
+	return c.Namespace
+}
+
+// GetCategory returns category of a service consumer configuration
+func (c *AppsodyApplicationServiceConsumer) GetCategory() string {
+	return c.Category
+}
+
+// GetMountPath returns mount path of a service consumer configuration
+func (c *AppsodyApplicationServiceConsumer) GetMountPath() string {
+	return c.MountPath
 }
 
 // GetLabels returns labels to be added on ServiceMonitor
