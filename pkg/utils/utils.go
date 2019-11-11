@@ -29,7 +29,7 @@ func CustomizeDeployment(deploy *appsv1.Deployment, ba common.BaseApplication) {
 	deploy.Spec.Replicas = ba.GetReplicas()
 	deploy.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app.kubernetes.io/name": obj.GetName(),
+			"app.kubernetes.io/instance": obj.GetName(),
 		},
 	}
 
@@ -46,7 +46,7 @@ func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 	statefulSet.Spec.ServiceName = obj.GetName() + "-headless"
 	statefulSet.Spec.Selector = &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app.kubernetes.io/name": obj.GetName(),
+			"app.kubernetes.io/instance": obj.GetName(),
 		},
 	}
 
@@ -67,7 +67,7 @@ func UpdateAppDefinition(labels map[string]string, annotations map[string]string
 		labels["kappnav.app.auto-create"] = "true"
 		annotations["kappnav.app.auto-create.name"] = obj.GetName()
 		annotations["kappnav.app.auto-create.kinds"] = "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap"
-		annotations["kappnav.app.auto-create.label"] = "app.kubernetes.io/name"
+		annotations["kappnav.app.auto-create.label"] = "app.kubernetes.io/instance"
 		annotations["kappnav.app.auto-create.labels-values"] = obj.GetName()
 		if ba.GetVersion() == "" {
 			delete(annotations, "kappnav.app.auto-create.version")
@@ -112,7 +112,7 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 	svc.Spec.Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
 	svc.Spec.Type = *ba.GetService().GetType()
 	svc.Spec.Selector = map[string]string{
-		"app.kubernetes.io/name": obj.GetName(),
+		"app.kubernetes.io/instance": obj.GetName(),
 	}
 }
 
@@ -380,8 +380,8 @@ func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, ba common.BaseAppl
 
 	sm.Spec.Selector = metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			"app.kubernetes.io/name":  obj.GetName(),
-			"app.appsody.dev/monitor": "true",
+			"app.kubernetes.io/instance": obj.GetName(),
+			"app.appsody.dev/monitor":    "true",
 		},
 	}
 	if len(sm.Spec.Endpoints) == 0 {
