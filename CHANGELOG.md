@@ -13,7 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
-- Changed the label corresponding to `metadata.name` to `app.kubernetes.instance` and made former label `app.kubernetes.name` user configurable. ([#179](https://github.com/appsody/appsody-operator/issues/179))
+- Changed the label corresponding to `metadata.name` to `app.kubernetes.io/instance` and made former label `app.kubernetes.io/name` user configurable. ([#179](https://github.com/appsody/appsody-operator/issues/179))
 
 ## [0.2.2]
 

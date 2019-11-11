@@ -519,6 +519,7 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 
 	labels := map[string]string{
 		"app.kubernetes.io/instance":   cr.Name,
+		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
 	}
 
@@ -534,11 +535,6 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 		if key != "app.kubernetes.io/instance" {
 			labels[key] = value
 		}
-	}
-
-	// set a default for the name field if they haven't set one
-	if _, ok := labels["app.kubernetes.io/name"]; ok {
-		labels["app.kubernetes.io/name"] = cr.Name
 	}
 
 	return labels
