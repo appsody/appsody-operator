@@ -80,7 +80,7 @@ func TestCustomizeRoute(t *testing.T) {
 
 	//TestGetLabels
 	testCR := []Test{
-		{"Route labels", name, route.Labels["app.kubernetes.io/name"]},
+		{"Route labels", name, route.Labels["app.kubernetes.io/instance"]},
 		{"Route target kind", "Service", route.Spec.To.Kind},
 		{"Route target name", name, route.Spec.To.Name},
 		{"Route target weight", int32(100), *route.Spec.To.Weight},
@@ -102,7 +102,7 @@ func TestCustomizeService(t *testing.T) {
 		{"Sercice first exposed port", appsody.Spec.Service.Port, svc.Spec.Ports[0].Port},
 		{"Service first exposed target port", intstr.FromInt(int(appsody.Spec.Service.Port)), svc.Spec.Ports[0].TargetPort},
 		{"Service type", *appsody.Spec.Service.Type, svc.Spec.Type},
-		{"Service selector", name, svc.Spec.Selector["app.kubernetes.io/name"]},
+		{"Service selector", name, svc.Spec.Selector["app.kubernetes.io/instance"]},
 	}
 	verifyTests(testCS, t)
 }
@@ -470,8 +470,8 @@ func TestCustomizeServiceMonitor(t *testing.T) {
 	CustomizeServiceMonitor(sm, appsody)
 
 	labelMatches := map[string]string{
-		"app.appsody.dev/monitor": "true",
-		"app.kubernetes.io/name":  name,
+		"app.appsody.dev/monitor":    "true",
+		"app.kubernetes.io/instance": name,
 	}
 
 	allSMLabels := appsody.GetLabels()
@@ -490,7 +490,7 @@ func TestCustomizeServiceMonitor(t *testing.T) {
 	appBearerTokenFile := appsody.Spec.Monitoring.Endpoints[0].BearerTokenFile
 
 	testSM := []Test{
-		{"Service Monitor label for app.kubernetes.io/name", name, sm.Labels["app.kubernetes.io/name"]},
+		{"Service Monitor label for app.kubernetes.io/instance", name, sm.Labels["app.kubernetes.io/instance"]},
 		{"Service Monitor selector match labels", labelMatches, sm.Spec.Selector.MatchLabels},
 		{"Service Monitor endpoints port", strconv.Itoa(int(appsody.Spec.Service.Port)) + "-tcp", sm.Spec.Endpoints[0].Port},
 		{"Service Monitor all labels", allSMLabels, sm.Labels},
@@ -640,7 +640,7 @@ func createAppDefinitionTags(app *appsodyv1beta1.AppsodyApplication) (map[string
 	annotations := map[string]string{
 		"kappnav.app.auto-create.name":          app.Name,
 		"kappnav.app.auto-create.kinds":         "Deployment, StatefulSet, Service, Route, Ingress, ConfigMap",
-		"kappnav.app.auto-create.label":         "app.kubernetes.io/name",
+		"kappnav.app.auto-create.label":         "app.kubernetes.io/instance",
 		"kappnav.app.auto-create.labels-values": app.Name,
 		"kappnav.app.auto-create.version":       app.Spec.Version,
 	}
