@@ -118,7 +118,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	smInterval := sm.Spec.Endpoints[0].Interval
 	smBTF := sm.Spec.Endpoints[0].BearerTokenFile
 
-	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/name"] != "example-appsody-sm" {
+	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/instance"] != "example-appsody-sm" {
 		util.FailureCleanup(t, f, namespace, errors.New("The service monitor is not connected to the appsody application?"))
 	}
 
@@ -225,7 +225,7 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 	smTLSConfig := sm.Spec.Endpoints[0].TLSConfig
 	smBasicAuth := sm.Spec.Endpoints[0].BasicAuth
 
-	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/name"] != "example-appsody-sm" {
+	if sm.Spec.Selector.MatchLabels["app.kubernetes.io/instance"] != "example-appsody-sm" {
 		util.FailureCleanup(t, f, namespace, errors.New("The service monitor is not connected to the appsody application?"))
 	}
 

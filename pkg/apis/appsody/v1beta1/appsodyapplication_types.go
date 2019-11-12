@@ -516,7 +516,9 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 
 // GetLabels returns set of labels to be added to all resources
 func (cr *AppsodyApplication) GetLabels() map[string]string {
+
 	labels := map[string]string{
+		"app.kubernetes.io/instance":   cr.Name,
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
 	}
@@ -530,7 +532,7 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	}
 
 	for key, value := range cr.Labels {
-		if key != "app.kubernetes.io/name" {
+		if key != "app.kubernetes.io/instance" {
 			labels[key] = value
 		}
 	}
