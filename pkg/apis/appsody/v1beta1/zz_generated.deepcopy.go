@@ -332,6 +332,11 @@ func (in *AppsodyApplicationStatus) DeepCopyInto(out *AppsodyApplicationStatus) 
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.ConsumableServices != nil {
+		in, out := &in.ConsumableServices, &out.ConsumableServices
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

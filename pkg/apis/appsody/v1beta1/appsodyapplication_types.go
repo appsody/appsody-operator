@@ -64,19 +64,19 @@ type AppsodyApplicationService struct {
 // AppsodyApplicationServiceProvider represents service provider configuration
 // +k8s:openapi-gen=true
 type AppsodyApplicationServiceProvider struct {
-	Category string `json:"category,omitempty"`
-	Context  string `json:"context,omitempty"`
-	Secret   string `json:"secret,omitempty"`
-	Protocol string `json:"protocol,omitempty"`
+	Category ServiceBindingCategory `json:"category,omitempty"`
+	Context  string                 `json:"context,omitempty"`
+	Secret   string                 `json:"secret,omitempty"`
+	Protocol string                 `json:"protocol,omitempty"`
 }
 
 // AppsodyApplicationServiceConsumer represents service consumer configuration
 // +k8s:openapi-gen=true
 type AppsodyApplicationServiceConsumer struct {
-	ServiceName string `json:"serviceName,omitempty"`
-	Namespace   string `json:"namespace,omitempty"`
-	Category    string `json:"category,omitempty"`
-	Mount       string `json:"mount,omitempty"`
+	ServiceName string                 `json:"serviceName,omitempty"`
+	Namespace   string                 `json:"namespace,omitempty"`
+	Category    ServiceBindingCategory `json:"category,omitempty"`
+	Mount       string                 `json:"mount,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
@@ -98,6 +98,9 @@ type AppsodyApplicationMonitoring struct {
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
 	Conditions []StatusCondition `json:"conditions,omitempty"`
+
+	// ConsumableServices map[ServiceBindingCategory][]string `json:"consumableServices,omitempty"`
+	ConsumableServices []string `json:"consumableServices,omitempty"`
 }
 
 // StatusCondition ...
@@ -117,6 +120,14 @@ type StatusConditionType string
 const (
 	// StatusConditionTypeReconciled ...
 	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
+)
+
+// ServiceBindingCategory ...
+type ServiceBindingCategory string
+
+const (
+	// OpenAPIServiceBindingCategory ...
+	OpenAPIServiceBindingCategory ServiceBindingCategory = "openapi"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -273,6 +284,16 @@ func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
 	return &cr.Status
 }
 
+// GetConsumableServices returns a map of all the service names to be consumed by the application
+func (s *AppsodyApplicationStatus) GetConsumableServices() map[common.ServiceBindingCategory][]string {
+	services := map[common.ServiceBindingCategory][]string{}
+	services[common.OpenAPIServiceBindingCategory] = s.ConsumableServices
+	// for k, v := range s.ConsumableServices {
+	// 	services[convertServiceBindingCategory(k)] = v
+	// }
+	return services
+}
+
 // GetMinReplicas returns minimum replicas
 func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
 	return a.MinReplicas
@@ -288,7 +309,7 @@ func (a *AppsodyApplicationAutoScaling) GetTargetCPUUtilizationPercentage() *int
 	return a.TargetCPUUtilizationPercentage
 }
 
-// GetSize returns pesistent volume size
+// GetSize returns persistent volume size
 func (s *AppsodyApplicationStorage) GetSize() string {
 	return s.Size
 }
@@ -324,8 +345,8 @@ func (s *AppsodyApplicationService) GetProvider() common.BaseApplicationServiceP
 }
 
 // GetCategory returns category of a service provider configuration
-func (p *AppsodyApplicationServiceProvider) GetCategory() string {
-	return p.Category
+func (p *AppsodyApplicationServiceProvider) GetCategory() common.ServiceBindingCategory {
+	return common.OpenAPIServiceBindingCategory
 }
 
 // GetContext returns context of a service provider configuration
@@ -345,11 +366,12 @@ func (p *AppsodyApplicationServiceProvider) GetProtocol() string {
 
 // GetConsumers returns a list of service consumers' configuration
 func (s *AppsodyApplicationService) GetConsumers() []common.BaseApplicationServiceConsumer {
-	var con []common.BaseApplicationServiceConsumer
+	consumers := []common.BaseApplicationServiceConsumer{}
 
-	con[0] = s.Consumers[0]
-	return con
-	// return s.GetConsumers()
+	for i := range s.Consumers {
+		consumers[i] = s.Consumers[i]
+	}
+	return consumers
 }
 
 // GetServiceName returns service name of a service consumer configuration
@@ -363,8 +385,8 @@ func (c *AppsodyApplicationServiceConsumer) GetNamespace() string {
 }
 
 // GetCategory returns category of a service consumer configuration
-func (c *AppsodyApplicationServiceConsumer) GetCategory() string {
-	return c.Category
+func (c *AppsodyApplicationServiceConsumer) GetCategory() common.ServiceBindingCategory {
+	return common.OpenAPIServiceBindingCategory
 }
 
 // GetMount returns mount path of a service consumer configuration
@@ -724,4 +746,11 @@ func (s *AppsodyApplicationStatus) SetCondition(c common.StatusCondition) {
 	if !found {
 		s.Conditions = append(s.Conditions, *condition)
 	}
+}
+
+func convertServiceBindingCategory(c ServiceBindingCategory) common.ServiceBindingCategory {
+	if c == OpenAPIServiceBindingCategory {
+		return common.OpenAPIServiceBindingCategory
+	}
+	return common.UnknownServiceBindingCategory
 }

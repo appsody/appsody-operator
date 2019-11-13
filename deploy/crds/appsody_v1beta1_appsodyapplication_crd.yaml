@@ -358,6 +358,12 @@ spec:
                     type: string
                 type: object
               type: array
+            consumableServices:
+              description: ConsumableServices map[ServiceBindingCategory][]string
+                `json:"consumableServices,omitempty"`
+              items:
+                type: string
+              type: array
           type: object
   version: v1beta1
   versions:

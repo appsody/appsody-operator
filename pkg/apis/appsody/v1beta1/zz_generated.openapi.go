@@ -422,6 +422,20 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 							},
 						},
 					},
+					"consumableServices": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ConsumableServices map[ServiceBindingCategory][]string `json:\"consumableServices,omitempty\"`",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},

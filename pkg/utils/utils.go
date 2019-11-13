@@ -120,9 +120,10 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 func CustomizeProviderSecret(secret *corev1.Secret, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)
 	secret.Labels = ba.GetLabels()
+	secret.Labels["service.appsody.dev/bindable"] = "true"
 	secret.Annotations = MergeMaps(secret.Annotations, ba.GetAnnotations())
 
-	prefix := obj.GetName() + "-" + obj.GetNamespace() + "-"
+	prefix := obj.GetName() + "-" + obj.GetNamespace() + "_"
 	data := make(map[string][]byte)
 	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvider().GetProtocol(), obj.GetName(), obj.GetNamespace())
 	data[prefix+"url"] = []byte(url)
@@ -157,6 +158,19 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	}
 	pts.Spec.Containers[0].Env = ba.GetEnv()
 	pts.Spec.Containers[0].EnvFrom = ba.GetEnvFrom()
+
+	if ba.GetStatus().GetConsumableServices() != nil {
+		if services, ok := ba.GetStatus().GetConsumableServices()[common.OpenAPIServiceBindingCategory]; ok {
+			if len(services) > 0 && pts.Spec.Containers[0].EnvFrom == nil {
+				pts.Spec.Containers[0].EnvFrom = []corev1.EnvFromSource{}
+			}
+			for i := range services {
+				env := corev1.EnvFromSource{SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: services[i]}}}
+				pts.Spec.Containers[0].EnvFrom = append(pts.Spec.Containers[0].EnvFrom, env)
+			}
+		}
+	}
+
 	pts.Spec.Volumes = ba.GetVolumes()
 	if ba.GetServiceAccountName() != nil && *ba.GetServiceAccountName() != "" {
 		pts.Spec.ServiceAccountName = *ba.GetServiceAccountName()
@@ -170,7 +184,6 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 		pts.Spec.Affinity = &corev1.Affinity{}
 		CustomizeAffinity(pts.Spec.Affinity, ba)
 	}
-
 }
 
 // CustomizePersistence ...

@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -150,17 +151,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	/*
-		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator", Namespace: "default"}}}, &handler.EnqueueRequestForObject{})
-		if err != nil {
-			return err
-		}
+	secretPred := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			return e.MetaNew.GetLabels()["service.appsody.dev/bindable"] == "true"
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return e.Meta.GetLabels()["service.appsody.dev/bindable"] == "true"
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return e.Meta.GetLabels()["service.appsody.dev/bindable"] == "true"
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return e.Meta.GetLabels()["service.appsody.dev/bindable"] == "true"
+		},
+	}
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForObject{}, secretPred)
+	if err != nil {
+		return err
+	}
 
-		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
-		if err != nil {
-			return err
-		}
-	*/
 	return nil
 }
 
@@ -389,7 +398,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	if instance.Spec.Service.Provider != nil {
-		secretName := strings.Join([]string{instance.Name, instance.Namespace, "binding"}, "-")
+		secretName := strings.Join([]string{instance.Name, instance.Namespace, "binding"}, "_")
 
 		meta := metav1.ObjectMeta{
 			Name:      secretName,
@@ -404,6 +413,46 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if err != nil {
 			reqLogger.Error(err, "Failed to reconcile provider secret")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+	}
+
+	if len(instance.Spec.Service.Consumers) > 0 {
+		for _, consumer := range instance.Spec.Service.Consumers {
+			if consumer.Category == appsodyv1beta1.OpenAPIServiceBindingCategory {
+				reqLogger.Info("consumer logic", "consumer", consumer)
+				secretName := strings.Join([]string{consumer.ServiceName, consumer.Namespace, "binding"}, "_")
+				secret := &corev1.Secret{}
+				err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: consumer.Namespace}, secret)
+				if err != nil {
+					if errors.IsNotFound(err) {
+						reqLogger.Error(err, "Failed to find secret1")
+						return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+					}
+					reqLogger.Error(err, "Failed to find secret2")
+					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				}
+
+				bindableSecret := secret.DeepCopy()
+				bindableSecret.Namespace = instance.Namespace
+				err = r.CreateOrUpdate(bindableSecret, instance, func() error {
+					return nil
+				})
+
+				if err != nil {
+					reqLogger.Error(err, "Failed to reconcile service binding secret")
+					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				}
+
+				instance.Status.ConsumableServices = append(instance.Status.ConsumableServices, secretName)
+				// instance.Status.ConsumableServices[appsodyv1beta1.OpenAPIServiceBindingCategory] = append(instance.Status.ConsumableServices[appsodyv1beta1.OpenAPIServiceBindingCategory], secretName)
+				err := r.GetClient().Status().Update(context.Background(), instance)
+				if err != nil {
+					log.Error(err, "Unable to update status")
+					return reconcile.Result{
+						Requeue: true,
+					}, nil
+				}
+			}
 		}
 	}
 

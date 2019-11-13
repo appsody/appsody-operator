@@ -36,6 +36,7 @@ type BaseApplicationStatus interface {
 	GetCondition(StatusConditionType) StatusCondition
 	SetCondition(StatusCondition)
 	NewCondition() StatusCondition
+	GetConsumableServices() map[ServiceBindingCategory][]string
 }
 
 const (
@@ -74,7 +75,7 @@ type BaseApplicationMonitoring interface {
 
 // BaseApplicationServiceProvider represents service provider configuration
 type BaseApplicationServiceProvider interface {
-	GetCategory() string
+	GetCategory() ServiceBindingCategory
 	GetContext() string
 	GetSecret() string
 	GetProtocol() string
@@ -84,9 +85,20 @@ type BaseApplicationServiceProvider interface {
 type BaseApplicationServiceConsumer interface {
 	GetServiceName() string
 	GetNamespace() string
-	GetCategory() string
+	GetCategory() ServiceBindingCategory
 	GetMount() string
 }
+
+// ServiceBindingCategory ...
+type ServiceBindingCategory string
+
+const (
+	// OpenAPIServiceBindingCategory ...
+	OpenAPIServiceBindingCategory ServiceBindingCategory = "openapi"
+
+	// UnknownServiceBindingCategory ...
+	UnknownServiceBindingCategory ServiceBindingCategory = "unknown"
+)
 
 // BaseApplication represents basic kubernetes application
 type BaseApplication interface {
