@@ -123,11 +123,17 @@ func CustomizeProviderSecret(secret *corev1.Secret, ba common.BaseApplication) {
 	secret.Labels["service.appsody.dev/bindable"] = "true"
 	secret.Annotations = MergeMaps(secret.Annotations, ba.GetAnnotations())
 
-	prefix := obj.GetName() + "-" + obj.GetNamespace() + "_"
-	data := make(map[string][]byte)
+	envVarName := strings.ToUpper(strings.Join([]string{obj.GetName(), obj.GetNamespace(), "url"}, "_"))
+	envVarName = strings.NewReplacer("-", "_", ".", "_").Replace(envVarName)
 	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvider().GetProtocol(), obj.GetName(), obj.GetNamespace())
-	data[prefix+"url"] = []byte(url)
-	secret.Data = data
+
+	if ba.GetCreateKnativeService() == nil || *(ba.GetCreateKnativeService()) == false {
+		url = url + ":" + fmt.Sprintf("%d", ba.GetService().GetPort())
+	}
+	urlData := []byte(url)
+	secret.Data = map[string][]byte{
+		envVarName: urlData,
+	}
 }
 
 // CustomizePodSpec ...

@@ -315,6 +315,79 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		Namespace: instance.Namespace,
 	}
 
+	if instance.Spec.Service.Provider != nil {
+		secretName := strings.Join([]string{instance.Name, instance.Namespace, "binding"}, "-")
+
+		meta := metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: instance.Namespace,
+		}
+
+		providerSecret := &corev1.Secret{ObjectMeta: meta}
+		err = r.CreateOrUpdate(providerSecret, instance, func() error {
+			appsodyutils.CustomizeProviderSecret(providerSecret, ba)
+			return nil
+		})
+		if err != nil {
+			reqLogger.Error(err, "Failed to reconcile provider secret")
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+	}
+
+	if len(instance.Spec.Service.Consumers) > 0 {
+		for _, consumer := range instance.Spec.Service.Consumers {
+			if consumer.Category == appsodyv1beta1.OpenAPIServiceBindingCategory {
+				secretName := strings.Join([]string{consumer.ServiceName, consumer.Namespace, "binding"}, "-")
+
+				found := false
+				for _, v := range instance.Status.ConsumableServices {
+					if secretName == v {
+						found = true
+						break
+					}
+				}
+				if found {
+					break
+				}
+
+				secret := &corev1.Secret{}
+				err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: consumer.Namespace}, secret)
+				if err != nil {
+					if errors.IsNotFound(err) {
+						reqLogger.Error(err, "Failed to find secret1")
+						return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+					}
+					reqLogger.Error(err, "Failed to find secret2")
+					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				}
+
+				bindableSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      secretName,
+						Namespace: instance.Namespace,
+					},
+					Data: secret.Data,
+				}
+				err = r.CreateOrUpdate(bindableSecret, instance, func() error { return nil })
+
+				if err != nil {
+					reqLogger.Error(err, "Failed to reconcile service binding secret")
+					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				}
+
+				instance.Status.ConsumableServices = append(instance.Status.ConsumableServices, secretName)
+				// instance.Status.ConsumableServices[appsodyv1beta1.OpenAPIServiceBindingCategory] = append(instance.Status.ConsumableServices[appsodyv1beta1.OpenAPIServiceBindingCategory], secretName)
+				err := r.GetClient().Status().Update(context.Background(), instance)
+				if err != nil {
+					log.Error(err, "Unable to update status")
+					return reconcile.Result{
+						Requeue: true,
+					}, nil
+				}
+			}
+		}
+	}
+
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
@@ -395,65 +468,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if err != nil {
 		reqLogger.Error(err, "Failed to reconcile Service")
 		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-	}
-
-	if instance.Spec.Service.Provider != nil {
-		secretName := strings.Join([]string{instance.Name, instance.Namespace, "binding"}, "_")
-
-		meta := metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: instance.Namespace,
-		}
-
-		providerSecret := &corev1.Secret{ObjectMeta: meta}
-		err = r.CreateOrUpdate(providerSecret, instance, func() error {
-			appsodyutils.CustomizeProviderSecret(providerSecret, ba)
-			return nil
-		})
-		if err != nil {
-			reqLogger.Error(err, "Failed to reconcile provider secret")
-			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		}
-	}
-
-	if len(instance.Spec.Service.Consumers) > 0 {
-		for _, consumer := range instance.Spec.Service.Consumers {
-			if consumer.Category == appsodyv1beta1.OpenAPIServiceBindingCategory {
-				reqLogger.Info("consumer logic", "consumer", consumer)
-				secretName := strings.Join([]string{consumer.ServiceName, consumer.Namespace, "binding"}, "_")
-				secret := &corev1.Secret{}
-				err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: consumer.Namespace}, secret)
-				if err != nil {
-					if errors.IsNotFound(err) {
-						reqLogger.Error(err, "Failed to find secret1")
-						return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-					}
-					reqLogger.Error(err, "Failed to find secret2")
-					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-				}
-
-				bindableSecret := secret.DeepCopy()
-				bindableSecret.Namespace = instance.Namespace
-				err = r.CreateOrUpdate(bindableSecret, instance, func() error {
-					return nil
-				})
-
-				if err != nil {
-					reqLogger.Error(err, "Failed to reconcile service binding secret")
-					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-				}
-
-				instance.Status.ConsumableServices = append(instance.Status.ConsumableServices, secretName)
-				// instance.Status.ConsumableServices[appsodyv1beta1.OpenAPIServiceBindingCategory] = append(instance.Status.ConsumableServices[appsodyv1beta1.OpenAPIServiceBindingCategory], secretName)
-				err := r.GetClient().Status().Update(context.Background(), instance)
-				if err != nil {
-					log.Error(err, "Unable to update status")
-					return reconcile.Result{
-						Requeue: true,
-					}, nil
-				}
-			}
-		}
 	}
 
 	if instance.Spec.Storage != nil {
