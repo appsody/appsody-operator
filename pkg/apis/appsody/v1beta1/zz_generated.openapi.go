@@ -134,12 +134,12 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 							Format: "",
 						},
 					},
-					"provider": {
+					"provides": {
 						SchemaProps: spec.SchemaProps{
 							Ref: ref("github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationServiceProvider"),
 						},
 					},
-					"consumers": {
+					"consumes": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{

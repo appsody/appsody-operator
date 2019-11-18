@@ -57,8 +57,8 @@ type AppsodyApplicationService struct {
 
 	Annotations map[string]string                    `json:"annotations,omitempty"`
 	Protocol    string                               `json:"protocol,omitempty"`
-	Provider    *AppsodyApplicationServiceProvider   `json:"provider,omitempty"`
-	Consumers   []*AppsodyApplicationServiceConsumer `json:"consumers,omitempty"`
+	Provides    *AppsodyApplicationServiceProvider   `json:"provides,omitempty"`
+	Consumes    []*AppsodyApplicationServiceConsumer `json:"consumes,omitempty"`
 }
 
 // AppsodyApplicationServiceProvider represents service provider configuration
@@ -339,9 +339,9 @@ func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 	return s.Type
 }
 
-// GetProvider returns service provider configuration
-func (s *AppsodyApplicationService) GetProvider() common.BaseApplicationServiceProvider {
-	return s.Provider
+// GetProvides returns service provider configuration
+func (s *AppsodyApplicationService) GetProvides() common.BaseApplicationServiceProvider {
+	return s.Provides
 }
 
 // GetCategory returns category of a service provider configuration
@@ -364,14 +364,13 @@ func (p *AppsodyApplicationServiceProvider) GetProtocol() string {
 	return p.Protocol
 }
 
-// GetConsumers returns a list of service consumers' configuration
-func (s *AppsodyApplicationService) GetConsumers() []common.BaseApplicationServiceConsumer {
-	consumers := []common.BaseApplicationServiceConsumer{}
-
-	for i := range s.Consumers {
-		consumers[i] = s.Consumers[i]
+// GetConsumes returns a list of service consumers' configuration
+func (s *AppsodyApplicationService) GetConsumes() []common.BaseApplicationServiceConsumer {
+	consumes := make([]common.BaseApplicationServiceConsumer, len(s.Consumes))
+	for i := range s.Consumes {
+		consumes[i] = s.Consumes[i]
 	}
-	return consumers
+	return consumes
 }
 
 // GetServiceName returns service name of a service consumer configuration
@@ -482,6 +481,21 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 			cr.Spec.Service.Port = defaults.Service.Port
 		} else {
 			cr.Spec.Service.Port = 8080
+		}
+	}
+
+	if cr.Spec.Service.Provides != nil && cr.Spec.Service.Provides.Protocol == "" {
+		cr.Spec.Service.Provides.Protocol = "http"
+	}
+
+	for i := range cr.Spec.Service.Consumes {
+		if cr.Spec.Service.Consumes[i].Category == OpenAPIServiceBindingCategory {
+			if cr.Spec.Service.Consumes[i].Namespace == "" {
+				cr.Spec.Service.Consumes[i].Namespace = cr.Namespace
+			}
+			if cr.Spec.Service.Consumes[i].Mount == "" {
+				cr.Spec.Service.Consumes[i].Mount = "/etc/appsody/services"
+			}
 		}
 	}
 

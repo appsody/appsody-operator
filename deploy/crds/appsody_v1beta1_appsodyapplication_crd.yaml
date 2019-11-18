@@ -276,7 +276,7 @@ spec:
                   additionalProperties:
                     type: string
                   type: object
-                consumers:
+                consumes:
                   items:
                     properties:
                       category:
@@ -296,7 +296,7 @@ spec:
                   type: integer
                 protocol:
                   type: string
-                provider:
+                provides:
                   properties:
                     category:
                       type: string

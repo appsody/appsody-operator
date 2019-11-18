@@ -15,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
+	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -26,11 +28,13 @@ import (
 
 // ReconcilerBase base reconciler with some common behaviour
 type ReconcilerBase struct {
-	client     client.Client
-	scheme     *runtime.Scheme
-	recorder   record.EventRecorder
-	restConfig *rest.Config
-	discovery  discovery.DiscoveryInterface
+	client       client.Client
+	scheme       *runtime.Scheme
+	recorder     record.EventRecorder
+	restConfig   *rest.Config
+	discovery    discovery.DiscoveryInterface
+	secretClient kcoreclient.SecretsGetter
+	clientset    *kubernetes.Clientset
 }
 
 //NewReconcilerBase creates a new ReconcilerBase
@@ -56,9 +60,15 @@ func (r *ReconcilerBase) GetRecorder() record.EventRecorder {
 // GetDiscoveryClient ...
 func (r *ReconcilerBase) GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
 	if r.discovery == nil {
-		var err error
-		r.discovery, err = discovery.NewDiscoveryClientForConfig(r.restConfig)
-		return r.discovery, err
+		if r.clientset == nil {
+			var err error
+			r.clientset, err = kubernetes.NewForConfig(r.restConfig)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		r.discovery = r.clientset.Discovery()
 	}
 
 	return r.discovery, nil
@@ -67,6 +77,23 @@ func (r *ReconcilerBase) GetDiscoveryClient() (discovery.DiscoveryInterface, err
 // SetDiscoveryClient ...
 func (r *ReconcilerBase) SetDiscoveryClient(discovery discovery.DiscoveryInterface) {
 	r.discovery = discovery
+}
+
+// GetSecretClient ...
+func (r *ReconcilerBase) GetSecretClient() (kcoreclient.SecretsGetter, error) {
+	if r.secretClient == nil {
+		if r.clientset == nil {
+			var err error
+			r.clientset, err = kubernetes.NewForConfig(r.restConfig)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		r.secretClient = r.clientset.CoreV1()
+	}
+
+	return r.secretClient, nil
 }
 
 var log = logf.Log.WithName("utils")
@@ -179,7 +206,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 
 	s.SetCondition(newCondition)
 
-	err := r.GetClient().Status().Update(context.Background(), rObj)
+	err := r.UpdateStatus(rObj)
 	if err != nil {
 		log.Error(err, "Unable to update status")
 		return reconcile.Result{
@@ -230,8 +257,7 @@ func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType,
 	statusCondition.SetStatus(corev1.ConditionTrue)
 
 	s.SetCondition(statusCondition)
-	rObj := ba.(runtime.Object)
-	err := r.GetClient().Status().Update(context.Background(), rObj)
+	err := r.UpdateStatus(ba.(runtime.Object))
 	if err != nil {
 		log.Error(err, "Unable to update status")
 		return reconcile.Result{
@@ -260,4 +286,51 @@ func (r *ReconcilerBase) IsGroupVersionSupported(groupVersion string) (bool, err
 	}
 
 	return true, nil
+}
+
+// UpdateStatus updates the fields corresponding to the status subresource for the object
+func (r *ReconcilerBase) UpdateStatus(obj runtime.Object) error {
+	return r.GetClient().Status().Update(context.Background(), obj)
+}
+
+// SyncSecretAcrossNamespace syncs up the secret data across a namespace and ensures owner is set properly
+func (r *ReconcilerBase) SyncSecretAcrossNamespace(fromSecret *corev1.Secret, namespace string) error {
+	toSecret, err := r.secretClient.Secrets(namespace).Get(fromSecret.GetName(), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	toSecret.Data = fromSecret.Data
+	_, err = r.secretClient.Secrets(namespace).Update(toSecret)
+	log.Info("SyncSecretAcrossNamespace", "toSecret", toSecret.GetAnnotations(), "toSecret", toSecret.GetOwnerReferences())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AsOwner returns an owner reference set as the vault cluster CR
+func (r *ReconcilerBase) AsOwner(obj metav1.Object, controller bool) (metav1.OwnerReference, error) {
+	runtimeObj, ok := obj.(runtime.Object)
+	if !ok {
+		err := fmt.Errorf("%T is not a runtime.Object", obj)
+		log.Error(err, "Failed to convert into runtime.Object")
+		return metav1.OwnerReference{}, err
+	}
+
+	gvk, err := apiutil.GVKForObject(runtimeObj, r.scheme)
+	if err == nil {
+		log.Info("Reconciled", "Kind", gvk.Kind, "Name", obj.GetName(), "Version", gvk.Version)
+	}
+
+	log.Info("owner", "runtimeObj.GetObjectKind()", runtimeObj.GetObjectKind(), "runtimeObj.GetObjectKind().GroupVersionKind()", runtimeObj.GetObjectKind().GroupVersionKind())
+	return metav1.OwnerReference{
+
+		APIVersion: gvk.Version,
+		Kind:       gvk.Kind,
+		Name:       obj.GetName(),
+		UID:        obj.GetUID(),
+		Controller: &controller,
+	}, nil
 }

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -123,16 +125,20 @@ func CustomizeProviderSecret(secret *corev1.Secret, ba common.BaseApplication) {
 	secret.Labels["service.appsody.dev/bindable"] = "true"
 	secret.Annotations = MergeMaps(secret.Annotations, ba.GetAnnotations())
 
-	envVarName := strings.ToUpper(strings.Join([]string{obj.GetName(), obj.GetNamespace(), "url"}, "_"))
-	envVarName = strings.NewReplacer("-", "_", ".", "_").Replace(envVarName)
-	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvider().GetProtocol(), obj.GetName(), obj.GetNamespace())
+	secretKey := strings.ToUpper(strings.Join([]string{obj.GetName(), obj.GetNamespace(), "url"}, "_"))
+	secretKey = strings.NewReplacer("-", "_", ".", "_").Replace(secretKey)
 
+	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvides().GetProtocol(), obj.GetName(), obj.GetNamespace())
 	if ba.GetCreateKnativeService() == nil || *(ba.GetCreateKnativeService()) == false {
-		url = url + ":" + fmt.Sprintf("%d", ba.GetService().GetPort())
+		url = fmt.Sprintf("%s:%d", url, ba.GetService().GetPort())
 	}
-	urlData := []byte(url)
+
+	if ba.GetService().GetProvides().GetContext() != "" {
+		context := strings.TrimPrefix(ba.GetService().GetProvides().GetContext(), "/")
+		url = fmt.Sprintf("%s/%s", url, context)
+	}
 	secret.Data = map[string][]byte{
-		envVarName: urlData,
+		secretKey: []byte(url),
 	}
 }
 
@@ -158,26 +164,32 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	}
 	pts.Spec.Containers[0].ReadinessProbe = ba.GetReadinessProbe()
 	pts.Spec.Containers[0].LivenessProbe = ba.GetLivenessProbe()
-	pts.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
+
 	if ba.GetPullPolicy() != nil {
 		pts.Spec.Containers[0].ImagePullPolicy = *ba.GetPullPolicy()
 	}
 	pts.Spec.Containers[0].Env = ba.GetEnv()
 	pts.Spec.Containers[0].EnvFrom = ba.GetEnvFrom()
 
+	pts.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
+	pts.Spec.Volumes = ba.GetVolumes()
 	if ba.GetStatus().GetConsumableServices() != nil {
-		if services, ok := ba.GetStatus().GetConsumableServices()[common.OpenAPIServiceBindingCategory]; ok {
-			if len(services) > 0 && pts.Spec.Containers[0].EnvFrom == nil {
-				pts.Spec.Containers[0].EnvFrom = []corev1.EnvFromSource{}
-			}
-			for i := range services {
-				env := corev1.EnvFromSource{SecretRef: &corev1.SecretEnvSource{LocalObjectReference: corev1.LocalObjectReference{Name: services[i]}}}
-				pts.Spec.Containers[0].EnvFrom = append(pts.Spec.Containers[0].EnvFrom, env)
-			}
+		for _, svc := range ba.GetStatus().GetConsumableServices()[common.OpenAPIServiceBindingCategory] {
+			mountPath, _ := findMountPath(svc, ba)
+			volMount := corev1.VolumeMount{Name: svc, MountPath: mountPath, ReadOnly: true}
+			pts.Spec.Containers[0].VolumeMounts = append(pts.Spec.Containers[0].VolumeMounts, volMount)
+
+			vol := corev1.Volume{
+				Name: svc,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: svc,
+					},
+				}}
+			pts.Spec.Volumes = append(pts.Spec.Volumes, vol)
 		}
 	}
 
-	pts.Spec.Volumes = ba.GetVolumes()
 	if ba.GetServiceAccountName() != nil && *ba.GetServiceAccountName() != "" {
 		pts.Spec.ServiceAccountName = *ba.GetServiceAccountName()
 	} else {
@@ -327,12 +339,28 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = ba.GetReadinessProbe()
 	ksvc.Spec.Template.Spec.Containers[0].LivenessProbe = ba.GetLivenessProbe()
-	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	ksvc.Spec.Template.Spec.Containers[0].ImagePullPolicy = *ba.GetPullPolicy()
 	ksvc.Spec.Template.Spec.Containers[0].Env = ba.GetEnv()
 	ksvc.Spec.Template.Spec.Containers[0].EnvFrom = ba.GetEnvFrom()
 
+	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	ksvc.Spec.Template.Spec.Volumes = ba.GetVolumes()
+	if ba.GetStatus().GetConsumableServices() != nil {
+		for _, svc := range ba.GetStatus().GetConsumableServices()[common.OpenAPIServiceBindingCategory] {
+			mountPath, _ := findMountPath(svc, ba)
+			volMount := corev1.VolumeMount{Name: svc, MountPath: mountPath, ReadOnly: true}
+			ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = append(ksvc.Spec.Template.Spec.Containers[0].VolumeMounts, volMount)
+
+			vol := corev1.Volume{
+				Name: svc,
+				VolumeSource: corev1.VolumeSource{
+					Secret: &corev1.SecretVolumeSource{
+						SecretName: svc,
+					},
+				}}
+			ksvc.Spec.Template.Spec.Volumes = append(ksvc.Spec.Template.Spec.Volumes, vol)
+		}
+	}
 
 	if ba.GetServiceAccountName() != nil && *ba.GetServiceAccountName() != "" {
 		ksvc.Spec.Template.Spec.ServiceAccountName = *ba.GetServiceAccountName()
@@ -510,4 +538,81 @@ func MergeMaps(maps ...map[string]string) map[string]string {
 	}
 
 	return dest
+}
+
+// BuildOpenAPIServiceSecretName returns secret name of a consumable service
+func BuildOpenAPIServiceSecretName(name, namespace string) string {
+	return strings.Join([]string{name, namespace, "binding"}, "-")
+}
+
+func findMountPath(secretName string, ba common.BaseApplication) (string, error) {
+	for _, v := range ba.GetService().GetConsumes() {
+		if BuildOpenAPIServiceSecretName(v.GetServiceName(), v.GetNamespace()) == secretName {
+			return v.GetMount(), nil
+		}
+	}
+
+	return "", errors.New("Failed to find mountPath value")
+}
+
+// ContainsString returns true if `s` is in the slice. Otherwise, returns false
+func ContainsString(slice []string, s string) bool {
+	for _, str := range slice {
+		if str == s {
+			return true
+		}
+	}
+	return false
+}
+
+// EncodeData ...
+func EncodeData(l, data string) string {
+	if data == "" {
+		return l
+	}
+	subs := strings.Split(data, ";")
+	if !ContainsString(subs, l) {
+		subs = append(subs, l)
+	}
+	return strings.Join(subs, ";")
+}
+
+// EnsureOwnerRef adds the ownerref if needed. Removes ownerrefs with conflicting UIDs.
+// Returns true if the input is mutated. Copied from "github.com/openshift/origin/pkg/controller"
+func EnsureOwnerRef(metadata metav1.Object, newOwnerRef metav1.OwnerReference) bool {
+	foundButNotEqual := false
+	for _, existingOwnerRef := range metadata.GetOwnerReferences() {
+		if existingOwnerRef.APIVersion == newOwnerRef.APIVersion &&
+			existingOwnerRef.Kind == newOwnerRef.Kind &&
+			existingOwnerRef.Name == newOwnerRef.Name {
+
+			// if we're completely the same, there's nothing to do
+			if equality.Semantic.DeepEqual(existingOwnerRef, newOwnerRef) {
+				return false
+			}
+
+			foundButNotEqual = true
+			break
+		}
+	}
+
+	// if we weren't found, then we just need to add ourselves
+	if !foundButNotEqual {
+		metadata.SetOwnerReferences(append(metadata.GetOwnerReferences(), newOwnerRef))
+		return true
+	}
+
+	// if we need to remove an existing ownerRef, just do the easy thing and build it back from scratch
+	newOwnerRefs := []metav1.OwnerReference{newOwnerRef}
+	for i := range metadata.GetOwnerReferences() {
+		existingOwnerRef := metadata.GetOwnerReferences()[i]
+		if existingOwnerRef.APIVersion == newOwnerRef.APIVersion &&
+			existingOwnerRef.Kind == newOwnerRef.Kind &&
+			existingOwnerRef.Name == newOwnerRef.Name {
+			continue
+		}
+		newOwnerRefs = append(newOwnerRefs, existingOwnerRef)
+	}
+	metadata.SetOwnerReferences(newOwnerRefs)
+	return true
 }

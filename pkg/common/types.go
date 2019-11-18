@@ -63,8 +63,8 @@ type BaseApplicationService interface {
 	GetPort() int32
 	GetType() *corev1.ServiceType
 	GetAnnotations() map[string]string
-	GetProvider() BaseApplicationServiceProvider
-	GetConsumers() []BaseApplicationServiceConsumer
+	GetProvides() BaseApplicationServiceProvider
+	GetConsumes() []BaseApplicationServiceConsumer
 }
 
 // BaseApplicationMonitoring represents basic service monitoring configuration

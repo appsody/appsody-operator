@@ -142,13 +142,13 @@ func (in *AppsodyApplicationService) DeepCopyInto(out *AppsodyApplicationService
 			(*out)[key] = val
 		}
 	}
-	if in.Provider != nil {
-		in, out := &in.Provider, &out.Provider
+	if in.Provides != nil {
+		in, out := &in.Provides, &out.Provides
 		*out = new(AppsodyApplicationServiceProvider)
 		**out = **in
 	}
-	if in.Consumers != nil {
-		in, out := &in.Consumers, &out.Consumers
+	if in.Consumes != nil {
+		in, out := &in.Consumes, &out.Consumes
 		*out = make([]*AppsodyApplicationServiceConsumer, len(*in))
 		for i := range *in {
 			if (*in)[i] != nil {
