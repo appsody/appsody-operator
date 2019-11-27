@@ -287,6 +287,8 @@ spec:
                         type: string
                       serviceName:
                         type: string
+                    required:
+                    - category
                     type: object
                   type: array
                 port:
@@ -298,13 +300,20 @@ spec:
                   type: string
                 provides:
                   properties:
+                    auth:
+                      properties:
+                        password:
+                          description: The secret that contains the password for authenticating
+                          type: object
+                        username:
+                          description: The secret that contains the username for authenticating
+                          type: object
+                      type: object
                     category:
                       type: string
                     context:
                       type: string
                     protocol:
-                      type: string
-                    secret:
                       type: string
                   type: object
                 type:
@@ -359,7 +368,7 @@ spec:
                 type: object
               type: array
             consumableServices:
-              description: ConsumableServices map[ServiceBindingCategory][]string
+              description: ConsumableServices map[common.ServiceBindingCategory][]string
                 `json:"consumableServices,omitempty"`
               items:
                 type: string

@@ -63,8 +63,8 @@ type BaseApplicationService interface {
 	GetPort() int32
 	GetType() *corev1.ServiceType
 	GetAnnotations() map[string]string
-	GetProvides() BaseApplicationServiceProvider
-	GetConsumes() []BaseApplicationServiceConsumer
+	GetProvides() ServiceBindingProvides
+	GetConsumes() []ServiceBindingConsumes
 }
 
 // BaseApplicationMonitoring represents basic service monitoring configuration
@@ -73,31 +73,34 @@ type BaseApplicationMonitoring interface {
 	GetEndpoints() []prometheusv1.Endpoint
 }
 
-// BaseApplicationServiceProvider represents service provider configuration
-type BaseApplicationServiceProvider interface {
+// ServiceBindingProvides represents a service to be provided
+type ServiceBindingProvides interface {
 	GetCategory() ServiceBindingCategory
 	GetContext() string
-	GetSecret() string
 	GetProtocol() string
+	GetAuth() ServiceBindingAuth
 }
 
-// BaseApplicationServiceConsumer represents service consumer configuration
-type BaseApplicationServiceConsumer interface {
+// ServiceBindingConsumes represents a service to be consumed
+type ServiceBindingConsumes interface {
 	GetServiceName() string
 	GetNamespace() string
 	GetCategory() ServiceBindingCategory
 	GetMount() string
 }
 
+// ServiceBindingAuth represents authentication info when binding services
+type ServiceBindingAuth interface {
+	GetUsername() corev1.SecretKeySelector
+	GetPassword() corev1.SecretKeySelector
+}
+
 // ServiceBindingCategory ...
 type ServiceBindingCategory string
 
 const (
-	// OpenAPIServiceBindingCategory ...
-	OpenAPIServiceBindingCategory ServiceBindingCategory = "openapi"
-
-	// UnknownServiceBindingCategory ...
-	UnknownServiceBindingCategory ServiceBindingCategory = "unknown"
+	// ServiceBindingCategoryOpenAPI ...
+	ServiceBindingCategoryOpenAPI ServiceBindingCategory = "openapi"
 )
 
 // BaseApplication represents basic kubernetes application

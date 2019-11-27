@@ -55,28 +55,28 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
 
-	Annotations map[string]string                    `json:"annotations,omitempty"`
-	Protocol    string                               `json:"protocol,omitempty"`
-	Provides    *AppsodyApplicationServiceProvider   `json:"provides,omitempty"`
-	Consumes    []*AppsodyApplicationServiceConsumer `json:"consumes,omitempty"`
+	Annotations map[string]string         `json:"annotations,omitempty"`
+	Protocol    string                    `json:"protocol,omitempty"`
+	Provides    *ServiceBindingProvides   `json:"provides,omitempty"`
+	Consumes    []*ServiceBindingConsumes `json:"consumes,omitempty"`
 }
 
-// AppsodyApplicationServiceProvider represents service provider configuration
+// ServiceBindingProvides represents information about
 // +k8s:openapi-gen=true
-type AppsodyApplicationServiceProvider struct {
-	Category ServiceBindingCategory `json:"category,omitempty"`
-	Context  string                 `json:"context,omitempty"`
-	Secret   string                 `json:"secret,omitempty"`
-	Protocol string                 `json:"protocol,omitempty"`
+type ServiceBindingProvides struct {
+	Category common.ServiceBindingCategory `json:"category,omitempty"`
+	Context  string                        `json:"context,omitempty"`
+	Protocol string                        `json:"protocol,omitempty"`
+	Auth     *ServiceBindingAuth           `json:"auth,omitempty"`
 }
 
-// AppsodyApplicationServiceConsumer represents service consumer configuration
+// ServiceBindingConsumes represents a service to be consumed
 // +k8s:openapi-gen=true
-type AppsodyApplicationServiceConsumer struct {
-	ServiceName string                 `json:"serviceName,omitempty"`
-	Namespace   string                 `json:"namespace,omitempty"`
-	Category    ServiceBindingCategory `json:"category,omitempty"`
-	Mount       string                 `json:"mount,omitempty"`
+type ServiceBindingConsumes struct {
+	ServiceName string                        `json:"serviceName,omitempty"`
+	Namespace   string                        `json:"namespace,omitempty"`
+	Category    common.ServiceBindingCategory `json:"category"`
+	Mount       string                        `json:"mount,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
@@ -94,12 +94,20 @@ type AppsodyApplicationMonitoring struct {
 	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
 }
 
+// ServiceBindingAuth allows a service to provide authentication information
+type ServiceBindingAuth struct {
+	// The secret that contains the username for authenticating
+	Username corev1.SecretKeySelector `json:"username,omitempty"`
+	// The secret that contains the password for authenticating
+	Password corev1.SecretKeySelector `json:"password,omitempty"`
+}
+
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
 	Conditions []StatusCondition `json:"conditions,omitempty"`
 
-	// ConsumableServices map[ServiceBindingCategory][]string `json:"consumableServices,omitempty"`
+	// ConsumableServices map[common.ServiceBindingCategory][]string `json:"consumableServices,omitempty"`
 	ConsumableServices []string `json:"consumableServices,omitempty"`
 }
 
@@ -120,14 +128,6 @@ type StatusConditionType string
 const (
 	// StatusConditionTypeReconciled ...
 	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
-)
-
-// ServiceBindingCategory ...
-type ServiceBindingCategory string
-
-const (
-	// OpenAPIServiceBindingCategory ...
-	OpenAPIServiceBindingCategory ServiceBindingCategory = "openapi"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -285,12 +285,14 @@ func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
 }
 
 // GetConsumableServices returns a map of all the service names to be consumed by the application
+// func (s *AppsodyApplicationStatus) GetConsumableServices() map[common.ServiceBindingCategory][]string {
+// 	return s.ConsumableServices
+// }
+
+// GetConsumableServices returns a map of all the service names to be consumed by the application
 func (s *AppsodyApplicationStatus) GetConsumableServices() map[common.ServiceBindingCategory][]string {
 	services := map[common.ServiceBindingCategory][]string{}
-	services[common.OpenAPIServiceBindingCategory] = s.ConsumableServices
-	// for k, v := range s.ConsumableServices {
-	// 	services[convertServiceBindingCategory(k)] = v
-	// }
+	services[common.ServiceBindingCategoryOpenAPI] = s.ConsumableServices
 	return services
 }
 
@@ -340,33 +342,33 @@ func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 }
 
 // GetProvides returns service provider configuration
-func (s *AppsodyApplicationService) GetProvides() common.BaseApplicationServiceProvider {
+func (s *AppsodyApplicationService) GetProvides() common.ServiceBindingProvides {
 	return s.Provides
 }
 
 // GetCategory returns category of a service provider configuration
-func (p *AppsodyApplicationServiceProvider) GetCategory() common.ServiceBindingCategory {
-	return common.OpenAPIServiceBindingCategory
+func (p *ServiceBindingProvides) GetCategory() common.ServiceBindingCategory {
+	return p.Category
 }
 
 // GetContext returns context of a service provider configuration
-func (p *AppsodyApplicationServiceProvider) GetContext() string {
+func (p *ServiceBindingProvides) GetContext() string {
 	return p.Context
 }
 
-// GetSecret returns secret of a service provider configuration
-func (p *AppsodyApplicationServiceProvider) GetSecret() string {
-	return p.Secret
+// GetAuth returns secret of a service provider configuration
+func (p *ServiceBindingProvides) GetAuth() common.ServiceBindingAuth {
+	return p.Auth
 }
 
 // GetProtocol returns protocol of a service provider configuration
-func (p *AppsodyApplicationServiceProvider) GetProtocol() string {
+func (p *ServiceBindingProvides) GetProtocol() string {
 	return p.Protocol
 }
 
 // GetConsumes returns a list of service consumers' configuration
-func (s *AppsodyApplicationService) GetConsumes() []common.BaseApplicationServiceConsumer {
-	consumes := make([]common.BaseApplicationServiceConsumer, len(s.Consumes))
+func (s *AppsodyApplicationService) GetConsumes() []common.ServiceBindingConsumes {
+	consumes := make([]common.ServiceBindingConsumes, len(s.Consumes))
 	for i := range s.Consumes {
 		consumes[i] = s.Consumes[i]
 	}
@@ -374,23 +376,33 @@ func (s *AppsodyApplicationService) GetConsumes() []common.BaseApplicationServic
 }
 
 // GetServiceName returns service name of a service consumer configuration
-func (c *AppsodyApplicationServiceConsumer) GetServiceName() string {
+func (c *ServiceBindingConsumes) GetServiceName() string {
 	return c.ServiceName
 }
 
 // GetNamespace returns namespace of a service consumer configuration
-func (c *AppsodyApplicationServiceConsumer) GetNamespace() string {
+func (c *ServiceBindingConsumes) GetNamespace() string {
 	return c.Namespace
 }
 
 // GetCategory returns category of a service consumer configuration
-func (c *AppsodyApplicationServiceConsumer) GetCategory() common.ServiceBindingCategory {
-	return common.OpenAPIServiceBindingCategory
+func (c *ServiceBindingConsumes) GetCategory() common.ServiceBindingCategory {
+	return common.ServiceBindingCategoryOpenAPI
 }
 
 // GetMount returns mount path of a service consumer configuration
-func (c *AppsodyApplicationServiceConsumer) GetMount() string {
+func (c *ServiceBindingConsumes) GetMount() string {
 	return c.Mount
+}
+
+// GetUsername returns username of a service binding auth object
+func (a *ServiceBindingAuth) GetUsername() corev1.SecretKeySelector {
+	return a.Username
+}
+
+// GetPassword returns password of a service binding auth object
+func (a *ServiceBindingAuth) GetPassword() corev1.SecretKeySelector {
+	return a.Password
 }
 
 // GetLabels returns labels to be added on ServiceMonitor
@@ -489,12 +501,12 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 	}
 
 	for i := range cr.Spec.Service.Consumes {
-		if cr.Spec.Service.Consumes[i].Category == OpenAPIServiceBindingCategory {
+		if cr.Spec.Service.Consumes[i].Category == common.ServiceBindingCategoryOpenAPI {
 			if cr.Spec.Service.Consumes[i].Namespace == "" {
 				cr.Spec.Service.Consumes[i].Namespace = cr.Namespace
 			}
 			if cr.Spec.Service.Consumes[i].Mount == "" {
-				cr.Spec.Service.Consumes[i].Mount = "/etc/appsody/services"
+				// cr.Spec.Service.Consumes[i].Mount = "/etc/appsody/services"
 			}
 		}
 	}
@@ -760,11 +772,4 @@ func (s *AppsodyApplicationStatus) SetCondition(c common.StatusCondition) {
 	if !found {
 		s.Conditions = append(s.Conditions, *condition)
 	}
-}
-
-func convertServiceBindingCategory(c ServiceBindingCategory) common.ServiceBindingCategory {
-	if c == OpenAPIServiceBindingCategory {
-		return common.OpenAPIServiceBindingCategory
-	}
-	return common.UnknownServiceBindingCategory
 }

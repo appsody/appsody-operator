@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -118,28 +118,45 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 	}
 }
 
-// CustomizeProviderSecret ...
-func CustomizeProviderSecret(secret *corev1.Secret, ba common.BaseApplication) {
+// CustomizeServieBindingSecret ...
+func CustomizeServieBindingSecret(secret *corev1.Secret, auth map[string]string, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)
 	secret.Labels = ba.GetLabels()
 	secret.Labels["service.appsody.dev/bindable"] = "true"
 	secret.Annotations = MergeMaps(secret.Annotations, ba.GetAnnotations())
 
-	secretKey := strings.ToUpper(strings.Join([]string{obj.GetName(), obj.GetNamespace(), "url"}, "_"))
-	secretKey = strings.NewReplacer("-", "_", ".", "_").Replace(secretKey)
+	secretdata := map[string][]byte{}
+	keyPrefix := strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(obj.GetName() + "_" + obj.GetNamespace()))
 
 	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvides().GetProtocol(), obj.GetName(), obj.GetNamespace())
 	if ba.GetCreateKnativeService() == nil || *(ba.GetCreateKnativeService()) == false {
 		url = fmt.Sprintf("%s:%d", url, ba.GetService().GetPort())
 	}
-
 	if ba.GetService().GetProvides().GetContext() != "" {
 		context := strings.TrimPrefix(ba.GetService().GetProvides().GetContext(), "/")
 		url = fmt.Sprintf("%s/%s", url, context)
 	}
-	secret.Data = map[string][]byte{
-		secretKey: []byte(url),
+	secretdata[keyPrefix+"_URL"] = []byte(url)
+
+	if auth != nil {
+		if username, ok := auth["username"]; ok {
+			secretdata[keyPrefix+"_USERNAME"] = []byte(username)
+		}
+		if password, ok := auth["password"]; ok {
+			secretdata[keyPrefix+"_PASSWORD"] = []byte(password)
+		}
+		if bearerToken, ok := auth["bearer-token"]; ok {
+			secretdata[keyPrefix+"_BEARER_TOKEN"] = []byte(bearerToken)
+		}
 	}
+
+	buf := new(bytes.Buffer)
+	for k, v := range secretdata {
+		fmt.Fprintf(buf, "%s=%s\n", k, v)
+	}
+	secretdata[BuildServiceBindingSecretName(obj.GetName(), obj.GetNamespace())+".properties"] = buf.Bytes()
+
+	secret.Data = secretdata
 }
 
 // CustomizePodSpec ...
@@ -173,20 +190,39 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 
 	pts.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	pts.Spec.Volumes = ba.GetVolumes()
-	if ba.GetStatus().GetConsumableServices() != nil {
-		for _, svc := range ba.GetStatus().GetConsumableServices()[common.OpenAPIServiceBindingCategory] {
-			mountPath, _ := findMountPath(svc, ba)
-			volMount := corev1.VolumeMount{Name: svc, MountPath: mountPath, ReadOnly: true}
-			pts.Spec.Containers[0].VolumeMounts = append(pts.Spec.Containers[0].VolumeMounts, volMount)
 
-			vol := corev1.Volume{
-				Name: svc,
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: svc,
+	if ba.GetStatus().GetConsumableServices() != nil {
+		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
+			c, _ := findConsumes(svc, ba)
+			if c.GetMount() != "" {
+				volMount := corev1.VolumeMount{Name: svc, MountPath: c.GetMount(), ReadOnly: true}
+				pts.Spec.Containers[0].VolumeMounts = append(pts.Spec.Containers[0].VolumeMounts, volMount)
+
+				vol := corev1.Volume{
+					Name: svc,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: svc,
+							Items: []corev1.KeyToPath{
+								corev1.KeyToPath{
+									Key:  svc + ".properties",
+									Path: svc + ".properties",
+								},
+							},
+						},
 					},
-				}}
-			pts.Spec.Volumes = append(pts.Spec.Volumes, vol)
+				}
+				pts.Spec.Volumes = append(pts.Spec.Volumes, vol)
+			} else {
+				e := corev1.EnvFromSource{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: svc,
+						},
+					},
+				}
+				pts.Spec.Containers[0].EnvFrom = append(pts.Spec.Containers[0].EnvFrom, e)
+			}
 		}
 	}
 
@@ -346,19 +382,30 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	ksvc.Spec.Template.Spec.Volumes = ba.GetVolumes()
 	if ba.GetStatus().GetConsumableServices() != nil {
-		for _, svc := range ba.GetStatus().GetConsumableServices()[common.OpenAPIServiceBindingCategory] {
-			mountPath, _ := findMountPath(svc, ba)
-			volMount := corev1.VolumeMount{Name: svc, MountPath: mountPath, ReadOnly: true}
-			ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = append(ksvc.Spec.Template.Spec.Containers[0].VolumeMounts, volMount)
+		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
+			c, _ := findConsumes(svc, ba)
+			if c.GetMount() != "" {
+				volMount := corev1.VolumeMount{Name: svc, MountPath: c.GetMount(), ReadOnly: true}
+				ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = append(ksvc.Spec.Template.Spec.Containers[0].VolumeMounts, volMount)
 
-			vol := corev1.Volume{
-				Name: svc,
-				VolumeSource: corev1.VolumeSource{
-					Secret: &corev1.SecretVolumeSource{
-						SecretName: svc,
+				vol := corev1.Volume{
+					Name: svc,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: svc,
+						},
+					}}
+				ksvc.Spec.Template.Spec.Volumes = append(ksvc.Spec.Template.Spec.Volumes, vol)
+			} else {
+				e := corev1.EnvFromSource{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: svc,
+						},
 					},
-				}}
-			ksvc.Spec.Template.Spec.Volumes = append(ksvc.Spec.Template.Spec.Volumes, vol)
+				}
+				ksvc.Spec.Template.Spec.Containers[0].EnvFrom = append(ksvc.Spec.Template.Spec.Containers[0].EnvFrom, e)
+			}
 		}
 	}
 
@@ -540,19 +587,19 @@ func MergeMaps(maps ...map[string]string) map[string]string {
 	return dest
 }
 
-// BuildOpenAPIServiceSecretName returns secret name of a consumable service
-func BuildOpenAPIServiceSecretName(name, namespace string) string {
-	return strings.Join([]string{name, namespace, "binding"}, "-")
+// BuildServiceBindingSecretName returns secret name of a consumable service
+func BuildServiceBindingSecretName(name, namespace string) string {
+	return strings.Join([]string{name, namespace, "service", "binding"}, "-")
 }
 
-func findMountPath(secretName string, ba common.BaseApplication) (string, error) {
+func findConsumes(secretName string, ba common.BaseApplication) (common.ServiceBindingConsumes, error) {
 	for _, v := range ba.GetService().GetConsumes() {
-		if BuildOpenAPIServiceSecretName(v.GetServiceName(), v.GetNamespace()) == secretName {
-			return v.GetMount(), nil
+		if BuildServiceBindingSecretName(v.GetServiceName(), v.GetNamespace()) == secretName {
+			return v, nil
 		}
 	}
 
-	return "", errors.New("Failed to find mountPath value")
+	return nil, fmt.Errorf("Failed to find mountPath value")
 }
 
 // ContainsString returns true if `s` is in the slice. Otherwise, returns false

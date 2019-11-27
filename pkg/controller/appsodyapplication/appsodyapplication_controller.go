@@ -151,25 +151,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	secretPred := predicate.Funcs{
-		UpdateFunc: func(e event.UpdateEvent) bool {
-			return e.MetaNew.GetLabels()["service.appsody.dev/bindable"] == "true"
-		},
-		CreateFunc: func(e event.CreateEvent) bool {
-			return e.Meta.GetLabels()["service.appsody.dev/bindable"] == "true"
-		},
-		DeleteFunc: func(e event.DeleteEvent) bool {
-			return e.Meta.GetLabels()["service.appsody.dev/bindable"] == "true"
-		},
-		GenericFunc: func(e event.GenericEvent) bool {
-			return e.Meta.GetLabels()["service.appsody.dev/bindable"] == "true"
-		},
-	}
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForObject{}, secretPred)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -321,16 +302,23 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	}
 
+	secretName := appsodyutils.BuildServiceBindingSecretName(instance.Name, instance.Namespace)
 	if instance.Spec.Service.Provides != nil {
-		secretName := appsodyutils.BuildOpenAPIServiceSecretName(instance.Name, instance.Namespace)
-		meta := metav1.ObjectMeta{
+		var creds map[string]string
+		if instance.Spec.Service.Provides.Auth != nil {
+			if creds, err = r.GetServiceBindingCreds(instance); err != nil {
+				reqLogger.Error(err, "Failed to get authentication info", "Secret Name", instance.Spec.Service.Provides.Auth)
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+		}
+
+		secretMeta := metav1.ObjectMeta{
 			Name:      secretName,
 			Namespace: instance.Namespace,
 		}
-
-		providerSecret := &corev1.Secret{ObjectMeta: meta}
+		providerSecret := &corev1.Secret{ObjectMeta: secretMeta}
 		err = r.CreateOrUpdate(providerSecret, instance, func() error {
-			appsodyutils.CustomizeProviderSecret(providerSecret, ba)
+			appsodyutils.CustomizeServieBindingSecret(providerSecret, creds, ba)
 			return nil
 		})
 		if err != nil {
@@ -341,27 +329,55 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if providerSecret.Annotations["service.appsody.dev/consuming-namespaces"] != "" {
 			namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/consuming-namespaces"], ";")
 			for _, ns := range namespaces {
-				err = r.SyncSecretAcrossNamespace(providerSecret, ns)
-				if err != nil {
+				if err = r.SyncSecretAcrossNamespace(providerSecret, ns); err != nil {
 					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 				}
+			}
+		}
+	} else {
+		providerSecret, err := secretClient.Secrets(instance.Namespace).Get(secretName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				reqLogger.V(4).Info(fmt.Sprintf("Unable to find secret '%s' in namespace '%s'", secretName, instance.Namespace))
+			} else {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+		} else {
+			// Delete all copies of this secret in other namespaces
+			if providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"] != "" {
+				namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"], ";")
+				for _, ns := range namespaces {
+					if err = secretClient.Secrets(ns).Delete(secretName, &metav1.DeleteOptions{}); err != nil {
+						if errors.IsNotFound(err) {
+							reqLogger.V(4).Info(fmt.Sprintf("Unable to find secret '%s' in namespace '%s'", secretName, instance.Namespace))
+						} else {
+							return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+						}
+					}
+				}
+			}
+
+			// Delete the secret itself
+			if err = secretClient.Secrets(instance.Namespace).Delete(secretName, &metav1.DeleteOptions{}); err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 		}
 	}
 
 	for _, con := range instance.Spec.Service.Consumes {
-		if con.Category == appsodyv1beta1.OpenAPIServiceBindingCategory {
-			secretName := appsodyutils.BuildOpenAPIServiceSecretName(con.ServiceName, con.Namespace)
+		if con.Category == common.ServiceBindingCategoryOpenAPI {
+			secretName := appsodyutils.BuildServiceBindingSecretName(con.ServiceName, con.Namespace)
 			existingSecret, err := secretClient.Secrets(con.Namespace).Get(secretName, metav1.GetOptions{})
 			if err != nil {
 				if errors.IsNotFound(err) {
-					reqLogger.Error(err, "Failed to find service provider secret")
+					err = fmt.Errorf("Unable to find secret '%s' for service '%s' in namespace '%s': %w", secretName, con.ServiceName, con.Namespace, err)
 				}
-				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				reqLogger.Error(err, "Service binding dependency not satisfied")
+				return r.ManageError(fmt.Errorf("Service binding dependency not satisfied: %w", err), common.StatusConditionTypeReconciled, instance)
 			}
 
-			existingSecret.Annotations["service.appsody.dev/consuming-namespaces"] = appsodyutils.EncodeData(instance.Namespace,
-				existingSecret.Annotations["service.appsody.dev/consuming-namespaces"])
+			existingSecret.Annotations["service.appsody.dev/copied-to-namespaces"] =
+				appsodyutils.EncodeData(instance.Namespace, existingSecret.Annotations["service.appsody.dev/copied-to-namespaces"])
 			existingSecret, err = secretClient.Secrets(con.Namespace).Update(existingSecret)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update service provider secret")
@@ -384,7 +400,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				if copiedSecret.Annotations == nil {
 					copiedSecret.Annotations = map[string]string{}
 				}
-				copiedSecret.Annotations["service.appsody.dev/binded-from-namespace"] = con.Namespace
+				copiedSecret.Annotations["service.appsody.dev/copied-from-namespace"] = con.Namespace
 				_, err = secretClient.Secrets(instance.Namespace).Create(copiedSecret)
 			} else if err == nil {
 				owner, _ := r.AsOwner(instance, false)
@@ -392,7 +408,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				if copiedSecret.Annotations == nil {
 					copiedSecret.Annotations = map[string]string{}
 				}
-				copiedSecret.Annotations["service.appsody.dev/binded-from-namespace"] = con.Namespace
+				copiedSecret.Annotations["service.appsody.dev/copied-from-namespace"] = con.Namespace
 				if !reflect.DeepEqual(existingSecret, copiedSecret) {
 					_, err = secretClient.Secrets(instance.Namespace).Update(copiedSecret)
 				}

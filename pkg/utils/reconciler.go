@@ -8,6 +8,7 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody/appsody-operator/pkg/common"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
-	kcoreclient "k8s.io/client-go/kubernetes/typed/core/v1"
+	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,7 @@ type ReconcilerBase struct {
 	recorder     record.EventRecorder
 	restConfig   *rest.Config
 	discovery    discovery.DiscoveryInterface
-	secretClient kcoreclient.SecretsGetter
+	secretClient corev1client.SecretsGetter
 	clientset    *kubernetes.Clientset
 }
 
@@ -80,7 +81,7 @@ func (r *ReconcilerBase) SetDiscoveryClient(discovery discovery.DiscoveryInterfa
 }
 
 // GetSecretClient ...
-func (r *ReconcilerBase) GetSecretClient() (kcoreclient.SecretsGetter, error) {
+func (r *ReconcilerBase) GetSecretClient() (corev1client.SecretsGetter, error) {
 	if r.secretClient == nil {
 		if r.clientset == nil {
 			var err error
@@ -302,35 +303,69 @@ func (r *ReconcilerBase) SyncSecretAcrossNamespace(fromSecret *corev1.Secret, na
 
 	toSecret.Data = fromSecret.Data
 	_, err = r.secretClient.Secrets(namespace).Update(toSecret)
-	log.Info("SyncSecretAcrossNamespace", "toSecret", toSecret.GetAnnotations(), "toSecret", toSecret.GetOwnerReferences())
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 // AsOwner returns an owner reference set as the vault cluster CR
 func (r *ReconcilerBase) AsOwner(obj metav1.Object, controller bool) (metav1.OwnerReference, error) {
 	runtimeObj, ok := obj.(runtime.Object)
 	if !ok {
-		err := fmt.Errorf("%T is not a runtime.Object", obj)
-		log.Error(err, "Failed to convert into runtime.Object")
+		err := errors.Errorf("%T is not a runtime.Object", obj)
+		log.Error(err, "failed to convert into runtime.Object")
 		return metav1.OwnerReference{}, err
 	}
 
 	gvk, err := apiutil.GVKForObject(runtimeObj, r.scheme)
-	if err == nil {
-		log.Info("Reconciled", "Kind", gvk.Kind, "Name", obj.GetName(), "Version", gvk.Version)
+	if err != nil {
+		log.Error(err, "failed to get GroupVersionKind associated with the runtime.Object", runtimeObj)
+		return metav1.OwnerReference{}, err
 	}
 
-	log.Info("owner", "runtimeObj.GetObjectKind()", runtimeObj.GetObjectKind(), "runtimeObj.GetObjectKind().GroupVersionKind()", runtimeObj.GetObjectKind().GroupVersionKind())
 	return metav1.OwnerReference{
-
 		APIVersion: gvk.Version,
 		Kind:       gvk.Kind,
 		Name:       obj.GetName(),
 		UID:        obj.GetUID(),
 		Controller: &controller,
 	}, nil
+}
+
+// GetServiceBindingCreds returns a map containing username/password string values based on 'cr.spec.service.provides.auth'
+func (r *ReconcilerBase) GetServiceBindingCreds(ba common.BaseApplication) (map[string]string, error) {
+	if ba.GetService() == nil || ba.GetService().GetProvides() == nil || ba.GetService().GetProvides().GetAuth() == nil {
+		return nil, errors.Errorf("auth is not set on the object %s", ba)
+	}
+	metaObj := ba.(metav1.Object)
+	authMap := map[string]string{}
+
+	auth := ba.GetService().GetProvides().GetAuth()
+	c := r.secretClient.Secrets(metaObj.GetNamespace())
+	getCred := func(key string, getCredF func() corev1.SecretKeySelector) error {
+		if getCredF() != (corev1.SecretKeySelector{}) {
+			cred, err := getCredFromSecret(c, getCredF(), key)
+			if err != nil {
+				return err
+			}
+			authMap[key] = cred
+		}
+		return nil
+	}
+	err := getCred("username", auth.GetUsername)
+	err = getCred("password", auth.GetPassword)
+	if err != nil {
+		return nil, err
+	}
+	return authMap, nil
+}
+
+func getCredFromSecret(c corev1client.SecretInterface, sel corev1.SecretKeySelector, cred string) (_ string, err error) {
+	var secret *corev1.Secret
+	if secret, err = c.Get(sel.Name, metav1.GetOptions{}); err != nil {
+		return "", errors.Wrapf(err, "unable to fetch credential %q from secret %q", cred, sel.Name)
+	}
+
+	if s, ok := secret.Data[sel.Key]; ok {
+		return string(s), nil
+	}
+	return "", errors.Errorf("unable to find credential %q in secret %q using key %q", cred, sel.Name, sel.Key)
 }
