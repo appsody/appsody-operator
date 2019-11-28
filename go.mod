@@ -11,6 +11,7 @@ require (
 	github.com/go-logr/zapr v0.1.0 // indirect
 	github.com/go-openapi/spec v0.18.0
 	github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef // indirect
+	github.com/golang/mock v1.2.0 // indirect
 	github.com/google/btree v1.0.0 // indirect
 	github.com/google/go-containerregistry v0.0.0-20190717132004-e8c6a4993fa7 // indirect
 	github.com/google/uuid v1.0.0 // indirect

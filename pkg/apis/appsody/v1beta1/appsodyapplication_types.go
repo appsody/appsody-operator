@@ -1,8 +1,6 @@
 package v1beta1
 
 import (
-	"fmt"
-
 	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -311,13 +309,6 @@ func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
 func (s *AppsodyApplicationStatus) GetConsumableServices() map[common.ServiceBindingCategory][]string {
 	return s.ConsumableServices
 }
-
-// GetConsumableServices returns a map of all the service names to be consumed by the application
-// func (s *AppsodyApplicationStatus) GetConsumableServices() map[common.ServiceBindingCategory][]string {
-// 	services := map[common.ServiceBindingCategory][]string{}
-// 	services[common.ServiceBindingCategoryOpenAPI] = s.ConsumableServices
-// 	return services
-// }
 
 // GetMinReplicas returns minimum replicas
 func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
@@ -754,8 +745,6 @@ func (s *AppsodyApplicationStatus) NewCondition() common.StatusCondition {
 // GetConditions returns slice of conditions
 func (s *AppsodyApplicationStatus) GetConditions() []common.StatusCondition {
 	var conditions = make([]common.StatusCondition, len(s.Conditions))
-	fmt.Println("s.Conditions", s.Conditions)
-	fmt.Println("conditions", conditions)
 	for i := range s.Conditions {
 		conditions[i] = &s.Conditions[i]
 	}
