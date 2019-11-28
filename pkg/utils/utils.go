@@ -391,7 +391,8 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
 			c, _ := findConsumes(svc, ba)
 			if c.GetMountPath() != "" {
-				volMount := corev1.VolumeMount{Name: svc, MountPath: c.GetMountPath(), ReadOnly: true}
+				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
+				volMount := corev1.VolumeMount{Name: svc, MountPath: actualMountPath, ReadOnly: true}
 				ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = append(ksvc.Spec.Template.Spec.Containers[0].VolumeMounts, volMount)
 
 				vol := corev1.Volume{
@@ -400,17 +401,36 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 						Secret: &corev1.SecretVolumeSource{
 							SecretName: svc,
 						},
-					}}
-				ksvc.Spec.Template.Spec.Volumes = append(ksvc.Spec.Template.Spec.Volumes, vol)
-			} else {
-				e := corev1.EnvFromSource{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: svc,
-						},
 					},
 				}
-				ksvc.Spec.Template.Spec.Containers[0].EnvFrom = append(ksvc.Spec.Template.Spec.Containers[0].EnvFrom, e)
+				ksvc.Spec.Template.Spec.Volumes = append(ksvc.Spec.Template.Spec.Volumes, vol)
+			} else {
+				// The characters allowed in names are: digits (0-9), lower case letters (a-z), -, and ..
+				keyPrefix := normalizeEnvVariableName(c.GetNamespace() + "_" + c.GetName() + "_")
+				keys := map[string]bool{
+					"username": false,
+					"password": false,
+					"url":      true,
+					"hostname": true,
+					"protocol": true,
+					"port":     false,
+					"context":  false,
+				}
+				for k, v := range keys {
+					env := corev1.EnvVar{
+						Name: keyPrefix + strings.ToUpper(k),
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: svc,
+								},
+								Key:      k,
+								Optional: &v,
+							},
+						},
+					}
+					ksvc.Spec.Template.Spec.Containers[0].Env = append(ksvc.Spec.Template.Spec.Containers[0].Env, env)
+				}
 			}
 		}
 	}
