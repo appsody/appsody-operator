@@ -42,6 +42,9 @@ type BaseApplicationStatus interface {
 const (
 	// StatusConditionTypeReconciled ...
 	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
+
+	// StatusConditionTypeDependencySatisfied ...
+	StatusConditionTypeDependencySatisfied StatusConditionType = "DependencySatisfied"
 )
 
 // BaseApplicationAutoscaling represents basic HPA configuration
@@ -83,10 +86,10 @@ type ServiceBindingProvides interface {
 
 // ServiceBindingConsumes represents a service to be consumed
 type ServiceBindingConsumes interface {
-	GetServiceName() string
+	GetName() string
 	GetNamespace() string
 	GetCategory() ServiceBindingCategory
-	GetMount() string
+	GetMountPath() string
 }
 
 // ServiceBindingAuth represents authentication info when binding services

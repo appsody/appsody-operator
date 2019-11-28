@@ -18,12 +18,14 @@ import (
 
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -80,7 +82,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 	configMap.Namespace = ns
 	err = reconciler.GetClient().Create(context.TODO(), configMap)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	if err != nil && !kerrors.IsAlreadyExists(err) {
 		log.Error(err, "Failed to create defaults config map in the cluster")
 		os.Exit(1)
 	}
@@ -99,7 +101,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 	configMap.Namespace = ns
 	err = reconciler.GetClient().Create(context.TODO(), configMap)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	if err != nil && !kerrors.IsAlreadyExists(err) {
 		log.Error(err, "Failed to create constants config map in the cluster")
 		os.Exit(1)
 	}
@@ -241,7 +243,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	ba = instance
 	err = r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -296,11 +298,11 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		Namespace: instance.Namespace,
 	}
 
-	secretClient, err := r.GetSecretClient()
-	if err != nil {
-		reqLogger.Error(err, "Failed to return a get a secret client")
-		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-	}
+	// secretClient, err := r.GetSecretClient()
+	// if err != nil {
+	// 	reqLogger.Error(err, "Failed to return a get a secret client")
+	// 	return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+	// }
 
 	secretName := appsodyutils.BuildServiceBindingSecretName(instance.Name, instance.Namespace)
 	if instance.Spec.Service.Provides != nil {
@@ -308,7 +310,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if instance.Spec.Service.Provides.Auth != nil {
 			if creds, err = r.GetServiceBindingCreds(instance); err != nil {
 				reqLogger.Error(err, "Failed to get authentication info", "Secret Name", instance.Spec.Service.Provides.Auth)
-				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				r.ManageError(errors.Wrapf(err, "service binding dependency not satisfied"), common.StatusConditionTypeDependencySatisfied, instance)
+				return r.ManageError(errors.New("Failed to get authentication info"), common.StatusConditionTypeReconciled, instance)
 			}
 		}
 
@@ -326,19 +329,21 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
-		if providerSecret.Annotations["service.appsody.dev/consuming-namespaces"] != "" {
-			namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/consuming-namespaces"], ";")
+		if providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"] != "" {
+			namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"], ";")
 			for _, ns := range namespaces {
 				if err = r.SyncSecretAcrossNamespace(providerSecret, ns); err != nil {
 					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 				}
 			}
 		}
+		r.ManageSuccess(common.StatusConditionTypeDependencySatisfied, ba)
 	} else {
-		providerSecret, err := secretClient.Secrets(instance.Namespace).Get(secretName, metav1.GetOptions{})
+		providerSecret := &corev1.Secret{}
+		err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, providerSecret)
 		if err != nil {
-			if errors.IsNotFound(err) {
-				reqLogger.V(4).Info(fmt.Sprintf("Unable to find secret '%s' in namespace '%s'", secretName, instance.Namespace))
+			if kerrors.IsNotFound(err) {
+				reqLogger.V(4).Info(fmt.Sprintf("Unable to find secret %q in namespace %q", secretName, instance.Namespace))
 			} else {
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
@@ -347,9 +352,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			if providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"] != "" {
 				namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"], ";")
 				for _, ns := range namespaces {
-					if err = secretClient.Secrets(ns).Delete(secretName, &metav1.DeleteOptions{}); err != nil {
-						if errors.IsNotFound(err) {
-							reqLogger.V(4).Info(fmt.Sprintf("Unable to find secret '%s' in namespace '%s'", secretName, instance.Namespace))
+					err = r.GetClient().Delete(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns}})
+					if err != nil {
+						if kerrors.IsNotFound(err) {
+							reqLogger.V(4).Info(fmt.Sprintf("unable to find secret %q in namespace %q", secretName, instance.Namespace))
 						} else {
 							return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 						}
@@ -358,7 +364,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 
 			// Delete the secret itself
-			if err = secretClient.Secrets(instance.Namespace).Delete(secretName, &metav1.DeleteOptions{}); err != nil {
+			err = r.GetClient().Delete(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: instance.Namespace}})
+			if err != nil {
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 		}
@@ -366,26 +373,30 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	for _, con := range instance.Spec.Service.Consumes {
 		if con.Category == common.ServiceBindingCategoryOpenAPI {
-			secretName := appsodyutils.BuildServiceBindingSecretName(con.ServiceName, con.Namespace)
-			existingSecret, err := secretClient.Secrets(con.Namespace).Get(secretName, metav1.GetOptions{})
+			secretName := appsodyutils.BuildServiceBindingSecretName(con.Name, con.Namespace)
+			existingSecret := &corev1.Secret{}
+			err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: con.Namespace}, existingSecret)
 			if err != nil {
-				if errors.IsNotFound(err) {
-					err = fmt.Errorf("Unable to find secret '%s' for service '%s' in namespace '%s': %w", secretName, con.ServiceName, con.Namespace, err)
+				if kerrors.IsNotFound(err) {
+					err = errors.Wrapf(err, "unable to find service binding secret %q for service %q in namespace %q", secretName, con.Name, con.Namespace)
 				}
 				reqLogger.Error(err, "Service binding dependency not satisfied")
-				return r.ManageError(fmt.Errorf("Service binding dependency not satisfied: %w", err), common.StatusConditionTypeReconciled, instance)
+
+				r.ManageError(errors.Wrapf(err, "service binding dependency not satisfied"), common.StatusConditionTypeDependencySatisfied, instance)
+				return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, instance)
 			}
 
 			existingSecret.Annotations["service.appsody.dev/copied-to-namespaces"] =
 				appsodyutils.EncodeData(instance.Namespace, existingSecret.Annotations["service.appsody.dev/copied-to-namespaces"])
-			existingSecret, err = secretClient.Secrets(con.Namespace).Update(existingSecret)
+			err = r.GetClient().Update(context.TODO(), existingSecret)
 			if err != nil {
 				reqLogger.Error(err, "Failed to update service provider secret")
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 
-			copiedSecret, err := secretClient.Secrets(instance.Namespace).Get(secretName, metav1.GetOptions{})
-			if errors.IsNotFound(err) {
+			copiedSecret := &corev1.Secret{}
+			err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: instance.Namespace}, copiedSecret)
+			if kerrors.IsNotFound(err) {
 				copiedSecret = &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        secretName,
@@ -401,7 +412,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 					copiedSecret.Annotations = map[string]string{}
 				}
 				copiedSecret.Annotations["service.appsody.dev/copied-from-namespace"] = con.Namespace
-				_, err = secretClient.Secrets(instance.Namespace).Create(copiedSecret)
+				err = r.GetClient().Create(context.TODO(), copiedSecret)
 			} else if err == nil {
 				owner, _ := r.AsOwner(instance, false)
 				appsodyutils.EnsureOwnerRef(copiedSecret, owner)
@@ -410,7 +421,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				}
 				copiedSecret.Annotations["service.appsody.dev/copied-from-namespace"] = con.Namespace
 				if !reflect.DeepEqual(existingSecret, copiedSecret) {
-					_, err = secretClient.Secrets(instance.Namespace).Update(copiedSecret)
+					err = r.GetClient().Update(context.TODO(), copiedSecret)
 				}
 			}
 
@@ -419,8 +430,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 
-			if !appsodyutils.ContainsString(instance.Status.ConsumableServices, secretName) {
-				instance.Status.ConsumableServices = append(instance.Status.ConsumableServices, secretName)
+			if instance.Status.ConsumableServices == nil {
+				instance.Status.ConsumableServices = map[common.ServiceBindingCategory][]string{}
+			}
+			if !appsodyutils.ContainsString(instance.Status.ConsumableServices[common.ServiceBindingCategoryOpenAPI], secretName) {
+				instance.Status.ConsumableServices[common.ServiceBindingCategoryOpenAPI] =
+					append(instance.Status.ConsumableServices[common.ServiceBindingCategoryOpenAPI], secretName)
 				err := r.UpdateStatus(instance)
 				if err != nil {
 					reqLogger.Error(err, "Unable to update status with service binding secret information")
@@ -429,6 +444,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 		}
 	}
+	r.ManageSuccess(common.StatusConditionTypeDependencySatisfied, ba)
 
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}

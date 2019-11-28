@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"bytes"
 	"fmt"
 	"strconv"
 	"strings"
@@ -122,39 +121,33 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 func CustomizeServieBindingSecret(secret *corev1.Secret, auth map[string]string, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)
 	secret.Labels = ba.GetLabels()
-	secret.Labels["service.appsody.dev/bindable"] = "true"
 	secret.Annotations = MergeMaps(secret.Annotations, ba.GetAnnotations())
 
 	secretdata := map[string][]byte{}
-	keyPrefix := strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(obj.GetName() + "_" + obj.GetNamespace()))
-
-	url := fmt.Sprintf("%s://%s.%s.svc.cluster.local", ba.GetService().GetProvides().GetProtocol(), obj.GetName(), obj.GetNamespace())
+	hostname := fmt.Sprintf("%s.%s.svc.cluster.local", obj.GetName(), obj.GetNamespace())
+	secretdata["hostname"] = []byte(hostname)
+	protocol := ba.GetService().GetProvides().GetProtocol()
+	secretdata["protocol"] = []byte(protocol)
+	url := fmt.Sprintf("%s://%s", protocol, hostname)
 	if ba.GetCreateKnativeService() == nil || *(ba.GetCreateKnativeService()) == false {
-		url = fmt.Sprintf("%s:%d", url, ba.GetService().GetPort())
+		port := strconv.Itoa(int(ba.GetService().GetPort()))
+		secretdata["port"] = []byte(port)
+		url = fmt.Sprintf("%s:%s", url, port)
 	}
 	if ba.GetService().GetProvides().GetContext() != "" {
 		context := strings.TrimPrefix(ba.GetService().GetProvides().GetContext(), "/")
+		secretdata["context"] = []byte(context)
 		url = fmt.Sprintf("%s/%s", url, context)
 	}
-	secretdata[keyPrefix+"_URL"] = []byte(url)
-
+	secretdata["url"] = []byte(url)
 	if auth != nil {
 		if username, ok := auth["username"]; ok {
-			secretdata[keyPrefix+"_USERNAME"] = []byte(username)
+			secretdata["username"] = []byte(username)
 		}
 		if password, ok := auth["password"]; ok {
-			secretdata[keyPrefix+"_PASSWORD"] = []byte(password)
-		}
-		if bearerToken, ok := auth["bearer-token"]; ok {
-			secretdata[keyPrefix+"_BEARER_TOKEN"] = []byte(bearerToken)
+			secretdata["password"] = []byte(password)
 		}
 	}
-
-	buf := new(bytes.Buffer)
-	for k, v := range secretdata {
-		fmt.Fprintf(buf, "%s=%s\n", k, v)
-	}
-	secretdata[BuildServiceBindingSecretName(obj.GetName(), obj.GetNamespace())+".properties"] = buf.Bytes()
 
 	secret.Data = secretdata
 }
@@ -194,8 +187,9 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	if ba.GetStatus().GetConsumableServices() != nil {
 		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
 			c, _ := findConsumes(svc, ba)
-			if c.GetMount() != "" {
-				volMount := corev1.VolumeMount{Name: svc, MountPath: c.GetMount(), ReadOnly: true}
+			if c.GetMountPath() != "" {
+				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
+				volMount := corev1.VolumeMount{Name: svc, MountPath: actualMountPath, ReadOnly: true}
 				pts.Spec.Containers[0].VolumeMounts = append(pts.Spec.Containers[0].VolumeMounts, volMount)
 
 				vol := corev1.Volume{
@@ -203,25 +197,37 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 					VolumeSource: corev1.VolumeSource{
 						Secret: &corev1.SecretVolumeSource{
 							SecretName: svc,
-							Items: []corev1.KeyToPath{
-								corev1.KeyToPath{
-									Key:  svc + ".properties",
-									Path: svc + ".properties",
-								},
-							},
 						},
 					},
 				}
 				pts.Spec.Volumes = append(pts.Spec.Volumes, vol)
 			} else {
-				e := corev1.EnvFromSource{
-					SecretRef: &corev1.SecretEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: svc,
-						},
-					},
+				// The characters allowed in names are: digits (0-9), lower case letters (a-z), -, and ..
+				keyPrefix := normalizeEnvVariableName(c.GetNamespace() + "_" + c.GetName() + "_")
+				keys := map[string]bool{
+					"username": false,
+					"password": false,
+					"url":      true,
+					"hostname": true,
+					"protocol": true,
+					"port":     false,
+					"context":  false,
 				}
-				pts.Spec.Containers[0].EnvFrom = append(pts.Spec.Containers[0].EnvFrom, e)
+				for k, v := range keys {
+					env := corev1.EnvVar{
+						Name: keyPrefix + strings.ToUpper(k),
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: svc,
+								},
+								Key:      k,
+								Optional: &v,
+							},
+						},
+					}
+					pts.Spec.Containers[0].Env = append(pts.Spec.Containers[0].Env, env)
+				}
 			}
 		}
 	}
@@ -384,8 +390,8 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 	if ba.GetStatus().GetConsumableServices() != nil {
 		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
 			c, _ := findConsumes(svc, ba)
-			if c.GetMount() != "" {
-				volMount := corev1.VolumeMount{Name: svc, MountPath: c.GetMount(), ReadOnly: true}
+			if c.GetMountPath() != "" {
+				volMount := corev1.VolumeMount{Name: svc, MountPath: c.GetMountPath(), ReadOnly: true}
 				ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = append(ksvc.Spec.Template.Spec.Containers[0].VolumeMounts, volMount)
 
 				vol := corev1.Volume{
@@ -589,12 +595,12 @@ func MergeMaps(maps ...map[string]string) map[string]string {
 
 // BuildServiceBindingSecretName returns secret name of a consumable service
 func BuildServiceBindingSecretName(name, namespace string) string {
-	return strings.Join([]string{name, namespace, "service", "binding"}, "-")
+	return fmt.Sprintf("%s-%s", namespace, name)
 }
 
 func findConsumes(secretName string, ba common.BaseApplication) (common.ServiceBindingConsumes, error) {
 	for _, v := range ba.GetService().GetConsumes() {
-		if BuildServiceBindingSecretName(v.GetServiceName(), v.GetNamespace()) == secretName {
+		if BuildServiceBindingSecretName(v.GetName(), v.GetNamespace()) == secretName {
 			return v, nil
 		}
 	}
@@ -662,4 +668,8 @@ func EnsureOwnerRef(metadata metav1.Object, newOwnerRef metav1.OwnerReference) b
 	}
 	metadata.SetOwnerReferences(newOwnerRefs)
 	return true
+}
+
+func normalizeEnvVariableName(name string) string {
+	return strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(name))
 }

@@ -31,7 +31,6 @@ import (
 var (
 	name                       = "app"
 	namespace                  = "appsody"
-	status                     = appsodyv1beta1.AppsodyApplicationStatus{Conditions: []appsodyv1beta1.StatusCondition{{Status: corev1.ConditionTrue}}}
 	appImage                   = "my-image"
 	ksvcAppImage               = "ksvc-image"
 	replicas             int32 = 3
@@ -362,7 +361,6 @@ func createAppsodyApp(n, ns string, spec appsodyv1beta1.AppsodyApplicationSpec) 
 	app := &appsodyv1beta1.AppsodyApplication{
 		ObjectMeta: metav1.ObjectMeta{Name: n, Namespace: ns},
 		Spec:       spec,
-		Status:     status,
 	}
 	return app
 }

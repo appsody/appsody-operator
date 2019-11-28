@@ -16,8 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/kubernetes"
-	corev1client "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,13 +27,11 @@ import (
 
 // ReconcilerBase base reconciler with some common behaviour
 type ReconcilerBase struct {
-	client       client.Client
-	scheme       *runtime.Scheme
-	recorder     record.EventRecorder
-	restConfig   *rest.Config
-	discovery    discovery.DiscoveryInterface
-	secretClient corev1client.SecretsGetter
-	clientset    *kubernetes.Clientset
+	client     client.Client
+	scheme     *runtime.Scheme
+	recorder   record.EventRecorder
+	restConfig *rest.Config
+	discovery  discovery.DiscoveryInterface
 }
 
 //NewReconcilerBase creates a new ReconcilerBase
@@ -61,15 +57,9 @@ func (r *ReconcilerBase) GetRecorder() record.EventRecorder {
 // GetDiscoveryClient ...
 func (r *ReconcilerBase) GetDiscoveryClient() (discovery.DiscoveryInterface, error) {
 	if r.discovery == nil {
-		if r.clientset == nil {
-			var err error
-			r.clientset, err = kubernetes.NewForConfig(r.restConfig)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		r.discovery = r.clientset.Discovery()
+		var err error
+		r.discovery, err = discovery.NewDiscoveryClientForConfig(r.restConfig)
+		return r.discovery, err
 	}
 
 	return r.discovery, nil
@@ -78,23 +68,6 @@ func (r *ReconcilerBase) GetDiscoveryClient() (discovery.DiscoveryInterface, err
 // SetDiscoveryClient ...
 func (r *ReconcilerBase) SetDiscoveryClient(discovery discovery.DiscoveryInterface) {
 	r.discovery = discovery
-}
-
-// GetSecretClient ...
-func (r *ReconcilerBase) GetSecretClient() (corev1client.SecretsGetter, error) {
-	if r.secretClient == nil {
-		if r.clientset == nil {
-			var err error
-			r.clientset, err = kubernetes.NewForConfig(r.restConfig)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		r.secretClient = r.clientset.CoreV1()
-	}
-
-	return r.secretClient, nil
 }
 
 var log = logf.Log.WithName("utils")
@@ -177,9 +150,11 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(name string, ns string) (*corev1.
 
 // ManageError ...
 func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
-
 	s := ba.GetStatus()
 	rObj := ba.(runtime.Object)
+	mObj := ba.(metav1.Object)
+	logger := log.WithValues("ba.Namespace", mObj.GetNamespace(), "ba.Name", mObj.GetName())
+	logger.Error(issue, "ManageError", "Condition", conditionType, "ba", ba)
 	r.GetRecorder().Event(rObj, "Warning", "ProcessingError", issue.Error())
 
 	oldCondition := s.GetCondition(conditionType)
@@ -209,7 +184,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 
 	err := r.UpdateStatus(rObj)
 	if err != nil {
-		log.Error(err, "Unable to update status")
+		logger.Error(err, "Unable to update status")
 		return reconcile.Result{
 			RequeueAfter: time.Second,
 			Requeue:      true,
@@ -238,6 +213,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 // ManageSuccess ...
 func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
 	s := ba.GetStatus()
+	log.Info("ManageSuccess", "s.GetConditions()", s.GetConditions())
 	oldCondition := s.GetCondition(conditionType)
 	if oldCondition == nil {
 		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
@@ -256,6 +232,7 @@ func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType,
 	statusCondition.SetReason("")
 	statusCondition.SetMessage("")
 	statusCondition.SetStatus(corev1.ConditionTrue)
+	statusCondition.SetType(conditionType)
 
 	s.SetCondition(statusCondition)
 	err := r.UpdateStatus(ba.(runtime.Object))
@@ -294,16 +271,15 @@ func (r *ReconcilerBase) UpdateStatus(obj runtime.Object) error {
 	return r.GetClient().Status().Update(context.Background(), obj)
 }
 
-// SyncSecretAcrossNamespace syncs up the secret data across a namespace and ensures owner is set properly
+// SyncSecretAcrossNamespace syncs up the secret data across a namespace
 func (r *ReconcilerBase) SyncSecretAcrossNamespace(fromSecret *corev1.Secret, namespace string) error {
-	toSecret, err := r.secretClient.Secrets(namespace).Get(fromSecret.GetName(), metav1.GetOptions{})
+	toSecret := &corev1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: fromSecret.Name, Namespace: namespace}, toSecret)
 	if err != nil {
 		return err
 	}
-
 	toSecret.Data = fromSecret.Data
-	_, err = r.secretClient.Secrets(namespace).Update(toSecret)
-	return err
+	return r.client.Update(context.TODO(), toSecret)
 }
 
 // AsOwner returns an owner reference set as the vault cluster CR
@@ -339,10 +315,9 @@ func (r *ReconcilerBase) GetServiceBindingCreds(ba common.BaseApplication) (map[
 	authMap := map[string]string{}
 
 	auth := ba.GetService().GetProvides().GetAuth()
-	c := r.secretClient.Secrets(metaObj.GetNamespace())
 	getCred := func(key string, getCredF func() corev1.SecretKeySelector) error {
 		if getCredF() != (corev1.SecretKeySelector{}) {
-			cred, err := getCredFromSecret(c, getCredF(), key)
+			cred, err := getCredFromSecret(metaObj.GetNamespace(), getCredF(), key, r.client)
 			if err != nil {
 				return err
 			}
@@ -358,9 +333,10 @@ func (r *ReconcilerBase) GetServiceBindingCreds(ba common.BaseApplication) (map[
 	return authMap, nil
 }
 
-func getCredFromSecret(c corev1client.SecretInterface, sel corev1.SecretKeySelector, cred string) (_ string, err error) {
-	var secret *corev1.Secret
-	if secret, err = c.Get(sel.Name, metav1.GetOptions{}); err != nil {
+func getCredFromSecret(namespace string, sel corev1.SecretKeySelector, cred string, client client.Client) (_ string, err error) {
+	secret := &corev1.Secret{}
+	err = client.Get(context.TODO(), types.NamespacedName{Name: sel.Name, Namespace: namespace}, secret)
+	if err != nil {
 		return "", errors.Wrapf(err, "unable to fetch credential %q from secret %q", cred, sel.Name)
 	}
 
