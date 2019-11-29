@@ -81,7 +81,7 @@ type AppsodyApplicationService struct {
 // ServiceBindingProvides represents information about
 // +k8s:openapi-gen=true
 type ServiceBindingProvides struct {
-	Category common.ServiceBindingCategory `json:"category,omitempty"`
+	Category common.ServiceBindingCategory `json:"category"`
 	Context  string                        `json:"context,omitempty"`
 	Protocol string                        `json:"protocol,omitempty"`
 	Auth     *ServiceBindingAuth           `json:"auth,omitempty"`
@@ -805,6 +805,6 @@ func convertFromCommonStatusConditionType(c common.StatusConditionType) StatusCo
 	case common.StatusConditionTypeDependencySatisfied:
 		return StatusConditionTypeDependencySatisfied
 	default:
-		return ""
+		panic(c)
 	}
 }
