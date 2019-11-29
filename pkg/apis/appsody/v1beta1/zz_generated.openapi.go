@@ -486,6 +486,7 @@ func schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref common.Reference
 						},
 					},
 				},
+				Required: []string{"category"},
 			},
 		},
 		Dependencies: []string{

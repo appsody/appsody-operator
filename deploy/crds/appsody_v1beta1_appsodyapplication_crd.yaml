@@ -325,6 +325,8 @@ spec:
                       type: string
                     protocol:
                       type: string
+                  required:
+                  - category
                   type: object
                 type:
                   type: string
