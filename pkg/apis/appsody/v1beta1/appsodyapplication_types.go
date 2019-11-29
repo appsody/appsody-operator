@@ -97,7 +97,7 @@ type ServiceBindingConsumes struct {
 }
 
 // AppsodyApplicationStorage ...
-// +k8s:openapi-gen=true
+// +k8s:openapi-gen=false
 type AppsodyApplicationStorage struct {
 	// +kubebuilder:validation:Pattern=^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
 	Size                string                        `json:"size,omitempty"`
@@ -125,9 +125,12 @@ type ServiceBindingAuth struct {
 type AppsodyApplicationStatus struct {
 	// +listType=map
 	// +listMapKey=type
-	Conditions         []StatusCondition                          `json:"conditions,omitempty"`
-	ConsumableServices map[common.ServiceBindingCategory][]string `json:"consumableServices,omitempty"`
+	Conditions       []StatusCondition `json:"conditions,omitempty"`
+	ConsumedServices ConsumedServices  `json:"consumedServices,omitempty"`
 }
+
+// ConsumedServices ...
+type ConsumedServices map[common.ServiceBindingCategory][]string
 
 // StatusCondition ...
 // +k8s:openapi-gen=true
@@ -305,9 +308,9 @@ func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
 	return &cr.Status
 }
 
-// GetConsumableServices returns a map of all the service names to be consumed by the application
-func (s *AppsodyApplicationStatus) GetConsumableServices() map[common.ServiceBindingCategory][]string {
-	return s.ConsumableServices
+// GetConsumedServices returns a map of all the service names to be consumed by the application
+func (s *AppsodyApplicationStatus) GetConsumedServices() map[common.ServiceBindingCategory][]string {
+	return s.ConsumedServices
 }
 
 // GetMinReplicas returns minimum replicas

@@ -184,8 +184,8 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	pts.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	pts.Spec.Volumes = ba.GetVolumes()
 
-	if ba.GetStatus().GetConsumableServices() != nil {
-		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
+	if ba.GetStatus().GetConsumedServices() != nil {
+		for _, svc := range ba.GetStatus().GetConsumedServices()[common.ServiceBindingCategoryOpenAPI] {
 			c, _ := findConsumes(svc, ba)
 			if c.GetMountPath() != "" {
 				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
@@ -387,8 +387,8 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 
 	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	ksvc.Spec.Template.Spec.Volumes = ba.GetVolumes()
-	if ba.GetStatus().GetConsumableServices() != nil {
-		for _, svc := range ba.GetStatus().GetConsumableServices()[common.ServiceBindingCategoryOpenAPI] {
+	if ba.GetStatus().GetConsumedServices() != nil {
+		for _, svc := range ba.GetStatus().GetConsumedServices()[common.ServiceBindingCategoryOpenAPI] {
 			c, _ := findConsumes(svc, ba)
 			if c.GetMountPath() != "" {
 				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")

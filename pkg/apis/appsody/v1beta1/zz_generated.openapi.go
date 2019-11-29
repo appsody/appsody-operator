@@ -16,7 +16,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStorage(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingConsumes":        schema_pkg_apis_appsody_v1beta1_ServiceBindingConsumes(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingProvides":        schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition":               schema_pkg_apis_appsody_v1beta1_StatusCondition(ref),
@@ -28,7 +27,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref common.ReferenceCall
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplication is the Schema for the appsodyapplications API",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
 						SchemaProps: spec.SchemaProps{
@@ -72,7 +70,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref common.Re
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplicationAutoScaling ...",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"targetCPUUtilizationPercentage": {
 						SchemaProps: spec.SchemaProps{
@@ -95,6 +92,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref common.Re
 				},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -103,7 +101,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplicationService ...",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"type": {
 						SchemaProps: spec.SchemaProps{
@@ -138,7 +135,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Type:   []string{"string"},
@@ -172,7 +168,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplicationSpec defines the desired state of AppsodyApplication",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"version": {
 						SchemaProps: spec.SchemaProps{
@@ -309,7 +304,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 						VendorExtensible: spec.VendorExtensible{
 							Extensions: spec.Extensions{
 								"x-kubernetes-list-map-keys": "name",
-								"x-kubernetes-list-type": []interface{}{
+								"x-kubernetes-list-type": []string{
 									"map",
 									"atomic",
 								},
@@ -376,7 +371,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "AppsodyApplicationStatus defines the observed state of AppsodyApplication",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						VendorExtensible: spec.VendorExtensible{
@@ -396,11 +390,10 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 							},
 						},
 					},
-					"consumableServices": {
+					"consumedServices": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
-								Allows: true,
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Type: []string{"array"},
@@ -425,44 +418,11 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 	}
 }
 
-func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStorage(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "AppsodyApplicationStorage ...",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"size": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"mountPath": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"volumeClaimTemplate": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("k8s.io/api/core/v1.PersistentVolumeClaim"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/api/core/v1.PersistentVolumeClaim"},
-	}
-}
-
 func schema_pkg_apis_appsody_v1beta1_ServiceBindingConsumes(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "ServiceBindingConsumes represents a service to be consumed",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
@@ -492,6 +452,7 @@ func schema_pkg_apis_appsody_v1beta1_ServiceBindingConsumes(ref common.Reference
 				Required: []string{"name", "category"},
 			},
 		},
+		Dependencies: []string{},
 	}
 }
 
@@ -500,7 +461,6 @@ func schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref common.Reference
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "ServiceBindingProvides represents information about",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"category": {
 						SchemaProps: spec.SchemaProps{
@@ -538,7 +498,6 @@ func schema_pkg_apis_appsody_v1beta1_StatusCondition(ref common.ReferenceCallbac
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "StatusCondition ...",
-				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"lastTransitionTime": {
 						SchemaProps: spec.SchemaProps{

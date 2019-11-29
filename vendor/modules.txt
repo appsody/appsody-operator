@@ -59,6 +59,8 @@ github.com/gobuffalo/envy
 # github.com/gogo/protobuf v1.2.1
 github.com/gogo/protobuf/proto
 github.com/gogo/protobuf/sortkeys
+# github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+github.com/golang/glog
 # github.com/golang/groupcache v0.0.0-20190129154638-5b532d6fd5ef
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.3.1
@@ -553,17 +555,45 @@ k8s.io/client-go/listers/settings/v1alpha1
 k8s.io/client-go/listers/storage/v1
 k8s.io/client-go/listers/storage/v1alpha1
 k8s.io/client-go/listers/storage/v1beta1
+# k8s.io/code-generator v0.0.0-00010101000000-000000000000 => k8s.io/code-generator v0.0.0-20181117043124-c2090bec4d9b
+k8s.io/code-generator/cmd/client-gen
+k8s.io/code-generator/cmd/deepcopy-gen
+k8s.io/code-generator/cmd/defaulter-gen
+k8s.io/code-generator/cmd/informer-gen
+k8s.io/code-generator/cmd/lister-gen
+k8s.io/code-generator/cmd/client-gen/args
+k8s.io/code-generator/cmd/client-gen/generators
+k8s.io/code-generator/pkg/util
+k8s.io/code-generator/cmd/deepcopy-gen/args
+k8s.io/code-generator/cmd/defaulter-gen/args
+k8s.io/code-generator/cmd/informer-gen/args
+k8s.io/code-generator/cmd/informer-gen/generators
+k8s.io/code-generator/cmd/lister-gen/args
+k8s.io/code-generator/cmd/lister-gen/generators
+k8s.io/code-generator/cmd/client-gen/types
+k8s.io/code-generator/cmd/client-gen/generators/fake
+k8s.io/code-generator/cmd/client-gen/generators/scheme
+k8s.io/code-generator/cmd/client-gen/generators/util
+k8s.io/code-generator/cmd/client-gen/path
 # k8s.io/gengo v0.0.0-20190128074634-0689ccc1d7d6
 k8s.io/gengo/args
-k8s.io/gengo/types
+k8s.io/gengo/examples/deepcopy-gen/generators
+k8s.io/gengo/examples/defaulter-gen/generators
 k8s.io/gengo/generator
 k8s.io/gengo/namer
+k8s.io/gengo/types
 k8s.io/gengo/parser
+k8s.io/gengo/examples/set-gen/sets
 # k8s.io/klog v0.2.0
 k8s.io/klog
 # k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d => k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
+k8s.io/kube-openapi/cmd/openapi-gen
 k8s.io/kube-openapi/pkg/common
+k8s.io/kube-openapi/cmd/openapi-gen/args
+k8s.io/kube-openapi/pkg/generators
+k8s.io/kube-openapi/pkg/generators/rules
 k8s.io/kube-openapi/pkg/util/proto
+k8s.io/kube-openapi/pkg/util/sets
 # knative.dev/pkg v0.0.0-20190626215608-1104d6c75533
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck/v1alpha1

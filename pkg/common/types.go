@@ -36,7 +36,7 @@ type BaseApplicationStatus interface {
 	GetCondition(StatusConditionType) StatusCondition
 	SetCondition(StatusCondition)
 	NewCondition() StatusCondition
-	GetConsumableServices() map[ServiceBindingCategory][]string
+	GetConsumedServices() map[ServiceBindingCategory][]string
 }
 
 const (

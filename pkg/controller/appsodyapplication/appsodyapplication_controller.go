@@ -430,12 +430,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 
-			if instance.Status.ConsumableServices == nil {
-				instance.Status.ConsumableServices = map[common.ServiceBindingCategory][]string{}
+			if instance.Status.ConsumedServices == nil {
+				instance.Status.ConsumedServices = map[common.ServiceBindingCategory][]string{}
 			}
-			if !appsodyutils.ContainsString(instance.Status.ConsumableServices[common.ServiceBindingCategoryOpenAPI], secretName) {
-				instance.Status.ConsumableServices[common.ServiceBindingCategoryOpenAPI] =
-					append(instance.Status.ConsumableServices[common.ServiceBindingCategoryOpenAPI], secretName)
+			if !appsodyutils.ContainsString(instance.Status.ConsumedServices[common.ServiceBindingCategoryOpenAPI], secretName) {
+				instance.Status.ConsumedServices[common.ServiceBindingCategoryOpenAPI] =
+					append(instance.Status.ConsumedServices[common.ServiceBindingCategoryOpenAPI], secretName)
 				err := r.UpdateStatus(instance)
 				if err != nil {
 					reqLogger.Error(err, "Unable to update status with service binding secret information")
