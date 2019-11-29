@@ -298,12 +298,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		Namespace: instance.Namespace,
 	}
 
-	// secretClient, err := r.GetSecretClient()
-	// if err != nil {
-	// 	reqLogger.Error(err, "Failed to return a get a secret client")
-	// 	return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-	// }
-
 	secretName := appsodyutils.BuildServiceBindingSecretName(instance.Name, instance.Namespace)
 	if instance.Spec.Service.Provides != nil {
 		var creds map[string]string
@@ -311,7 +305,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			if creds, err = r.GetServiceBindingCreds(instance); err != nil {
 				reqLogger.Error(err, "Failed to get authentication info", "Secret Name", instance.Spec.Service.Provides.Auth)
 				r.ManageError(errors.Wrapf(err, "service binding dependency not satisfied"), common.StatusConditionTypeDependencySatisfied, instance)
-				return r.ManageError(errors.New("Failed to get authentication info"), common.StatusConditionTypeReconciled, instance)
+				return r.ManageError(errors.New("failed to get authentication info"), common.StatusConditionTypeReconciled, instance)
 			}
 		}
 
@@ -320,7 +314,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			Namespace: instance.Namespace,
 		}
 		providerSecret := &corev1.Secret{ObjectMeta: secretMeta}
-		err = r.CreateOrUpdate(providerSecret, instance, func() error {
+		err = r.CreateOrUpdate(providerSecret, nil, func() error {
+			owner, _ := r.AsOwner(instance, false)
+			appsodyutils.EnsureOwnerRef(providerSecret, owner)
 			appsodyutils.CustomizeServieBindingSecret(providerSecret, creds, ba)
 			return nil
 		})

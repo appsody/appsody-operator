@@ -80,7 +80,9 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 		return err
 	}
 
-	controllerutil.SetControllerReference(owner, obj, r.scheme)
+	if owner != nil {
+		controllerutil.SetControllerReference(owner, obj, r.scheme)
+	}
 	runtimeObj, ok := obj.(runtime.Object)
 	if !ok {
 		err := fmt.Errorf("%T is not a runtime.Object", obj)
@@ -213,7 +215,6 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 // ManageSuccess ...
 func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
 	s := ba.GetStatus()
-	log.Info("ManageSuccess", "s.GetConditions()", s.GetConditions())
 	oldCondition := s.GetCondition(conditionType)
 	if oldCondition == nil {
 		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}

@@ -42,7 +42,7 @@ spec:
 
 ### Custom Resource Definition (CRD)
 
-The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](../deploy/crds/appsody.dev_appsodyapplications_crd.yaml).
+The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](../deploy/crds/appsody_v1beta1_appsodyapplication_crd.yaml).
 
 Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifying other parameters is optional.
 

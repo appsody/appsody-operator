@@ -26,6 +26,10 @@ spec:
     name: Message
     priority: 1
     type: string
+  - JSONPath: .status.conditions[?(@.type=='DependencySatisfied')].status
+    description: Status of the dependency condition
+    name: DependencySatisfied
+    type: string
   - JSONPath: .metadata.creationTimestamp
     description: Age of the resource
     name: Age
