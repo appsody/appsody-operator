@@ -26,6 +26,11 @@ spec:
     name: Message
     priority: 1
     type: string
+  - JSONPath: .status.conditions[?(@.type=='DependenciesSatisfied')].status
+    description: Status of the application dependencies
+    name: DependenciesSatisfied
+    priority: 1
+    type: string
   - JSONPath: .metadata.creationTimestamp
     description: Age of the resource
     name: Age
@@ -276,11 +281,47 @@ spec:
                   additionalProperties:
                     type: string
                   type: object
+                consumes:
+                  items:
+                    properties:
+                      category:
+                        type: string
+                      mountPath:
+                        type: string
+                      name:
+                        type: string
+                      namespace:
+                        type: string
+                    required:
+                    - name
+                    - category
+                    type: object
+                  type: array
                 port:
                   format: int32
                   maximum: 65536
                   minimum: 1
                   type: integer
+                provides:
+                  properties:
+                    auth:
+                      properties:
+                        password:
+                          description: The secret that contains the password for authenticating
+                          type: object
+                        username:
+                          description: The secret that contains the username for authenticating
+                          type: object
+                      type: object
+                    category:
+                      type: string
+                    context:
+                      type: string
+                    protocol:
+                      type: string
+                  required:
+                  - category
+                  type: object
                 type:
                   type: string
               type: object
@@ -332,6 +373,12 @@ spec:
                     type: string
                 type: object
               type: array
+            consumedServices:
+              additionalProperties:
+                items:
+                  type: string
+                type: array
+              type: object
           type: object
   version: v1beta1
   versions:

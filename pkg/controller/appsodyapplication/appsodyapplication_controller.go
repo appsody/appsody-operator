@@ -19,7 +19,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -78,7 +78,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 	configMap.Namespace = ns
 	err = reconciler.GetClient().Create(context.TODO(), configMap)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	if err != nil && !kerrors.IsAlreadyExists(err) {
 		log.Error(err, "Failed to create defaults config map in the cluster")
 		os.Exit(1)
 	}
@@ -97,7 +97,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 	configMap.Namespace = ns
 	err = reconciler.GetClient().Create(context.TODO(), configMap)
-	if err != nil && !errors.IsAlreadyExists(err) {
+	if err != nil && !kerrors.IsAlreadyExists(err) {
 		log.Error(err, "Failed to create constants config map in the cluster")
 		os.Exit(1)
 	}
@@ -149,17 +149,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	/*
-		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator", Namespace: "default"}}}, &handler.EnqueueRequestForObject{})
-		if err != nil {
-			return err
-		}
-
-		err = c.Watch(&source.Kind{Type: &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator-constants"}}}, &handler.EnqueueRequestForObject{})
-		if err != nil {
-			return err
-		}
-	*/
 	return nil
 }
 
@@ -250,7 +239,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	ba = instance
 	err = r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
@@ -303,6 +292,16 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	defaultMeta := metav1.ObjectMeta{
 		Name:      instance.Name,
 		Namespace: instance.Namespace,
+	}
+
+	result, err := r.ReconcileProvides(instance)
+	if err != nil || result != (reconcile.Result{}) {
+		return result, err
+	}
+
+	result, err = r.ReconcileConsumes(instance)
+	if err != nil || result != (reconcile.Result{}) {
+		return result, err
 	}
 
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {

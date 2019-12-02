@@ -27,6 +27,7 @@ require (
 	github.com/operator-framework/operator-sdk v0.8.2-0.20190522220659-031d71ef8154
 	github.com/pborman/uuid v0.0.0-20180906182336-adf5a7427709 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
+	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v0.9.3 // indirect
 	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.3
@@ -41,6 +42,7 @@ require (
 	k8s.io/api v0.0.0-20190222213804-5cb15d344471
 	k8s.io/apimachinery v0.0.0-20190221213512-86fb29eff628
 	k8s.io/client-go v2.0.0-alpha.0.0.20181126152608-d082d5923d3c+incompatible
+	k8s.io/code-generator v0.0.0-00010101000000-000000000000
 	k8s.io/kube-openapi v0.0.0-20180711000925-0cf8f7e6ed1d
 	knative.dev/pkg v0.0.0-20190626215608-1104d6c75533 // indirect
 	sigs.k8s.io/controller-runtime v0.1.10
