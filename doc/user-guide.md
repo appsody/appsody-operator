@@ -256,7 +256,7 @@ spec:
 
 ### Service binding
 
-Appsody Operator provides can be used to help with service binding in a cluster. The operator creates a secret on behalf of the **provider** `AppsodyApplication` and injects the secret into pods of the **consumer** `AppsodyApplication` as either environment variable or mounted files. See [Appsody Operator Design for Service Binding](https://docs.google.com/document/d/1riOX0iTnBBJpTKAHcQShYVMlgkaTNKb4m8fY7W1GqMA/edit) for more information on the architecture. At this time, the only supported service binding type is `openapi`.
+Appsody Operator can be used to help with service binding in a cluster. The operator creates a secret on behalf of the **provider** `AppsodyApplication` and injects the secret into pods of the **consumer** `AppsodyApplication` as either environment variable or mounted files. See [Appsody Operator Design for Service Binding](https://docs.google.com/document/d/1riOX0iTnBBJpTKAHcQShYVMlgkaTNKb4m8fY7W1GqMA/edit) for more information on the architecture. At this time, the only supported service binding type is `openapi`.
 
 The provider lists information about the REST API it provides:
 
