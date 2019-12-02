@@ -175,6 +175,9 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	pts.Spec.Containers[0].ReadinessProbe = ba.GetReadinessProbe()
 	pts.Spec.Containers[0].LivenessProbe = ba.GetLivenessProbe()
 
+	if ba.GetInitContainers() != nil {
+		pts.Spec.InitContainers = ba.GetInitContainers()
+	}
 	if ba.GetPullPolicy() != nil {
 		pts.Spec.Containers[0].ImagePullPolicy = *ba.GetPullPolicy()
 	}

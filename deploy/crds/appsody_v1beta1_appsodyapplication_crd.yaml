@@ -94,6 +94,10 @@ spec:
               type: array
             expose:
               type: boolean
+            initContainers:
+              items:
+                type: object
+              type: array
             livenessProbe:
               type: object
             monitoring:

@@ -272,6 +272,13 @@ func (in *AppsodyApplicationSpec) DeepCopyInto(out *AppsodyApplicationSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.InitContainers != nil {
+		in, out := &in.InitContainers, &out.InitContainers
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 

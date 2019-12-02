@@ -34,6 +34,7 @@ type AppsodyApplicationSpec struct {
 	Stack                string                         `json:"stack,omitempty"`
 	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
 	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty"`
+	InitContainers       []corev1.Container             `json:"initContainers,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -283,6 +284,11 @@ func (cr *AppsodyApplication) GetMonitoring() common.BaseApplicationMonitoring {
 // GetStatus returns AppsodyApplication status
 func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
 	return &cr.Status
+}
+
+// GetInitContainers returns list of init containers
+func (cr *AppsodyApplication) GetInitContainers() []corev1.Container {
+	return cr.Spec.InitContainers
 }
 
 // GetConsumedServices returns a map of all the service names to be consumed by the application
