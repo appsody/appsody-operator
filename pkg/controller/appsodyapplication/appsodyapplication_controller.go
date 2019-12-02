@@ -431,10 +431,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		appsodyutils.CustomizeService(svc, ba)
 		svc.Annotations = appsodyutils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
 		if instance.Spec.Monitoring != nil {
-			svc.Labels["app.appsody.dev/monitor"] = "true"
+			svc.Labels["app."+ba.GetGroupName()+"/monitor"] = "true"
 		} else {
-			if _, ok := svc.Labels["app.appsody.dev/monitor"]; ok {
-				delete(svc.Labels, "app.appsody.dev/monitor")
+			if _, ok := svc.Labels["app."+ba.GetGroupName()+"/monitor"]; ok {
+				delete(svc.Labels, "app."+ba.GetGroupName()+"/monitor")
 			}
 		}
 		return nil

@@ -137,4 +137,5 @@ type BaseApplication interface {
 	GetAnnotations() map[string]string
 	GetStatus() BaseApplicationStatus
 	GetInitContainers() []corev1.Container
+	GetGroupName() string
 }

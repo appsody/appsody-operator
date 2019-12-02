@@ -376,8 +376,8 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 			return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 		}
 
-		if providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"] != "" {
-			namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"], ",")
+		if providerSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"] != "" {
+			namespaces := strings.Split(providerSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"], ",")
 			for _, ns := range namespaces {
 				if err = r.SyncSecretAcrossNamespace(providerSecret, ns); err != nil {
 					return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
@@ -396,8 +396,8 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 			}
 		} else {
 			// Delete all copies of this secret in other namespaces
-			if providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"] != "" {
-				namespaces := strings.Split(providerSecret.Annotations["service.appsody.dev/copied-to-namespaces"], ",")
+			if providerSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"] != "" {
+				namespaces := strings.Split(providerSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"], ",")
 				for _, ns := range namespaces {
 					err = r.GetClient().Delete(context.TODO(), &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns}})
 					if err != nil {
@@ -438,8 +438,8 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 				return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
 			}
 
-			existingSecret.Annotations["service.appsody.dev/copied-to-namespaces"] =
-				AppendIfNotSubstring(mObj.GetNamespace(), existingSecret.Annotations["service.appsody.dev/copied-to-namespaces"])
+			existingSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"] =
+				AppendIfNotSubstring(mObj.GetNamespace(), existingSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"])
 			err = r.GetClient().Update(context.TODO(), existingSecret)
 			if err != nil {
 				r.ManageError(errors.Wrapf(err, "failed to update service provider secret"), common.StatusConditionTypeDependenciesSatisfied, ba)
@@ -452,7 +452,7 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 			}}
 			err = r.CreateOrUpdate(copiedSecret, nil, func() error {
 				copiedSecret.Labels = ba.GetLabels()
-				copiedSecret.Annotations = MergeMaps(copiedSecret.Annotations, mObj.GetAnnotations(), map[string]string{"service.appsody.dev/copied-from-namespace": con.GetNamespace()})
+				copiedSecret.Annotations = MergeMaps(copiedSecret.Annotations, mObj.GetAnnotations(), map[string]string{"service." + ba.GetGroupName() + "/copied-from-namespace": con.GetNamespace()})
 				copiedSecret.Data = existingSecret.Data
 				owner, _ := r.AsOwner(rObj, false)
 				EnsureOwnerRef(copiedSecret, owner)
