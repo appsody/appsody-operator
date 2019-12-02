@@ -58,6 +58,16 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `service.port` | The port exposed by the container. |
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |
+| `service.provides.category` | Service binding type to be provided by this CR. At this time, the only allowed value is `openapi`. |
+| `service.provides.protocol` | Protocol of the provided service. Defauts to `http`. |
+| `service.provides.context` | Specifies context root of the service. |
+| `service.provides.auth.username` | Optional value to specify username as [SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#secretkeyselector-v1-core). |
+| `service.provides.auth.password` | Optional value to specify password as [SecretKeySelector](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#secretkeyselector-v1-core). |
+| `service.consumes` | An array consisting of services to be consumed by the `AppsodyApplication`. |
+| `service.consumes[].category` | The type of service binding to be consumed. At this time, the only allowed value is `openapi`. |
+| `service.consumes[].name` | The name of the service to be consumed. If binding to an `AppsodyApplication`, then this would be the provider's CR name. |
+| `service.consumes[].namespace` | The namespace of the service to be consumed. If binding to an `AppsodyApplication`, then this would be the provider's CR name. ||
+| `service.consumes[].mountPath` | Optional field to specify which location in the pod, service binding secret should be mounted. If not specified, the secret keys would be injected as environment variables. |
 | `createKnativeService`   | A boolean to toggle the creation of Knative resources and usage of Knative serving. |
 | `expose`   | A boolean that toggles the external exposure of this deployment via a Route or a Knative Route resource.|
 | `replicas` | The static number of desired replica pods that run simultaneously. |
@@ -243,6 +253,69 @@ spec:
           requests:
             storage: 1Gi
 ```
+
+### Service binding
+
+Appsody Operator provides can be used to help with service binding in a cluster. The operator creates a secret on behalf of the **provider** `AppsodyApplication` and injects the secret into pods of the **consumer** `AppsodyApplication` as either environment variable or mounted files. See [Appsody Operator Design for Service Binding](https://docs.google.com/document/d/1riOX0iTnBBJpTKAHcQShYVMlgkaTNKb4m8fY7W1GqMA/edit) for more information on the architecture. At this time, the only supported service binding type is `openapi`.
+
+The provider lists information about the REST API it provides:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-provider
+  namespace: pro-namespace
+spec:
+  applicationImage: quay.io/my-repo/my-provider:1.0
+  service:
+    port: 3000
+    provides:
+      category: openapi
+      context: /my-context
+      auth:
+        password:
+          name: my-secret
+          key: password
+        username:
+          name: my-secret
+          key: username
+---
+kind: Secret
+apiVersion: v1
+metadata:
+  name: my-secret
+  namespace: pro-namespace
+data:
+  password: bW9vb29vb28=
+  username: dGhlbGF1Z2hpbmdjb3c=
+type: Opaque
+```
+
+And the consumer lists the services it is intending to consume:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-consumer
+  namespace: con-namespace
+spec:
+  applicationImage: quay.io/my-repo/my-consumer:1.0
+  expose: true
+  service:
+    port: 9080
+    consumes:
+    - category: openapi
+      name: my-provider
+      namespace: pro-namespace
+      mountPath: /appsody
+```
+
+In the above example, the operator creates a secret named `pro-namespace-my-provider` and adds the following key-value pairs: `username`, `password`, `url`, `context`, `protocol` and `hostname`. The `url` value format is `<protocol>://<name>.<namespace>.svc.cluster.local:<port>/<context>`. Since the provider and the consumer are in two different namespaces, the operator copies the provider secret into consumer's namespace. The operator then mounts the provider secret into a directory with the pattern `<mountPath>/<namespace>/<service_name>` on application container within pods. In the above example, the secret will be serialized into `/appsody/pro-namespace/my-provider`, which means we will have a file for each key, where the filename is the key and the content is the key's value.
+
+If consumer's CR does not include `mountPath`, the secret will be bound to environment variables with the pattern `<NAMESPACE>_<SERVICE-NAME>_<KEY>`, and the value of that env var is the key’s value. Due to syntax restrictions for Kubernetes environment variables, the string representing the namespace and the string representing the service name will have to be normalized by turning any non-`[azAZ09]` characters to become an underscore `(_)` character.
+
 ### Monitoring
 
 Appsody Operator can create a `ServiceMonitor` resource to integrate with `Prometheus Operator`.

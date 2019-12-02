@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
+
 ## [0.3.0]
+
+### Added
+
+- Added support for basic service binding. ([#187](https://github.com/appsody/appsody-operator/issues/187))
 
 ### Changed
 
@@ -54,7 +59,8 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/appsody/appsody-operator/compare/v0.2.2...v0.3.0
 [0.2.1]: https://github.com/appsody/appsody-operator/compare/0.2.1...v0.2.2
 [0.2.1]: https://github.com/appsody/appsody-operator/compare/v0.2.0...0.2.1
 [0.2.0]: https://github.com/appsody/appsody-operator/compare/v0.1.0...v0.2.0
