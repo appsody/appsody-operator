@@ -302,6 +302,11 @@ func (cr *AppsodyApplication) GetInitContainers() []corev1.Container {
 	return cr.Spec.InitContainers
 }
 
+// GetGroupName returns group name to be used in labels and annotation
+func (cr *AppsodyApplication) GetGroupName() string {
+	return "appsody.dev"
+}
+
 // GetConsumedServices returns a map of all the service names to be consumed by the application
 func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices {
 	if s.ConsumedServices == nil {
@@ -521,6 +526,24 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 		}
 	}
 
+	if cr.Spec.CreateAppDefinition == nil {
+		if defaults.CreateAppDefinition != nil {
+			cr.Spec.CreateKnativeService = defaults.CreateAppDefinition
+		}
+	}
+
+	if cr.Spec.Monitoring == nil {
+		if defaults.Monitoring != nil {
+			cr.Spec.Monitoring = defaults.Monitoring
+		}
+	}
+
+	if cr.Spec.InitContainers == nil {
+		if defaults.InitContainers != nil {
+			cr.Spec.InitContainers = defaults.InitContainers
+		}
+	}
+
 	if cr.Spec.Service.Provides != nil && cr.Spec.Service.Provides.Protocol == "" {
 		cr.Spec.Service.Provides.Protocol = "http"
 	}
@@ -631,7 +654,7 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 		for _, v := range constants.VolumeMounts {
 			found := false
 			for _, v2 := range cr.Spec.VolumeMounts {
-				if v2.Name == v.Name {
+				if v2.Name == v.Name && v2.SubPath == v.SubPath {
 					found = true
 				}
 			}
@@ -657,6 +680,19 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 	if constants.Autoscaling != nil {
 		cr.Spec.Autoscaling = constants.Autoscaling
 	}
+
+	if constants.InitContainers != nil {
+		cr.Spec.InitContainers = constants.InitContainers
+	}
+
+	if constants.Monitoring != nil {
+		cr.Spec.Monitoring = constants.Monitoring
+	}
+
+	if constants.CreateAppDefinition != nil {
+		cr.Spec.CreateAppDefinition = constants.CreateAppDefinition
+	}
+
 }
 
 // GetLabels returns set of labels to be added to all resources
