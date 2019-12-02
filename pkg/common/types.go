@@ -36,15 +36,18 @@ type BaseApplicationStatus interface {
 	GetCondition(StatusConditionType) StatusCondition
 	SetCondition(StatusCondition)
 	NewCondition() StatusCondition
-	GetConsumedServices() map[ServiceBindingCategory][]string
+	GetConsumedServices() ConsumedServices
 }
+
+// ConsumedServices stores status of the service binding dependencies
+type ConsumedServices map[ServiceBindingCategory][]string
 
 const (
 	// StatusConditionTypeReconciled ...
 	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
 
-	// StatusConditionTypeDependencySatisfied ...
-	StatusConditionTypeDependencySatisfied StatusConditionType = "DependencySatisfied"
+	// StatusConditionTypeDependenciesSatisfied ...
+	StatusConditionTypeDependenciesSatisfied StatusConditionType = "DependenciesSatisfied"
 )
 
 // BaseApplicationAutoscaling represents basic HPA configuration

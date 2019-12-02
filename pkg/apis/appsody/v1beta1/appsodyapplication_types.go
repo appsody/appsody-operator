@@ -18,37 +18,22 @@ type AppsodyApplicationSpec struct {
 	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
 	PullPolicy           *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
 	PullSecret           *string                        `json:"pullSecret,omitempty"`
+	Volumes              []corev1.Volume                `json:"volumes,omitempty"`
+	VolumeMounts         []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
 	ResourceConstraints  *corev1.ResourceRequirements   `json:"resourceConstraints,omitempty"`
 	ReadinessProbe       *corev1.Probe                  `json:"readinessProbe,omitempty"`
 	LivenessProbe        *corev1.Probe                  `json:"livenessProbe,omitempty"`
 	Service              *AppsodyApplicationService     `json:"service,omitempty"`
 	Expose               *bool                          `json:"expose,omitempty"`
+	EnvFrom              []corev1.EnvFromSource         `json:"envFrom,omitempty"`
+	Env                  []corev1.EnvVar                `json:"env,omitempty"`
 	ServiceAccountName   *string                        `json:"serviceAccountName,omitempty"`
+	Architecture         []string                       `json:"architecture,omitempty"`
 	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
 	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
 	Stack                string                         `json:"stack,omitempty"`
 	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
 	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty"`
-
-	// +listType=map
-	// +listMapKey=name
-	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
-
-	// +listType=map
-	// +listMapKey=name
-	Volumes []corev1.Volume `json:"volumes,omitempty"`
-
-	// +listType=map
-	// +listMapKey=name
-	// +listType=atomic
-	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
-
-	// +listType=map
-	// +listMapKey=name
-	Env []corev1.EnvVar `json:"env,omitempty"`
-
-	// +listType=set
-	Architecture []string `json:"architecture,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -70,12 +55,9 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
 
-	// +listType=atomic
-	Consumes []*ServiceBindingConsumes `json:"consumes,omitempty"`
-
-	Annotations map[string]string       `json:"annotations,omitempty"`
-	Protocol    string                  `json:"protocol,omitempty"`
-	Provides    *ServiceBindingProvides `json:"provides,omitempty"`
+	Annotations map[string]string        `json:"annotations,omitempty"`
+	Consumes    []ServiceBindingConsumes `json:"consumes,omitempty"`
+	Provides    *ServiceBindingProvides  `json:"provides,omitempty"`
 }
 
 // ServiceBindingProvides represents information about
@@ -107,9 +89,8 @@ type AppsodyApplicationStorage struct {
 
 // AppsodyApplicationMonitoring ...
 type AppsodyApplicationMonitoring struct {
-	// +listType=atomic
-	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
 	Labels    map[string]string       `json:"labels,omitempty"`
+	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
 }
 
 // ServiceBindingAuth allows a service to provide authentication information
@@ -123,14 +104,9 @@ type ServiceBindingAuth struct {
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
-	// +listType=map
-	// +listMapKey=type
-	Conditions       []StatusCondition `json:"conditions,omitempty"`
-	ConsumedServices ConsumedServices  `json:"consumedServices,omitempty"`
+	Conditions       []StatusCondition       `json:"conditions,omitempty"`
+	ConsumedServices common.ConsumedServices `json:"consumedServices,omitempty"`
 }
-
-// ConsumedServices ...
-type ConsumedServices map[common.ServiceBindingCategory][]string
 
 // StatusCondition ...
 // +k8s:openapi-gen=true
@@ -150,8 +126,8 @@ const (
 	// StatusConditionTypeReconciled ...
 	StatusConditionTypeReconciled StatusConditionType = "Reconciled"
 
-	// StatusConditionTypeDependencySatisfied ...
-	StatusConditionTypeDependencySatisfied StatusConditionType = "DependencySatisfied"
+	// StatusConditionTypeDependenciesSatisfied ...
+	StatusConditionTypeDependenciesSatisfied StatusConditionType = "DependenciesSatisfied"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -164,7 +140,7 @@ const (
 // +kubebuilder:printcolumn:name="Reconciled",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].status",priority=0,description="Status of the reconcile condition"
 // +kubebuilder:printcolumn:name="Reason",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].reason",priority=1,description="Reason for the failure of reconcile condition"
 // +kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].message",priority=1,description="Failure message from reconcile condition"
-// +kubebuilder:printcolumn:name="DependencySatisfied",type="string",JSONPath=".status.conditions[?(@.type=='DependencySatisfied')].status",priority=0,description="Status of the dependency condition"
+// +kubebuilder:printcolumn:name="DependenciesSatisfied",type="string",JSONPath=".status.conditions[?(@.type=='DependenciesSatisfied')].status",priority=1,description="Status of the application dependencies"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority=0,description="Age of the resource"
 type AppsodyApplication struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -310,7 +286,10 @@ func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
 }
 
 // GetConsumedServices returns a map of all the service names to be consumed by the application
-func (s *AppsodyApplicationStatus) GetConsumedServices() map[common.ServiceBindingCategory][]string {
+func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices {
+	if s.ConsumedServices == nil {
+		return nil
+	}
 	return s.ConsumedServices
 }
 
@@ -361,6 +340,9 @@ func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 
 // GetProvides returns service provider configuration
 func (s *AppsodyApplicationService) GetProvides() common.ServiceBindingProvides {
+	if s.Provides == nil {
+		return nil
+	}
 	return s.Provides
 }
 
@@ -376,6 +358,9 @@ func (p *ServiceBindingProvides) GetContext() string {
 
 // GetAuth returns secret of a service provider configuration
 func (p *ServiceBindingProvides) GetAuth() common.ServiceBindingAuth {
+	if p.Auth == nil {
+		return nil
+	}
 	return p.Auth
 }
 
@@ -388,7 +373,7 @@ func (p *ServiceBindingProvides) GetProtocol() string {
 func (s *AppsodyApplicationService) GetConsumes() []common.ServiceBindingConsumes {
 	consumes := make([]common.ServiceBindingConsumes, len(s.Consumes))
 	for i := range s.Consumes {
-		consumes[i] = s.Consumes[i]
+		consumes[i] = &s.Consumes[i]
 	}
 	return consumes
 }
@@ -791,8 +776,8 @@ func convertToCommonStatusConditionType(c StatusConditionType) common.StatusCond
 	switch c {
 	case StatusConditionTypeReconciled:
 		return common.StatusConditionTypeReconciled
-	case StatusConditionTypeDependencySatisfied:
-		return common.StatusConditionTypeDependencySatisfied
+	case StatusConditionTypeDependenciesSatisfied:
+		return common.StatusConditionTypeDependenciesSatisfied
 	default:
 		panic(c)
 	}
@@ -802,8 +787,8 @@ func convertFromCommonStatusConditionType(c common.StatusConditionType) StatusCo
 	switch c {
 	case common.StatusConditionTypeReconciled:
 		return StatusConditionTypeReconciled
-	case common.StatusConditionTypeDependencySatisfied:
-		return StatusConditionTypeDependencySatisfied
+	case common.StatusConditionTypeDependenciesSatisfied:
+		return StatusConditionTypeDependenciesSatisfied
 	default:
 		panic(c)
 	}

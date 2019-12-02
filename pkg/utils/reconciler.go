@@ -283,7 +283,7 @@ func (r *ReconcilerBase) SyncSecretAcrossNamespace(fromSecret *corev1.Secret, na
 	return r.client.Update(context.TODO(), toSecret)
 }
 
-// AsOwner returns an owner reference set as the vault cluster CR
+// AsOwner returns an owner reference object based on the input object. Also can set controller field on the owner ref.
 func (r *ReconcilerBase) AsOwner(obj metav1.Object, controller bool) (metav1.OwnerReference, error) {
 	runtimeObj, ok := obj.(runtime.Object)
 	if !ok {
@@ -334,9 +334,9 @@ func (r *ReconcilerBase) GetServiceBindingCreds(ba common.BaseApplication) (map[
 	return authMap, nil
 }
 
-func getCredFromSecret(namespace string, sel corev1.SecretKeySelector, cred string, client client.Client) (_ string, err error) {
+func getCredFromSecret(namespace string, sel corev1.SecretKeySelector, cred string, client client.Client) (string, error) {
 	secret := &corev1.Secret{}
-	err = client.Get(context.TODO(), types.NamespacedName{Name: sel.Name, Namespace: namespace}, secret)
+	err := client.Get(context.TODO(), types.NamespacedName{Name: sel.Name, Namespace: namespace}, secret)
 	if err != nil {
 		return "", errors.Wrapf(err, "unable to fetch credential %q from secret %q", cred, sel.Name)
 	}

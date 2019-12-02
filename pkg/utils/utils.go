@@ -184,53 +184,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	pts.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	pts.Spec.Volumes = ba.GetVolumes()
 
-	if ba.GetStatus().GetConsumedServices() != nil {
-		for _, svc := range ba.GetStatus().GetConsumedServices()[common.ServiceBindingCategoryOpenAPI] {
-			c, _ := findConsumes(svc, ba)
-			if c.GetMountPath() != "" {
-				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
-				volMount := corev1.VolumeMount{Name: svc, MountPath: actualMountPath, ReadOnly: true}
-				pts.Spec.Containers[0].VolumeMounts = append(pts.Spec.Containers[0].VolumeMounts, volMount)
-
-				vol := corev1.Volume{
-					Name: svc,
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: svc,
-						},
-					},
-				}
-				pts.Spec.Volumes = append(pts.Spec.Volumes, vol)
-			} else {
-				// The characters allowed in names are: digits (0-9), lower case letters (a-z), -, and ..
-				keyPrefix := normalizeEnvVariableName(c.GetNamespace() + "_" + c.GetName() + "_")
-				keys := map[string]bool{
-					"username": false,
-					"password": false,
-					"url":      true,
-					"hostname": true,
-					"protocol": true,
-					"port":     false,
-					"context":  false,
-				}
-				for k, v := range keys {
-					env := corev1.EnvVar{
-						Name: keyPrefix + strings.ToUpper(k),
-						ValueFrom: &corev1.EnvVarSource{
-							SecretKeyRef: &corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: svc,
-								},
-								Key:      k,
-								Optional: &v,
-							},
-						},
-					}
-					pts.Spec.Containers[0].Env = append(pts.Spec.Containers[0].Env, env)
-				}
-			}
-		}
-	}
+	CustomizeConsumedServices(&pts.Spec, ba)
 
 	if ba.GetServiceAccountName() != nil && *ba.GetServiceAccountName() != "" {
 		pts.Spec.ServiceAccountName = *ba.GetServiceAccountName()
@@ -243,6 +197,48 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	if len(ba.GetArchitecture()) > 0 {
 		pts.Spec.Affinity = &corev1.Affinity{}
 		CustomizeAffinity(pts.Spec.Affinity, ba)
+	}
+}
+
+// CustomizeConsumedServices ...
+func CustomizeConsumedServices(podSpec *corev1.PodSpec, ba common.BaseApplication) {
+	if ba.GetStatus().GetConsumedServices() != nil {
+		for _, svc := range ba.GetStatus().GetConsumedServices()[common.ServiceBindingCategoryOpenAPI] {
+			c, _ := findConsumes(svc, ba)
+			if c.GetMountPath() != "" {
+				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
+				volMount := corev1.VolumeMount{Name: svc, MountPath: actualMountPath, ReadOnly: true}
+				podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volMount)
+
+				vol := corev1.Volume{
+					Name: svc,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: svc,
+						},
+					},
+				}
+				podSpec.Volumes = append(podSpec.Volumes, vol)
+			} else {
+				// The characters allowed in names are: digits (0-9), lower case letters (a-z), -, and ..
+				keyPrefix := normalizeEnvVariableName(c.GetNamespace() + "_" + c.GetName() + "_")
+				keys := []string{"username", "password", "url", "hostname", "protocol", "port", "context"}
+				for _, k := range keys {
+					env := corev1.EnvVar{
+						Name: keyPrefix + strings.ToUpper(k),
+						ValueFrom: &corev1.EnvVarSource{
+							SecretKeyRef: &corev1.SecretKeySelector{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: svc,
+								},
+								Key: k,
+							},
+						},
+					}
+					podSpec.Containers[0].Env = append(podSpec.Containers[0].Env, env)
+				}
+			}
+		}
 	}
 }
 
@@ -387,53 +383,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 
 	ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	ksvc.Spec.Template.Spec.Volumes = ba.GetVolumes()
-	if ba.GetStatus().GetConsumedServices() != nil {
-		for _, svc := range ba.GetStatus().GetConsumedServices()[common.ServiceBindingCategoryOpenAPI] {
-			c, _ := findConsumes(svc, ba)
-			if c.GetMountPath() != "" {
-				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
-				volMount := corev1.VolumeMount{Name: svc, MountPath: actualMountPath, ReadOnly: true}
-				ksvc.Spec.Template.Spec.Containers[0].VolumeMounts = append(ksvc.Spec.Template.Spec.Containers[0].VolumeMounts, volMount)
-
-				vol := corev1.Volume{
-					Name: svc,
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: svc,
-						},
-					},
-				}
-				ksvc.Spec.Template.Spec.Volumes = append(ksvc.Spec.Template.Spec.Volumes, vol)
-			} else {
-				// The characters allowed in names are: digits (0-9), lower case letters (a-z), -, and ..
-				keyPrefix := normalizeEnvVariableName(c.GetNamespace() + "_" + c.GetName() + "_")
-				keys := map[string]bool{
-					"username": false,
-					"password": false,
-					"url":      true,
-					"hostname": true,
-					"protocol": true,
-					"port":     false,
-					"context":  false,
-				}
-				for k, v := range keys {
-					env := corev1.EnvVar{
-						Name: keyPrefix + strings.ToUpper(k),
-						ValueFrom: &corev1.EnvVarSource{
-							SecretKeyRef: &corev1.SecretKeySelector{
-								LocalObjectReference: corev1.LocalObjectReference{
-									Name: svc,
-								},
-								Key:      k,
-								Optional: &v,
-							},
-						},
-					}
-					ksvc.Spec.Template.Spec.Containers[0].Env = append(ksvc.Spec.Template.Spec.Containers[0].Env, env)
-				}
-			}
-		}
-	}
+	CustomizeConsumedServices(&ksvc.Spec.Template.Spec.PodSpec, ba)
 
 	if ba.GetServiceAccountName() != nil && *ba.GetServiceAccountName() != "" {
 		ksvc.Spec.Template.Spec.ServiceAccountName = *ba.GetServiceAccountName()
@@ -638,20 +588,20 @@ func ContainsString(slice []string, s string) bool {
 	return false
 }
 
-// EncodeData ...
-func EncodeData(l, data string) string {
-	if data == "" {
-		return l
+// AppendIfNotSubstring appends `a` to comma-separated list of strings in `s`
+func AppendIfNotSubstring(a, s string) string {
+	if s == "" {
+		return a
 	}
-	subs := strings.Split(data, ";")
-	if !ContainsString(subs, l) {
-		subs = append(subs, l)
+	subs := strings.Split(s, ",")
+	if !ContainsString(subs, a) {
+		subs = append(subs, a)
 	}
-	return strings.Join(subs, ";")
+	return strings.Join(subs, ",")
 }
 
 // EnsureOwnerRef adds the ownerref if needed. Removes ownerrefs with conflicting UIDs.
-// Returns true if the input is mutated. Copied from "github.com/openshift/origin/pkg/controller"
+// Returns true if the input is mutated. Copied from "https://github.com/openshift/library-go/blob/release-4.5/pkg/controller/ownerref.go"
 func EnsureOwnerRef(metadata metav1.Object, newOwnerRef metav1.OwnerReference) bool {
 	foundButNotEqual := false
 	for _, existingOwnerRef := range metadata.GetOwnerReferences() {

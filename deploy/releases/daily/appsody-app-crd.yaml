@@ -26,9 +26,10 @@ spec:
     name: Message
     priority: 1
     type: string
-  - JSONPath: .status.conditions[?(@.type=='DependencySatisfied')].status
-    description: Status of the dependency condition
-    name: DependencySatisfied
+  - JSONPath: .status.conditions[?(@.type=='DependenciesSatisfied')].status
+    description: Status of the application dependencies
+    name: DependenciesSatisfied
+    priority: 1
     type: string
   - JSONPath: .metadata.creationTimestamp
     description: Age of the resource
@@ -63,7 +64,6 @@ spec:
             applicationImage:
               type: string
             architecture:
-              description: +listType=set
               items:
                 type: string
               type: array
@@ -85,12 +85,10 @@ spec:
             createKnativeService:
               type: boolean
             env:
-              description: +listType=map +listMapKey=name
               items:
                 type: object
               type: array
             envFrom:
-              description: +listType=map +listMapKey=name +listType=atomic
               items:
                 type: object
               type: array
@@ -101,7 +99,6 @@ spec:
             monitoring:
               properties:
                 endpoints:
-                  description: +listType=atomic
                   items:
                     properties:
                       basicAuth:
@@ -285,7 +282,6 @@ spec:
                     type: string
                   type: object
                 consumes:
-                  description: +listType=atomic
                   items:
                     properties:
                       category:
@@ -306,8 +302,6 @@ spec:
                   maximum: 65536
                   minimum: 1
                   type: integer
-                protocol:
-                  type: string
                 provides:
                   properties:
                     auth:
@@ -325,6 +319,8 @@ spec:
                       type: string
                     protocol:
                       type: string
+                  required:
+                  - category
                   type: object
                 type:
                   type: string
@@ -346,12 +342,10 @@ spec:
             version:
               type: string
             volumeMounts:
-              description: +listType=map +listMapKey=name
               items:
                 type: object
               type: array
             volumes:
-              description: +listType=map +listMapKey=name
               items:
                 type: object
               type: array
@@ -361,7 +355,6 @@ spec:
         status:
           properties:
             conditions:
-              description: +listType=map +listMapKey=type
               items:
                 properties:
                   lastTransitionTime:
