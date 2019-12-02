@@ -136,4 +136,5 @@ type BaseApplication interface {
 	GetLabels() map[string]string
 	GetAnnotations() map[string]string
 	GetStatus() BaseApplicationStatus
+	GetInitContainers() []corev1.Container
 }
