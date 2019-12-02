@@ -71,7 +71,7 @@ func verifyPullPolicy(t *testing.T, f *framework.Framework, app *appsodyv1beta1.
 	name := app.ObjectMeta.Name
 	ns := app.ObjectMeta.Namespace
 
-	deploy, err := f.KubeClient.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{IncludeUninitialized: true})
+	deploy, err := f.KubeClient.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
 	if err != nil {
 		t.Logf("Got error when getting PullPolicy %s: %s", name, err)
 		return err

@@ -77,11 +77,6 @@ var log = logf.Log.WithName("utils")
 // CreateOrUpdate ...
 func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, reconcile func() error) error {
 
-	mutate := func(o runtime.Object) error {
-		err := reconcile()
-		return err
-	}
-
 	if owner != nil {
 		controllerutil.SetControllerReference(owner, obj, r.scheme)
 	}
@@ -91,7 +86,7 @@ func (r *ReconcilerBase) CreateOrUpdate(obj metav1.Object, owner metav1.Object, 
 		log.Error(err, "Failed to convert into runtime.Object")
 		return err
 	}
-	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.GetClient(), runtimeObj, mutate)
+	result, err := controllerutil.CreateOrUpdate(context.TODO(), r.GetClient(), runtimeObj, reconcile)
 	if err != nil {
 		return err
 	}

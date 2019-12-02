@@ -12,29 +12,38 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
-	Version              string                         `json:"version,omitempty"`
-	ApplicationImage     string                         `json:"applicationImage"`
-	Replicas             *int32                         `json:"replicas,omitempty"`
-	Autoscaling          *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy           *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
-	PullSecret           *string                        `json:"pullSecret,omitempty"`
-	Volumes              []corev1.Volume                `json:"volumes,omitempty"`
-	VolumeMounts         []corev1.VolumeMount           `json:"volumeMounts,omitempty"`
-	ResourceConstraints  *corev1.ResourceRequirements   `json:"resourceConstraints,omitempty"`
-	ReadinessProbe       *corev1.Probe                  `json:"readinessProbe,omitempty"`
-	LivenessProbe        *corev1.Probe                  `json:"livenessProbe,omitempty"`
-	Service              *AppsodyApplicationService     `json:"service,omitempty"`
-	Expose               *bool                          `json:"expose,omitempty"`
-	EnvFrom              []corev1.EnvFromSource         `json:"envFrom,omitempty"`
-	Env                  []corev1.EnvVar                `json:"env,omitempty"`
-	ServiceAccountName   *string                        `json:"serviceAccountName,omitempty"`
-	Architecture         []string                       `json:"architecture,omitempty"`
-	Storage              *AppsodyApplicationStorage     `json:"storage,omitempty"`
-	CreateKnativeService *bool                          `json:"createKnativeService,omitempty"`
-	Stack                string                         `json:"stack,omitempty"`
-	Monitoring           *AppsodyApplicationMonitoring  `json:"monitoring,omitempty"`
-	CreateAppDefinition  *bool                          `json:"createAppDefinition,omitempty"`
-	InitContainers       []corev1.Container             `json:"initContainers,omitempty"`
+	Version          string                         `json:"version,omitempty"`
+	ApplicationImage string                         `json:"applicationImage"`
+	Replicas         *int32                         `json:"replicas,omitempty"`
+	Autoscaling      *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
+	PullPolicy       *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
+	PullSecret       *string                        `json:"pullSecret,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	Volumes []corev1.Volume `json:"volumes,omitempty"`
+	// +listType=atomic
+	VolumeMounts        []corev1.VolumeMount         `json:"volumeMounts,omitempty"`
+	ResourceConstraints *corev1.ResourceRequirements `json:"resourceConstraints,omitempty"`
+	ReadinessProbe      *corev1.Probe                `json:"readinessProbe,omitempty"`
+	LivenessProbe       *corev1.Probe                `json:"livenessProbe,omitempty"`
+	Service             *AppsodyApplicationService   `json:"service,omitempty"`
+	Expose              *bool                        `json:"expose,omitempty"`
+	// +listType=atomic
+	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	Env                []corev1.EnvVar `json:"env,omitempty"`
+	ServiceAccountName *string         `json:"serviceAccountName,omitempty"`
+	// +listType=set
+	Architecture         []string                      `json:"architecture,omitempty"`
+	Storage              *AppsodyApplicationStorage    `json:"storage,omitempty"`
+	CreateKnativeService *bool                         `json:"createKnativeService,omitempty"`
+	Stack                string                        `json:"stack,omitempty"`
+	Monitoring           *AppsodyApplicationMonitoring `json:"monitoring,omitempty"`
+	CreateAppDefinition  *bool                         `json:"createAppDefinition,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -56,9 +65,10 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
 
-	Annotations map[string]string        `json:"annotations,omitempty"`
-	Consumes    []ServiceBindingConsumes `json:"consumes,omitempty"`
-	Provides    *ServiceBindingProvides  `json:"provides,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	// +listType=atomic
+	Consumes []ServiceBindingConsumes `json:"consumes,omitempty"`
+	Provides *ServiceBindingProvides  `json:"provides,omitempty"`
 }
 
 // ServiceBindingProvides represents information about
@@ -105,6 +115,7 @@ type ServiceBindingAuth struct {
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
+	// +listType=atomic
 	Conditions       []StatusCondition       `json:"conditions,omitempty"`
 	ConsumedServices common.ConsumedServices `json:"consumedServices,omitempty"`
 }
