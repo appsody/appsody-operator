@@ -101,7 +101,7 @@ func AppsodyAutoScalingTest(t *testing.T) {
 }
 
 func getHPA(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, f *framework.Framework, options k.ListOptions) *autoscalingv1.HorizontalPodAutoscalerList {
-	if err := f.Client.List(goctx.TODO(), &options, hpa); err != nil {
+	if err := f.Client.List(goctx.TODO(), hpa, &options); err != nil {
 		t.Logf("Get HPA: (%v)", err)
 	}
 	return hpa

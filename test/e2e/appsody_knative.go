@@ -62,7 +62,7 @@ func isKnativeInstalled(t *testing.T, f *framework.Framework) bool {
 	options := &dynclient.ListOptions{
 		Namespace: "knative-serving",
 	}
-	err := f.Client.List(goctx.TODO(), options, deployments)
+	err := f.Client.List(goctx.TODO(), deployments, options)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return false

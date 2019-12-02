@@ -46,7 +46,7 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetRecorder("appsody-operator")),
+	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetEventRecorderFor("appsody-operator")),
 		StackDefaults: map[string]appsodyv1beta1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1beta1.AppsodyApplicationSpec{}}
 
 	watchNamespaces, err := appsodyutils.GetWatchNamespaces()

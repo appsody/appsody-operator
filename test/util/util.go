@@ -71,7 +71,7 @@ func MakeBasicAppsodyApplication(t *testing.T, f *framework.Framework, n string,
 // WaitForStatefulSet : Identical to WaitForDeployment but for StatefulSets.
 func WaitForStatefulSet(t *testing.T, kc kubernetes.Interface, ns, n string, replicas int, retryInterval, timeout time.Duration) error {
 	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
-		statefulset, err := kc.AppsV1().StatefulSets(ns).Get(n, metav1.GetOptions{IncludeUninitialized: true})
+		statefulset, err := kc.AppsV1().StatefulSets(ns).Get(n, metav1.GetOptions{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				t.Logf("Waiting for availability of %s statefulset\n", n)
@@ -142,7 +142,7 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 		Namespace: ns,
 	}
 	podlist := &corev1.PodList{}
-	err := f.Client.List(goctx.TODO(), options, podlist)
+	err := f.Client.List(goctx.TODO(), podlist, options)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -154,7 +154,7 @@ func FailureCleanup(t *testing.T, f *framework.Framework, ns string, failure err
 	}
 
 	crlist := &appsodyv1beta1.AppsodyApplicationList{}
-	err = f.Client.List(goctx.TODO(), options, crlist)
+	err = f.Client.List(goctx.TODO(), crlist, options)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -68,7 +68,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	options := k.ListOptions{LabelSelector: selec}
 
 	// If there are no service monitors deployed an error will be thrown below
-	err = f.Client.List(goctx.TODO(), &options, smList)
+	err = f.Client.List(goctx.TODO(), smList, &options)
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
@@ -102,7 +102,7 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 	}
 
 	// If there are no service monitors deployed an error will be thrown below
-	err = f.Client.List(goctx.TODO(), &options, smList)
+	err = f.Client.List(goctx.TODO(), smList, &options)
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
@@ -207,7 +207,7 @@ func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, name
 	options := k.ListOptions{LabelSelector: selec}
 
 	// If there are no service monitors deployed an error will be thrown below
-	err = f.Client.List(goctx.TODO(), &options, smList)
+	err = f.Client.List(goctx.TODO(), smList, &options)
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
