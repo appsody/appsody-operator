@@ -15,6 +15,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Added support for basic service binding. ([#187](https://github.com/appsody/appsody-operator/issues/187))
+- Added support for init containers array. ([#188](https://github.com/appsody/appsody-operator/issues/188))
 
 ### Changed
 
@@ -61,7 +62,7 @@ The initial release of the Appsody Operator 🎉🥳
 
 [Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.3.0...HEAD
 [0.3.0]: https://github.com/appsody/appsody-operator/compare/v0.2.2...v0.3.0
-[0.2.1]: https://github.com/appsody/appsody-operator/compare/0.2.1...v0.2.2
+[0.2.2]: https://github.com/appsody/appsody-operator/compare/0.2.1...v0.2.2
 [0.2.1]: https://github.com/appsody/appsody-operator/compare/v0.2.0...0.2.1
 [0.2.0]: https://github.com/appsody/appsody-operator/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/appsody/appsody-operator/releases/tag/v0.1.0
