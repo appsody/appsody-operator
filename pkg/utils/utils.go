@@ -28,10 +28,13 @@ func CustomizeDeployment(deploy *appsv1.Deployment, ba common.BaseApplication) {
 	deploy.Annotations = MergeMaps(deploy.Annotations, ba.GetAnnotations())
 
 	deploy.Spec.Replicas = ba.GetReplicas()
-	deploy.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app.kubernetes.io/instance": obj.GetName(),
-		},
+
+	if deploy.Spec.Selector == nil {
+		deploy.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app.kubernetes.io/instance": obj.GetName(),
+			},
+		}
 	}
 
 	UpdateAppDefinition(deploy.Labels, deploy.Annotations, ba)
@@ -45,10 +48,12 @@ func CustomizeStatefulSet(statefulSet *appsv1.StatefulSet, ba common.BaseApplica
 
 	statefulSet.Spec.Replicas = ba.GetReplicas()
 	statefulSet.Spec.ServiceName = obj.GetName() + "-headless"
-	statefulSet.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app.kubernetes.io/instance": obj.GetName(),
-		},
+	if statefulSet.Spec.Selector == nil {
+		statefulSet.Spec.Selector = &metav1.LabelSelector{
+			MatchLabels: map[string]string{
+				"app.kubernetes.io/instance": obj.GetName(),
+			},
+		}
 	}
 
 	UpdateAppDefinition(statefulSet.Labels, statefulSet.Annotations, ba)

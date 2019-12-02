@@ -528,7 +528,7 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 
 	if cr.Spec.CreateAppDefinition == nil {
 		if defaults.CreateAppDefinition != nil {
-			cr.Spec.CreateKnativeService = defaults.CreateAppDefinition
+			cr.Spec.CreateAppDefinition = defaults.CreateAppDefinition
 		}
 	}
 
