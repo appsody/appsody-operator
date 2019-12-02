@@ -37,6 +37,7 @@ type BaseApplicationStatus interface {
 	SetCondition(StatusCondition)
 	NewCondition() StatusCondition
 	GetConsumedServices() ConsumedServices
+	SetConsumedServices(ConsumedServices)
 }
 
 // ConsumedServices stores status of the service binding dependencies

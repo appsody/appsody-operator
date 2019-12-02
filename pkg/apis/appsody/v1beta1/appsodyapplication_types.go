@@ -293,6 +293,11 @@ func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices
 	return s.ConsumedServices
 }
 
+// SetConsumedServices sets ConsumedServices
+func (s *AppsodyApplicationStatus) SetConsumedServices(c common.ConsumedServices) {
+	s.ConsumedServices = c
+}
+
 // GetMinReplicas returns minimum replicas
 func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
 	return a.MinReplicas

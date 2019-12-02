@@ -223,6 +223,7 @@ func CustomizeConsumedServices(podSpec *corev1.PodSpec, ba common.BaseApplicatio
 				// The characters allowed in names are: digits (0-9), lower case letters (a-z), -, and ..
 				keyPrefix := normalizeEnvVariableName(c.GetNamespace() + "_" + c.GetName() + "_")
 				keys := []string{"username", "password", "url", "hostname", "protocol", "port", "context"}
+				trueVal := true
 				for _, k := range keys {
 					env := corev1.EnvVar{
 						Name: keyPrefix + strings.ToUpper(k),
@@ -231,7 +232,8 @@ func CustomizeConsumedServices(podSpec *corev1.PodSpec, ba common.BaseApplicatio
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: svc,
 								},
-								Key: k,
+								Key:      k,
+								Optional: &trueVal,
 							},
 						},
 					}
