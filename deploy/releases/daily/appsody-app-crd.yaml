@@ -41,7 +41,7 @@ spec:
     listKind: AppsodyApplicationList
     plural: appsodyapplications
     singular: appsodyapplication
-  scope: ""
+  scope: Namespaced
   subresources:
     status: {}
   validation:
