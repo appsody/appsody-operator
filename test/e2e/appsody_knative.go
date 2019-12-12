@@ -9,8 +9,6 @@ import (
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // AppsodyKnativeTest : Create application with knative service enabled to verify feature
@@ -58,16 +56,15 @@ func AppsodyKnativeTest(t *testing.T) {
 }
 
 func isKnativeInstalled(t *testing.T, f *framework.Framework) bool {
-	deployments := &corev1.PodList{}
-	options := &dynclient.ListOptions{
-		Namespace: "knative-serving",
-	}
-	err := f.Client.List(goctx.TODO(), deployments, options)
+	ns := &corev1.NamespaceList{}
+	err := f.Client.List(goctx.TODO(), ns)
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false
-		}
 		t.Fatalf("Error occurred while trying to find knative-serving %v", err)
 	}
-	return true
+	for _, val := range ns.Items {
+		if val.Name == "knative-serving" {
+			return true
+		}
+	}
+	return false
 }
