@@ -207,6 +207,23 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 	}, predSubResource)
 
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
+		OwnerType: &appsodyv1beta1.AppsodyApplication{},
+	}, predSubResource)
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}},
+		&appsodyutils.EnqueueRequestsForServiceBinding{
+			Client:          mgr.GetClient(),
+			GroupName:       "appsody.dev",
+			WatchNamespaces: watchNamespaces,
+		})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

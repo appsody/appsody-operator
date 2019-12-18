@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"reflect"
 	"strings"
 	"time"
 
@@ -296,7 +297,7 @@ func (r *ReconcilerBase) AsOwner(rObj runtime.Object, controller bool) (metav1.O
 	}
 
 	return metav1.OwnerReference{
-		APIVersion: gvk.Version,
+		APIVersion: gvk.Group + "/" + gvk.Version,
 		Kind:       gvk.Kind,
 		Name:       mObj.GetName(),
 		UID:        mObj.GetUID(),
@@ -346,7 +347,6 @@ func getCredFromSecret(namespace string, sel corev1.SecretKeySelector, cred stri
 
 // ReconcileProvides ...
 func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconcile.Result, err error) {
-	rObj := ba.(runtime.Object)
 	mObj := ba.(metav1.Object)
 	logger := log.WithValues("ba.Namespace", mObj.GetNamespace(), "ba.Name", mObj.GetName())
 
@@ -365,9 +365,7 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 			Namespace: mObj.GetNamespace(),
 		}
 		providerSecret := &corev1.Secret{ObjectMeta: secretMeta}
-		err = r.CreateOrUpdate(providerSecret, nil, func() error {
-			owner, _ := r.AsOwner(rObj, true)
-			EnsureOwnerRef(providerSecret, owner)
+		err = r.CreateOrUpdate(providerSecret, mObj, func() error {
 			CustomizeServieBindingSecret(providerSecret, creds, ba)
 			return nil
 		})
@@ -376,14 +374,6 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 			return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 		}
 
-		if providerSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"] != "" {
-			namespaces := strings.Split(providerSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"], ",")
-			for _, ns := range namespaces {
-				if err = r.SyncSecretAcrossNamespace(providerSecret, ns); err != nil {
-					return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
-				}
-			}
-		}
 		r.ManageSuccess(common.StatusConditionTypeDependenciesSatisfied, ba)
 	} else {
 		providerSecret := &corev1.Secret{}
@@ -438,6 +428,9 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 				return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
 			}
 
+			if existingSecret.Annotations == nil {
+				existingSecret.Annotations = map[string]string{}
+			}
 			existingSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"] =
 				AppendIfNotSubstring(mObj.GetNamespace(), existingSecret.Annotations["service."+ba.GetGroupName()+"/copied-to-namespaces"])
 			err = r.GetClient().Update(context.TODO(), existingSecret)
@@ -446,18 +439,38 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			}
 
-			copiedSecret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: mObj.GetNamespace(),
-			}}
-			err = r.CreateOrUpdate(copiedSecret, nil, func() error {
-				copiedSecret.Labels = ba.GetLabels()
-				copiedSecret.Annotations = MergeMaps(copiedSecret.Annotations, mObj.GetAnnotations(), map[string]string{"service." + ba.GetGroupName() + "/copied-from-namespace": con.GetNamespace()})
-				copiedSecret.Data = existingSecret.Data
+			copiedSecret := &corev1.Secret{}
+			err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: mObj.GetNamespace()}, copiedSecret)
+			if kerrors.IsNotFound(err) {
 				owner, _ := r.AsOwner(rObj, false)
-				EnsureOwnerRef(copiedSecret, owner)
-				return nil
-			})
+				copiedSecret = &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            secretName,
+						Namespace:       mObj.GetNamespace(),
+						Labels:          existingSecret.Labels,
+						OwnerReferences: []metav1.OwnerReference{owner},
+						Annotations:     map[string]string{"service." + ba.GetGroupName() + "/consumed-by": mObj.GetName()},
+					},
+					Data: existingSecret.Data,
+				}
+				err = r.GetClient().Create(context.TODO(), copiedSecret)
+			} else if err == nil {
+				existingCopiedSecret := copiedSecret.DeepCopyObject()
+				if copiedSecret.Annotations == nil {
+					copiedSecret.Annotations = map[string]string{}
+				}
+				copiedSecret.Annotations["service."+ba.GetGroupName()+"/consumed-by"] = AppendIfNotSubstring(mObj.GetName(), copiedSecret.Annotations["service."+ba.GetGroupName()+"/consumed-by"])
+				copiedSecret.Data = existingSecret.Data
+				// Skip setting the owner on the copiedSecret if the consumer and provider are in the same namespace
+				// This is because we want the secret to be deleted if the provider is deleted
+				if con.GetNamespace() != copiedSecret.Namespace {
+					owner, _ := r.AsOwner(rObj, false)
+					EnsureOwnerRef(copiedSecret, owner)
+				}
+				if !reflect.DeepEqual(existingCopiedSecret, copiedSecret) {
+					err = r.GetClient().Update(context.TODO(), copiedSecret)
+				}
+			}
 
 			if err != nil {
 				r.ManageError(errors.Wrapf(err, "failed to create or update secret for consumes"), common.StatusConditionTypeDependenciesSatisfied, ba)
