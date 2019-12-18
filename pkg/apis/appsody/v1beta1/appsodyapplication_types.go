@@ -719,7 +719,7 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 		}
 	}
 
-	if cr.Spec.Service.Provides != nil {
+	if cr.Spec.Service != nil && cr.Spec.Service.Provides != nil {
 		labels["service.appsody.dev/bindable"] = "true"
 	}
 
