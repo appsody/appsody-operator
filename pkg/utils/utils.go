@@ -358,7 +358,7 @@ func CustomizeAffinity(a *corev1.Affinity, ba common.BaseApplication) {
 func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplication) {
 	obj := ba.(metav1.Object)
 	ksvc.Labels = ba.GetLabels()
-	MergeMaps(ksvc.Annotations, ba.GetAnnotations())
+	ksvc.Annotations = MergeMaps(ksvc.Annotations, ba.GetAnnotations())
 
 	// If `expose` is not set to `true`, make Knative route a private route by adding `serving.knative.dev/visibility: cluster-local`
 	// to the Knative service. If `serving.knative.dev/visibility: XYZ` is defined in cr.Labels, `expose` always wins.
@@ -652,4 +652,20 @@ func EnsureOwnerRef(metadata metav1.Object, newOwnerRef metav1.OwnerReference) b
 
 func normalizeEnvVariableName(name string) string {
 	return strings.NewReplacer("-", "_", ".", "_").Replace(strings.ToUpper(name))
+}
+
+// GetConnectToAnnotation returns a map containing a key-value annotatio. The key is `app.openshift.io/connects-to`.
+// The value is a comma-seperated list of applications `ba` is connectiong to based on `spec.service.consumes`.
+func GetConnectToAnnotation(ba common.BaseApplication) map[string]string {
+	connectTo := []string{}
+	for _, con := range ba.GetService().GetConsumes() {
+		if ba.(metav1.Object).GetNamespace() == con.GetNamespace() {
+			connectTo = append(connectTo, con.GetName())
+		}
+	}
+	anno := map[string]string{}
+	if len(connectTo) > 0 {
+		anno["app.openshift.io/connects-to"] = strings.Join(connectTo, ",")
+	}
+	return anno
 }

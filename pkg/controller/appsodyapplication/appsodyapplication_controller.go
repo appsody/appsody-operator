@@ -402,6 +402,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(ksvc, instance, func() error {
 			appsodyutils.CustomizeKnativeService(ksvc, instance)
+			if r.IsOpenShift() {
+				ksvc.Spec.Template.ObjectMeta.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
+			}
 			return nil
 		})
 
@@ -487,6 +490,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			appsodyutils.CustomizeStatefulSet(statefulSet, instance)
 			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			appsodyutils.CustomizePersistence(statefulSet, instance)
+			if r.IsOpenShift() {
+				statefulSet.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), statefulSet.Annotations)
+			}
 			return nil
 		})
 		if err != nil {
@@ -515,6 +521,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		err = r.CreateOrUpdate(deploy, instance, func() error {
 			appsodyutils.CustomizeDeployment(deploy, instance)
 			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
+			if r.IsOpenShift() {
+				deploy.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), deploy.Annotations)
+			}
 			return nil
 		})
 		if err != nil {

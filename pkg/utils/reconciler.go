@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
+	openshiftutils "github.com/RHsyseng/operator-utils/pkg/utils/openshift"
 )
 
 // ReconcilerBase base reconciler with some common behaviour
@@ -494,4 +495,13 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 		}
 	}
 	return r.ManageSuccess(common.StatusConditionTypeDependenciesSatisfied, ba)
+}
+
+// IsOpenShift returns true if the operator is running on an OpenShift platform
+func (r *ReconcilerBase) IsOpenShift() bool {
+	isOpenShift, err := openshiftutils.IsOpenShift(r.restConfig)
+	if err != nil {
+		return false
+	}
+	return isOpenShift
 }
