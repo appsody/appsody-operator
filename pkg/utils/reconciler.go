@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	routev1 "github.com/openshift/api/route/v1" 
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -26,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	openshiftutils "github.com/RHsyseng/operator-utils/pkg/utils/openshift"
 )
 
 // ReconcilerBase base reconciler with some common behaviour
@@ -423,7 +423,13 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 			err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: con.GetNamespace()}, existingSecret)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
-					err = errors.Wrapf(err, "unable to find service binding secret %q for service %q in namespace %q", secretName, con.GetName(), con.GetNamespace())
+					delErr := r.DeleteResource(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: mObj.GetNamespace()}})
+					if delErr != nil && !kerrors.IsNotFound(delErr) {
+						delErr = errors.Wrapf(delErr, "unable to delete orphaned secret %q from namespace %q", secretName, mObj.GetNamespace())
+						err = errors.Wrapf(delErr, "unable to find service binding secret %q for service %q in namespace %q", secretName, con.GetName(), con.GetNamespace())
+					} else {
+						err = errors.Wrapf(err, "unable to find service binding secret %q for service %q in namespace %q", secretName, con.GetName(), con.GetNamespace())
+					}
 				}
 				r.ManageError(errors.Wrapf(err, "service binding dependency not satisfied"), common.StatusConditionTypeDependenciesSatisfied, ba)
 				return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
@@ -499,7 +505,7 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 
 // IsOpenShift returns true if the operator is running on an OpenShift platform
 func (r *ReconcilerBase) IsOpenShift() bool {
-	isOpenShift, err := openshiftutils.IsOpenShift(r.restConfig)
+	isOpenShift, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String())
 	if err != nil {
 		return false
 	}

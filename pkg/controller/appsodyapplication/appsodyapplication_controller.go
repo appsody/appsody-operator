@@ -123,7 +123,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	for _, ns := range watchNamespaces {
 		watchNamespacesMap[ns] = true
 	}
-	isClusterWide := len(watchNamespacesMap) == 1 && watchNamespacesMap[""]
+	isClusterWide := appsodyutils.IsClusterWide(watchNamespaces)
 
 	log.V(1).Info("Adding a new controller", "watchNamespaces", watchNamespaces, "isClusterWide", isClusterWide)
 
@@ -197,6 +197,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
+		OwnerType: &appsodyv1beta1.AppsodyApplication{},
+	}, predSubResource)
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(
+		&source.Kind{Type: &corev1.Secret{}},
+		&appsodyutils.EnqueueRequestsForServiceBinding{
+			Client:          mgr.GetClient(),
+			GroupName:       "appsody.dev",
+			WatchNamespaces: watchNamespaces,
+		})
+	if err != nil {
+		return err
+	}
+
 	err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
@@ -206,23 +224,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		IsController: true,
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 	}, predSubResource)
-
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
-		OwnerType: &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
-	if err != nil {
-		return err
-	}
-
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}},
-		&appsodyutils.EnqueueRequestsForServiceBinding{
-			Client:          mgr.GetClient(),
-			GroupName:       "appsody.dev",
-			WatchNamespaces: watchNamespaces,
-		})
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

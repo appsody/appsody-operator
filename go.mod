@@ -5,7 +5,6 @@ go 1.13
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.4.9 // indirect
 	github.com/Azure/go-autorest v11.5.2+incompatible // indirect
-	github.com/RHsyseng/operator-utils v0.0.0-20191024171829-7e918ca09e5e
 	github.com/coreos/prometheus-operator v0.29.0
 	github.com/go-openapi/spec v0.19.0
 	github.com/google/go-containerregistry v0.0.0-20190717132004-e8c6a4993fa7 // indirect

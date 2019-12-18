@@ -669,3 +669,8 @@ func GetConnectToAnnotation(ba common.BaseApplication) map[string]string {
 	}
 	return anno
 }
+
+// IsClusterWide returns true if watchNamespaces is set to [""]
+func IsClusterWide(watchNamespaces []string) bool {
+	return len(watchNamespaces) == 1 && watchNamespaces[0] == ""
+}

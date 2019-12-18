@@ -13,9 +13,6 @@ github.com/Azure/go-autorest/tracing
 github.com/PuerkitoBio/purell
 # github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578
 github.com/PuerkitoBio/urlesc
-# github.com/RHsyseng/operator-utils v0.0.0-20191024171829-7e918ca09e5e
-github.com/RHsyseng/operator-utils/internal/platform
-github.com/RHsyseng/operator-utils/pkg/utils/openshift
 # github.com/beorn7/perks v1.0.0
 github.com/beorn7/perks/quantile
 # github.com/census-instrumentation/opencensus-proto v0.2.0

@@ -17,8 +17,8 @@ import (
 
 var _ handler.EventHandler = &EnqueueRequestsForServiceBinding{}
 
-// EnqueueRequestsForServiceBinding enqueues Requests for the Base Application objects that rely on the secret
-// the event is called.
+// EnqueueRequestsForServiceBinding enqueues reconcile Requests for applications affected by the secrets that
+// EventHandler is called for
 type EnqueueRequestsForServiceBinding struct {
 	handler.Funcs
 	WatchNamespaces []string
@@ -43,7 +43,13 @@ func (e *EnqueueRequestsForServiceBinding) Generic(evt event.GenericEvent, q wor
 	e.handle(evt.Meta, q)
 }
 
+// handle common implementation to enqueue reconcile Requests for applications affected by the secrets that
+// EventHandler is called for
 func (e *EnqueueRequestsForServiceBinding) handle(evtMeta metav1.Object, q workqueue.RateLimitingInterface) {
+	if evtMeta.GetLabels() == nil || evtMeta.GetLabels()["service."+e.GroupName+"/bindable"] != "true" {
+		return
+	}
+
 	apps, _ := e.matchApplication(evtMeta)
 	for _, app := range apps {
 		q.Add(reconcile.Request{
@@ -54,20 +60,24 @@ func (e *EnqueueRequestsForServiceBinding) handle(evtMeta metav1.Object, q workq
 	}
 }
 
+// matchApplication returns the NamespacedName of all applications consuming (directly or indirectly) the service
+// binding secret
 func (e *EnqueueRequestsForServiceBinding) matchApplication(mSecret metav1.Object) ([]types.NamespacedName, error) {
-	dependents, err := e.getDependentSecrets(mSecret)
+	allSecrets, err := e.getDependentSecrets(mSecret.GetName())
 	if err != nil {
 		return nil, err
 	}
 
-	matched := []types.NamespacedName{}
+	// Manually add the secret currenly being handled. This is needed as the secret might have been deleted already
 	tmpSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: mSecret.GetName(), Namespace: mSecret.GetNamespace(), Annotations: mSecret.GetAnnotations()}}
-	dependents = append(dependents, tmpSecret)
-	for _, depSecret := range dependents {
-		if depSecret.Annotations != nil {
-			if consumedBy, ok := depSecret.Annotations["service."+e.GroupName+"/consumed-by"]; ok {
+	allSecrets = append(allSecrets, tmpSecret)
+
+	matched := []types.NamespacedName{}
+	for _, secret := range allSecrets {
+		if secret.Annotations != nil {
+			if consumedBy, ok := secret.Annotations["service."+e.GroupName+"/consumed-by"]; ok {
 				for _, app := range strings.Split(consumedBy, ",") {
-					matched = append(matched, types.NamespacedName{Name: app, Namespace: depSecret.Namespace})
+					matched = append(matched, types.NamespacedName{Name: app, Namespace: secret.Namespace})
 				}
 			}
 		}
@@ -75,13 +85,14 @@ func (e *EnqueueRequestsForServiceBinding) matchApplication(mSecret metav1.Objec
 	return matched, nil
 }
 
-func (e *EnqueueRequestsForServiceBinding) getDependentSecrets(secret metav1.Object) ([]corev1.Secret, error) {
+// getDependentSecrets returns all the secrets with the input name in the namespaces the operator is watching.
+func (e *EnqueueRequestsForServiceBinding) getDependentSecrets(secretName string) ([]corev1.Secret, error) {
 	dependents := []corev1.Secret{}
 	var namespaces []string
 
-	if e.isClusterWide() {
+	if IsClusterWide(e.WatchNamespaces) {
 		nsList := &corev1.NamespaceList{}
-		err := e.Client.List(context.Background(), nsList)
+		err := e.Client.List(context.Background(), nsList, client.InNamespace(""))
 		if err != nil {
 			return nil, err
 		}
@@ -94,7 +105,7 @@ func (e *EnqueueRequestsForServiceBinding) getDependentSecrets(secret metav1.Obj
 
 	for _, ns := range namespaces {
 		depSecret := &corev1.Secret{}
-		err := e.Client.Get(context.Background(), client.ObjectKey{Name: secret.GetName(), Namespace: ns}, depSecret)
+		err := e.Client.Get(context.Background(), client.ObjectKey{Name: secretName, Namespace: ns}, depSecret)
 		if err != nil && !errors.IsNotFound(err) {
 			return nil, err
 		}
@@ -102,8 +113,4 @@ func (e *EnqueueRequestsForServiceBinding) getDependentSecrets(secret metav1.Obj
 	}
 
 	return dependents, nil
-}
-
-func (e *EnqueueRequestsForServiceBinding) isClusterWide() bool {
-	return len(e.WatchNamespaces) == 1 && e.WatchNamespaces[0] == ""
 }
