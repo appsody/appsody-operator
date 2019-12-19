@@ -123,7 +123,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	for _, ns := range watchNamespaces {
 		watchNamespacesMap[ns] = true
 	}
-	isClusterWide := len(watchNamespacesMap) == 1 && watchNamespacesMap[""]
+	isClusterWide := appsodyutils.IsClusterWide(watchNamespaces)
 
 	log.V(1).Info("Adding a new controller", "watchNamespaces", watchNamespaces, "isClusterWide", isClusterWide)
 
@@ -193,6 +193,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		IsController: true,
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 	}, predSubResource)
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
+		OwnerType: &appsodyv1beta1.AppsodyApplication{},
+	}, predSubResource)
+	if err != nil {
+		return err
+	}
+
+	err = c.Watch(
+		&source.Kind{Type: &corev1.Secret{}},
+		&appsodyutils.EnqueueRequestsForServiceBinding{
+			Client:          mgr.GetClient(),
+			GroupName:       "appsody.dev",
+			WatchNamespaces: watchNamespaces,
+		})
 	if err != nil {
 		return err
 	}
@@ -385,6 +403,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(ksvc, instance, func() error {
 			appsodyutils.CustomizeKnativeService(ksvc, instance)
+			if r.IsOpenShift() {
+				ksvc.Spec.Template.ObjectMeta.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
+			}
 			return nil
 		})
 
@@ -470,6 +491,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			appsodyutils.CustomizeStatefulSet(statefulSet, instance)
 			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			appsodyutils.CustomizePersistence(statefulSet, instance)
+			if r.IsOpenShift() {
+				statefulSet.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), statefulSet.Annotations)
+			}
 			return nil
 		})
 		if err != nil {
@@ -498,6 +522,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		err = r.CreateOrUpdate(deploy, instance, func() error {
 			appsodyutils.CustomizeDeployment(deploy, instance)
 			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
+			if r.IsOpenShift() {
+				deploy.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), deploy.Annotations)
+			}
 			return nil
 		})
 		if err != nil {
