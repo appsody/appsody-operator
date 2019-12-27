@@ -1,0 +1,26 @@
+#!/bin/bash
+#
+# Run this script to collect de-bug information about the appsody operator pod
+
+set -Euox pipefail
+
+BIN=oc
+LOGS_DIR="/must-gather"
+SUB_DIR="appsodyoperatorpods"
+
+# Get the pod name(s) and namespace(s) that the appsody-operator(s) are running in, across all namespaces
+PODS=$(${BIN} get pods --all-namespaces -o jsonpath="{.items[?(@.metadata.labels.name=='appsody-operator')].metadata.name}")
+NAMESPACES=$(${BIN} get pods --all-namespaces -o jsonpath="{.items[?(@.metadata.labels.name=='appsody-operator')].metadata.namespace}")
+
+PODS=($PODS)
+NAMESPACES=($NAMESPACES)
+
+# Get, describe, and log the pods of the operator(s)
+for POD in ${!PODS[@]}
+do
+    mkdir -p ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}
+    ${BIN} get pod ${PODS[$POD]} -n ${NAMESPACES[$POD]} -o=yaml > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/get.yaml
+    ${BIN} describe pod ${PODS[$POD]} -n ${NAMESPACES[$POD]} > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/describe.log
+    LOGS=$(${BIN} logs ${PODS[${POD}]} -n ${NAMESPACES[$POD]} 2>&1)
+    echo ${LOGS} > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/logs.log
+done
