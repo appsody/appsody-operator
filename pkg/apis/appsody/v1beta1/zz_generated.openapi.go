@@ -11,14 +11,14 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"./pkg/apis/appsody/v1beta1.AppsodyApplication":            schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
-		"./pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
-		"./pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
-		"./pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
-		"./pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
-		"./pkg/apis/appsody/v1beta1.ServiceBindingConsumes":        schema_pkg_apis_appsody_v1beta1_ServiceBindingConsumes(ref),
-		"./pkg/apis/appsody/v1beta1.ServiceBindingProvides":        schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref),
-		"./pkg/apis/appsody/v1beta1.StatusCondition":               schema_pkg_apis_appsody_v1beta1_StatusCondition(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplication":            schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingConsumes":        schema_pkg_apis_appsody_v1beta1_ServiceBindingConsumes(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingProvides":        schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref),
+		"github.com/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition":               schema_pkg_apis_appsody_v1beta1_StatusCondition(ref),
 	}
 }
 
@@ -50,19 +50,19 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref common.ReferenceCall
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationSpec"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationStatus"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/appsody/v1beta1.AppsodyApplicationSpec", "./pkg/apis/appsody/v1beta1.AppsodyApplicationStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec", "github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -141,7 +141,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/appsody/v1beta1.ServiceBindingConsumes"),
+										Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingConsumes"),
 									},
 								},
 							},
@@ -149,14 +149,14 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 					},
 					"provides": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.ServiceBindingProvides"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingProvides"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/appsody/v1beta1.ServiceBindingConsumes", "./pkg/apis/appsody/v1beta1.ServiceBindingProvides"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingConsumes", "github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingProvides"},
 	}
 }
 
@@ -187,7 +187,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 					},
 					"autoscaling": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling"),
 						},
 					},
 					"pullPolicy": {
@@ -254,7 +254,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 					},
 					"service": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationService"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService"),
 						},
 					},
 					"expose": {
@@ -324,7 +324,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 					},
 					"storage": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationStorage"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage"),
 						},
 					},
 					"createKnativeService": {
@@ -341,7 +341,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 					},
 					"monitoring": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring"),
 						},
 					},
 					"createAppDefinition": {
@@ -373,7 +373,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "./pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "./pkg/apis/appsody/v1beta1.AppsodyApplicationService", "./pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService", "github.com/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
 	}
 }
 
@@ -395,7 +395,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("./pkg/apis/appsody/v1beta1.StatusCondition"),
+										Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition"),
 									},
 								},
 							},
@@ -426,7 +426,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/appsody/v1beta1.StatusCondition"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition"},
 	}
 }
 
@@ -495,7 +495,7 @@ func schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref common.Reference
 					},
 					"auth": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("./pkg/apis/appsody/v1beta1.ServiceBindingAuth"),
+							Ref: ref("github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingAuth"),
 						},
 					},
 				},
@@ -503,7 +503,7 @@ func schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"./pkg/apis/appsody/v1beta1.ServiceBindingAuth"},
+			"github.com/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingAuth"},
 	}
 }
 

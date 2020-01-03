@@ -41,9 +41,6 @@ spec:
     listKind: AppsodyApplicationList
     plural: appsodyapplications
     singular: appsodyapplication
-    shortNames:
-    - app
-    - apps
   scope: Namespaced
   subresources:
     status: {}

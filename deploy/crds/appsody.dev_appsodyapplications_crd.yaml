@@ -40,10 +40,10 @@ spec:
     kind: AppsodyApplication
     listKind: AppsodyApplicationList
     plural: appsodyapplications
-    singular: appsodyapplication
     shortNames:
     - app
     - apps
+    singular: appsodyapplication
   scope: Namespaced
   subresources:
     status: {}
