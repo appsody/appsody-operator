@@ -24,3 +24,11 @@ The architecture of the Appsody Application Operator follows the basic controlle
 ## Documentation
 
 For information on how to use the `AppsodyApplication` operator, see the [documentation](doc/).
+
+## Contributing
+
+Our [CONTRIBUTING](CONTRIBUTING.md) document contains details for submitting pull requests.
+
+## License 
+
+Usage is provided under the [EPL 1.0 license](https://opensource.org/licenses/EPL-1.0) See LICENSE for the full details.
