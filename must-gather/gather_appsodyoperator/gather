@@ -15,17 +15,10 @@ resources=($resources)
 
 for i in ${!names[@]}
 do
-    mkdir -p ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}
-    ${BIN} get ${resources[i]} ${names[i]} -n ${namespaces[i]} -o=yaml > ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}/get.yaml
-    kubectl describe ${resources[i]} ${names[i]} -n ${namespaces[i]} > ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}/describe.log
+	mkdir -p ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}
+	${BIN} get ${resources[i]} ${names[i]} -n ${namespaces[i]} -o=yaml > ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}/get.yaml
+	${BIN} describe ${resources[i]} ${names[i]} -n ${namespaces[i]} > ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}/describe.log
 done 
-
-# Run the collection of resources using must-gather
-# for resource in ${resources[@]}; do
-#     echo
-#     echo "Dumping resource ${resource}..."
-#     ${MUST_GATHER} inspect --dest-dir must-gather ${resource}
-# done
 
 /usr/bin/gather_pods
 /usr/bin/gather_appsody

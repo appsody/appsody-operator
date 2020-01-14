@@ -17,8 +17,9 @@ PODS=($PODS)
 NAMESPACES=($NAMESPACES)
 
 # Describe and get all pods that are not ready
-for i in ${!PODS[@]}; do
-    mkdir -p ${LOGS_DIR}/${NAMESPACES[$i]}/${SUB_DIR}/${PODS[$i]}
-    ${BIN} describe pod ${PODS[$i]} -n ${NAMESPACES[$i]} > ${LOGS_DIR}/${NAMESPACES[$i]}/${SUB_DIR}/${PODS[$i]}/describe.log
-    ${BIN} get pod ${PODS[$i]} -n ${NAMESPACES[$i]} -o=yaml > ${LOGS_DIR}/${NAMESPACES[$i]}/${SUB_DIR}/${PODS[$i]}/get.yaml
+for POD in ${!PODS[@]}
+do
+	mkdir -p ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}
+	${BIN} describe pod ${PODS[$POD]} -n ${NAMESPACES[$POD]} > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/describe.log
+	${BIN} get pod ${PODS[$POD]} -n ${NAMESPACES[$POD]} -o=yaml > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/get.yaml
 done
