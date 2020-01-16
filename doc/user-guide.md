@@ -108,6 +108,13 @@ spec:
 
 The `applicationImage` value is required to be defined in `AppsodyApplication` CR. The `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
+To get information on the deployed CR, use either of the following:
+
+```sh
+oc get appsodyapplication my-appsody-app
+oc get app my-appsody-app
+```
+
 ### Service account
 
 The operator can create a `ServiceAccount` resource when deploying an Appsody based application. If `serviceAccountName` is not specified in a CR, the operator creates a service account with the same name as the CR (e.g. `my-appsody-app`).
