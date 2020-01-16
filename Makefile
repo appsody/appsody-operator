@@ -1,6 +1,7 @@
 OPERATOR_SDK_RELEASE_VERSION ?= v0.12.0
 OPERATOR_IMAGE ?= appsody/application-operator
 OPERATOR_IMAGE_TAG ?= daily
+OPERATOR_MUST_GATHER_TAG ?= daily-must-gather
 
 WATCH_NAMESPACE ?= default
 OPERATOR_NAMESPACE ?= ${WATCH_NAMESPACE}
@@ -45,6 +46,12 @@ build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE
 
 push-image: ## Push operator image
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
+
+build-must-gather: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG}"
+	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG}
+
+push-must-gather: ## Push operator must gather image
+	docker push ${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG}
 
 gofmt: ## Format the Go code with `gofmt`
 	@gofmt -s -l -w $(SRC_FILES)
