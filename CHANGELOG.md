@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added must-gather scripts for troubleshooting. ([#148](https://github.com/appsody/appsody-operator/issues/148))
+- Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
 
 ## [0.3.0]
 

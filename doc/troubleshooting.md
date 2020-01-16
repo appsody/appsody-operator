@@ -74,7 +74,7 @@ If the operator is running fine, check the status of the `AppsodyApplication` Cu
 $ oc adm must-gather --image=docker.io/appsody/application-operator:daily-must-gather
 ```
 
-Note: `must-gather` flag is a new feature added to oc v4.x. If you are using an older version of oc, you can get a new version of the CLI from here. You can use oc v4.x against 3.11 cluster.
+Note: `must-gather` flag is a new feature added to OpenShift client CLI v4.x. If you are using an older version of OpenShift client CLI, you can get a new version of the CLI from [here](https://mirror.openshift.com/pub/openshift-v4/clients/oc/4.2/). You can use OpenShift client CLI v4.x against 3.11 cluster.
 
 The command above will create a local directory with a dump of the Appsody Operator collection state. Note that this command will only get data related to the Appsody Operator Collection of the OpenShift cluster. 
 
