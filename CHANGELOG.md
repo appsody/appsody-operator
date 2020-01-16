@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Added must-gather scripts for troubleshooting. ([#148](https://github.com/appsody/appsody-operator/issues/148))
+
 ## [0.3.0]
 
 ### Added
