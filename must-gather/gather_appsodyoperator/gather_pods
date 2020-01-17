@@ -1,0 +1,25 @@
+#!/bin/bash
+#
+# Run this script to collect debug information regarding pods that are not ready
+
+set -Euox pipefail
+
+BIN=oc
+LOGS_DIR="/must-gather"
+SUB_DIR="pods"
+
+# Get pods that are not ready and their namespaces
+PODS=$(${BIN} get pods --all-namespaces -o jsonpath="{.items[?(@.status.containerStatuses[*].ready==false)].metadata.name}")
+NAMESPACES=$(${BIN} get pods --all-namespaces -o jsonpath="{.items[?(@.status.containerStatuses[*].ready==false)].metadata.namespace}")
+
+# Puts pods and corresponding names into arrays
+PODS=($PODS)
+NAMESPACES=($NAMESPACES)
+
+# Describe and get all pods that are not ready
+for POD in ${!PODS[@]}
+do
+	mkdir -p ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}
+	${BIN} describe pod ${PODS[$POD]} -n ${NAMESPACES[$POD]} > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/describe.log
+	${BIN} get pod ${PODS[$POD]} -n ${NAMESPACES[$POD]} -o=yaml > ${LOGS_DIR}/${NAMESPACES[$POD]}/${SUB_DIR}/${PODS[$POD]}/get.yaml
+done

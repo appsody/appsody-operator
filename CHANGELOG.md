@@ -10,6 +10,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
+
 ## [0.4.0]
 
 ### Added

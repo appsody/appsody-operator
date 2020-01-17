@@ -22,6 +22,7 @@ stages:
   - name: unit test
   - name: e2e test
   - name: push
+  - name: build and push must gather
 
 jobs:
  include:
@@ -43,4 +44,11 @@ jobs:
     - make build-image
     - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
     - make push-image
+    if: branch = master AND fork = false AND type != pull_request AND env(DOCKER_USERNAME) IS NOT blank AND env(DOCKER_PASSWORD) IS NOT blank
+  - name: Build must gather image and push
+    stage: build and push must gather
+    script:
+    - make build-must-gather
+    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    - make push-must-gather
     if: branch = master AND fork = false AND type != pull_request AND env(DOCKER_USERNAME) IS NOT blank AND env(DOCKER_PASSWORD) IS NOT blank

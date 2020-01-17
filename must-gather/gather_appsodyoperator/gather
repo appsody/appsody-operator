@@ -1,0 +1,28 @@
+#!/bin/bash
+
+LOGS_DIR="/must-gather"
+BIN=oc
+SUB_DIR="resources"
+
+# Resource List containing all the resources created by appsody
+names=$(oc get all -l app.kubernetes.io/managed-by=appsody-operator --all-namespaces -o jsonpath="{.items[*].metadata.name}")
+namespaces=$(oc get all -l app.kubernetes.io/managed-by=appsody-operator --all-namespaces -o jsonpath="{.items[*].metadata.namespace}")
+resources=$(oc get all -l app.kubernetes.io/managed-by=appsody-operator --all-namespaces -o jsonpath="{.items[*].kind}")
+
+names=($names)
+namespaces=($namespaces)
+resources=($resources)
+
+for i in ${!names[@]}
+do
+	mkdir -p ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}
+	${BIN} get ${resources[i]} ${names[i]} -n ${namespaces[i]} -o=yaml > ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}/get.yaml
+	${BIN} describe ${resources[i]} ${names[i]} -n ${namespaces[i]} > ${LOGS_DIR}/${namespaces[i]}/${SUB_DIR}/${resources[i]}/describe.log
+done 
+
+/usr/bin/gather_pods
+/usr/bin/gather_appsody
+/usr/bin/gather_knative
+/usr/bin/gather_appsodyoperator
+
+exit 0
