@@ -27,8 +27,4 @@ For information on how to use the `AppsodyApplication` operator, see the [docume
 
 ## Contributing
 
-Our [CONTRIBUTING](CONTRIBUTING.md) document contains details for submitting pull requests.
-
-## License 
-
-Usage is provided under the [EPL 1.0 license](https://opensource.org/licenses/EPL-1.0) See LICENSE for the full details.
+We welcome all contributions to the Appsody Application operator project. Please see our [Contributing guidelines](CONTRIBUTING.md)
