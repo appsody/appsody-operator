@@ -14,12 +14,12 @@ A great way to contribute to the project is to raise a detailed issue when you e
 
 Check that the list of project issues doesn't already include that problem or request before submitting an issue. If you find a matching issue, add a "+1" or comment indicating that you have the same issue, as this helps prioritize the most common problems and requests.
 
-A good bug report is one that make it easy for everyone to understand what you were trying to do and what went wrong. Provide as much context as possible so we can try to recreate the issue.
+A good bug report is one that makes it easy for everyone to understand what you were trying to do and what went wrong. Provide as much context as possible so we can try to recreate the issue.
 
 ## Commit message guidelines
 You should describe what changed and why.
 
-To avoid duplicaton if you are adding a new stack, template or making any breaking changes to the code base you MUST create a new GitHub issue to track the discussion. It is good practise to raise GitHub issues for fixes but if you prefer to just submit a pull request with your desired code changes then that is fine.
+To avoid duplication if you are making any breaking changes to the code base you MUST create a new GitHub issue to track the discussion. It is good practise to raise GitHub issues for fixes but if you prefer to just submit a pull request with your desired code changes then that is fine.
 
 ## Pull requests
 If you're working on an existing issue, simply respond to the issue and express interest in working on it. This helps other people know that the issue is active, and hopefully prevents duplicated efforts.
@@ -39,7 +39,7 @@ In order for us to merge any of your changes into Appsody Application operator, 
 ## Merge approval and release process
 A maintainer may add "LGTM" (Looks Good To Me) or an equivalent comment to indicate that a PR is acceptable. Any change requires at least one LGTM. No pull requests can be merged until at least one maintainer signs off with an LGTM.
 
-Once the PR has been merged, the release job will automatically run in the CI process of the specific repository. New stack images will be built and pushed to the Docker Hub Repo.
+Once the PR has been merged, the release job will automatically run in the CI process of the specific repository. 
 
 ## License
 This project is licensed under the Apache 2.0 license, and all contributed stacks must also be licensed under the Apache 2.0 license. Each contributed stack should include a LICENSE file containing the Apache 2.0 license. More information can be found in the [LICENSE](LICENSE) file or online at
