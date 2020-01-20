@@ -21,8 +21,20 @@ You should describe what changed and why.
 
 To avoid duplicaton if you are adding a new stack, template or making any breaking changes to the code base you MUST create a new GitHub issue to track the discussion. It is good practise to raise GitHub issues for fixes but if you prefer to just submit a pull request with your desired code changes then that is fine.
 
+## Pull requests
+If you're working on an existing issue, simply respond to the issue and express interest in working on it. This helps other people know that the issue is active, and hopefully prevents duplicated efforts.
+
+To submit a proposed change:
+
+* Fork the affected repository.
+* Create a new branch for your changes.
+* Develop the code/fix.
+* Modify the documentation as necessary.
+* Verify all CI status checks pass, and work to make them pass if failing.
+The general rule is that all PRs should be 100% complete - meaning they should include documentation changes related to the change. A significant exception is work-in-progress PRs. These should be indicated by opening a draft pull request. To open a draft pull request, click the dropdown arrow that appears next to the “Create pull request” button and then select the "Create draft pull request" option.
+
 ## Contributor License Agreement
-In order for us to merge any of your changes into Appsody, you need to sign the Contributor License Agreement. When you open up a Pull Request for the first time, a bot will comment with a link to the CLA. You can review or sign the CLA now here https://cla-assistant.io/appsody/appsody-operator
+In order for us to merge any of your changes into Appsody Application operator, you need to sign the Contributor License Agreement. When you open up a Pull Request for the first time, a bot will comment with a link to the CLA. You can review or sign the CLA now here https://cla-assistant.io/appsody/appsody-operator
 
 ## Merge approval and release process
 A maintainer may add "LGTM" (Looks Good To Me) or an equivalent comment to indicate that a PR is acceptable. Any change requires at least one LGTM. No pull requests can be merged until at least one maintainer signs off with an LGTM.
