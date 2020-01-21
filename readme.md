@@ -24,3 +24,7 @@ The architecture of the Appsody Application Operator follows the basic controlle
 ## Documentation
 
 For information on how to use the `AppsodyApplication` operator, see the [documentation](doc/).
+
+## Contributing
+
+We welcome all contributions to the Appsody Application Operator project. Please see our [Contributing guidelines](CONTRIBUTING.md)
