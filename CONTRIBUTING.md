@@ -1,4 +1,4 @@
-# Appsody Application operator contributing guidelines
+# Appsody Application Operator contributing guidelines
 Welcome to the Appsody community!
 
 You can contribute to the project in a variety of ways:
@@ -6,7 +6,7 @@ You can contribute to the project in a variety of ways:
 * Fixing or reporting bugs
 * Improve documentation
 * Contribute code
-We welcome all contributions to the Appsody Application operator project and request you follow the guidelines below:
+We welcome all contributions to the Appsody Application Operator project and request you follow the guidelines below:
 
 
 ## Raising issues
@@ -34,7 +34,7 @@ To submit a proposed change:
 The general rule is that all PRs should be 100% complete - meaning they should include documentation changes related to the change. A significant exception is work-in-progress PRs. These should be indicated by opening a draft pull request. To open a draft pull request, click the dropdown arrow that appears next to the “Create pull request” button and then select the "Create draft pull request" option.
 
 ## Contributor License Agreement
-In order for us to merge any of your changes into Appsody Application operator, you need to sign the Contributor License Agreement. When you open up a Pull Request for the first time, a bot will comment with a link to the CLA. You can review or sign the CLA now here https://cla-assistant.io/appsody/appsody-operator
+In order for us to merge any of your changes into Appsody Application Operator, you need to sign the Contributor License Agreement. When you open up a Pull Request for the first time, a bot will comment with a link to the CLA. You can review or sign the CLA now here https://cla-assistant.io/appsody/appsody-operator
 
 ## Merge approval and release process
 A maintainer may add "LGTM" (Looks Good To Me) or an equivalent comment to indicate that a PR is acceptable. Any change requires at least one LGTM. No pull requests can be merged until at least one maintainer signs off with an LGTM.

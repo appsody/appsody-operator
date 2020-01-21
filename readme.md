@@ -27,4 +27,4 @@ For information on how to use the `AppsodyApplication` operator, see the [docume
 
 ## Contributing
 
-We welcome all contributions to the Appsody Application operator project. Please see our [Contributing guidelines](CONTRIBUTING.md)
+We welcome all contributions to the Appsody Application Operator project. Please see our [Contributing guidelines](CONTRIBUTING.md)
