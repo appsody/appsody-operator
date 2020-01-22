@@ -48,7 +48,7 @@ push-image: ## Push operator image
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
 
 build-must-gather: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG}"
-	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG}
+	docker build ./must-gather -t ${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG} 
 
 push-must-gather: ## Push operator must gather image
 	docker push ${OPERATOR_IMAGE}:${OPERATOR_MUST_GATHER_TAG}
