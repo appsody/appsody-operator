@@ -8,6 +8,9 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
@@ -75,7 +78,17 @@ func TestAppsodyController(t *testing.T) {
 		t.Fatalf("Unable to add route scheme: (%v)", err)
 	}
 
+	if err := certmngrv1alpha2.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add cert-manager scheme: (%v)", err)
+	}
+
+	if err := prometheusv1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add prometheus scheme: (%v)", err)
+	}
+
 	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
+	s.AddKnownTypes(certmngrv1alpha2.SchemeGroupVersion, &certmngrv1alpha2.Certificate{})
+	s.AddKnownTypes(prometheusv1.SchemeGroupVersion, &prometheusv1.ServiceMonitor{})
 
 	// Create a fake client to mock API calls.
 	cl := fakeclient.NewFakeClient(objs...)
@@ -378,6 +391,18 @@ func createFakeDiscoveryClient() discovery.DiscoveryInterface {
 			GroupVersion: servingv1alpha1.SchemeGroupVersion.String(),
 			APIResources: []metav1.APIResource{
 				{Name: "services", Namespaced: true, Kind: "Service", SingularName: "service"},
+			},
+		},
+		{
+			GroupVersion: certmngrv1alpha2.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "certificates", Namespaced: true, Kind: "Certificate", SingularName: "certificate"},
+			},
+		},
+		{
+			GroupVersion: prometheusv1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "servicemonitors", Namespaced: true, Kind: "ServiceMonitor", SingularName: "servicemonitor"},
 			},
 		},
 	}

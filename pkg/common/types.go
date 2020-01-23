@@ -2,6 +2,8 @@ package common
 
 import (
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -72,12 +74,21 @@ type BaseApplicationService interface {
 	GetAnnotations() map[string]string
 	GetProvides() ServiceBindingProvides
 	GetConsumes() []ServiceBindingConsumes
+	GetCertificate() Certificate
 }
 
 // BaseApplicationMonitoring represents basic service monitoring configuration
 type BaseApplicationMonitoring interface {
 	GetLabels() map[string]string
 	GetEndpoints() []prometheusv1.Endpoint
+}
+
+// BaseApplicationRoute represents route configuration
+type BaseApplicationRoute interface {
+	GetCertificate() Certificate
+	GetTermination() *routev1.TLSTerminationType
+	GetInsecureEdgeTerminationPolicy() *routev1.InsecureEdgeTerminationPolicyType
+	GetAnnotations() map[string]string
 }
 
 // ServiceBindingProvides represents a service to be provided
@@ -138,4 +149,9 @@ type BaseApplication interface {
 	GetStatus() BaseApplicationStatus
 	GetInitContainers() []corev1.Container
 	GetGroupName() string
+	GetRoute() BaseApplicationRoute
+}
+
+type Certificate interface {
+	GetSpec() certmngrv1alpha2.CertificateSpec
 }

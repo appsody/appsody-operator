@@ -12,6 +12,7 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
+	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -22,6 +23,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -225,6 +227,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 	}, predSubResource)
 
+	err = c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
+		IsController: true,
+		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+	}, predSubResource)
+
 	return nil
 }
 
@@ -378,6 +385,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	result, err = r.ReconcileConsumes(instance)
 	if err != nil || result != (reconcile.Result{}) {
 		return result, err
+	}
+	result, err = r.ReconcileCertificate(instance)
+	if err != nil || result != (reconcile.Result{}) {
+		return result, nil
 	}
 
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
@@ -561,7 +572,37 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if instance.Spec.Expose != nil && *instance.Spec.Expose {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(route, instance, func() error {
-				appsodyutils.CustomizeRoute(route, instance)
+				//Check if the CA available in a secret
+				destCACert := ""
+				caCert := ""
+				cert := ""
+				key := ""
+				if instance.Spec.Service != nil && instance.Spec.Service.Certificate != nil {
+					tlsSecret := &corev1.Secret{}
+					r.GetClient().Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-svc-tls", Namespace: instance.Namespace}, tlsSecret)
+					caCrt, ok := tlsSecret.Data["ca.crt"]
+					if ok {
+						destCACert = string(caCrt)
+					}
+				}
+				if instance.Spec.Route != nil && instance.Spec.Route.Certificate != nil {
+					tlsSecret := &corev1.Secret{}
+					r.GetClient().Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-route-tls", Namespace: instance.Namespace}, tlsSecret)
+					v, ok := tlsSecret.Data["ca.crt"]
+					if ok {
+						caCert = string(v)
+					}
+					v, ok = tlsSecret.Data["tls.crt"]
+					if ok {
+						cert = string(v)
+					}
+					v, ok = tlsSecret.Data["tls.key"]
+					if ok {
+						key = string(v)
+					}
+				}
+				appsodyutils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
+
 				return nil
 			})
 			if err != nil {

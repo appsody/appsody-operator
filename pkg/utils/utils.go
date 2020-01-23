@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"strconv"
 	"strings"
 
@@ -84,10 +85,43 @@ func UpdateAppDefinition(labels map[string]string, annotations map[string]string
 }
 
 // CustomizeRoute ...
-func CustomizeRoute(route *routev1.Route, ba common.BaseApplication) {
+func CustomizeRoute(route *routev1.Route, ba common.BaseApplication, key string, crt string, ca string, destCACert string) {
 	obj := ba.(metav1.Object)
 	route.Labels = ba.GetLabels()
 	route.Annotations = MergeMaps(route.Annotations, ba.GetAnnotations())
+
+	if ba.GetRoute() != nil {
+		route.Annotations = MergeMaps(route.Annotations, ba.GetRoute().GetAnnotations())
+		if ba.GetRoute().GetTermination() != nil {
+			if route.Spec.TLS == nil {
+				route.Spec.TLS = &routev1.TLSConfig{}
+			}
+			route.Spec.TLS.Termination = *ba.GetRoute().GetTermination()
+			if route.Spec.TLS.Termination == routev1.TLSTerminationReencrypt {
+				route.Spec.TLS.Certificate = crt
+				route.Spec.TLS.CACertificate = ca
+				route.Spec.TLS.Key = key
+				route.Spec.TLS.DestinationCACertificate = destCACert
+			} else if route.Spec.TLS.Termination == routev1.TLSTerminationPassthrough {
+				route.Spec.TLS.Certificate = ""
+				route.Spec.TLS.CACertificate = ""
+				route.Spec.TLS.Key = ""
+				route.Spec.TLS.DestinationCACertificate = ""
+			} else if route.Spec.TLS.Termination == routev1.TLSTerminationEdge {
+				route.Spec.TLS.Certificate = crt
+				route.Spec.TLS.CACertificate = ca
+				route.Spec.TLS.Key = key
+				route.Spec.TLS.DestinationCACertificate = ""
+			}
+
+		}
+		if ba.GetRoute().GetInsecureEdgeTerminationPolicy() != nil {
+			if route.Spec.TLS == nil {
+				route.Spec.TLS = &routev1.TLSConfig{}
+			}
+			route.Spec.TLS.InsecureEdgeTerminationPolicy = *ba.GetRoute().GetInsecureEdgeTerminationPolicy()
+		}
+	}
 	route.Spec.To.Kind = "Service"
 	route.Spec.To.Name = obj.GetName()
 	weight := int32(100)
@@ -96,6 +130,7 @@ func CustomizeRoute(route *routev1.Route, ba common.BaseApplication) {
 		route.Spec.Port = &routev1.RoutePort{}
 	}
 	route.Spec.Port.TargetPort = intstr.FromString(strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp")
+
 }
 
 // ErrorIsNoMatchesForKind ...
@@ -191,6 +226,22 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 
 	pts.Spec.Containers[0].VolumeMounts = ba.GetVolumeMounts()
 	pts.Spec.Volumes = ba.GetVolumes()
+
+	if ba.GetService().GetCertificate() != nil {
+		pts.Spec.Volumes = append(pts.Spec.Volumes, corev1.Volume{
+			Name: "svc-certificate",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: obj.GetName() + "-svc-tls",
+				},
+			},
+		})
+		pts.Spec.Containers[0].VolumeMounts = append(pts.Spec.Containers[0].VolumeMounts, corev1.VolumeMount{
+			Name:      "svc-certificate",
+			MountPath: "/etc/x509/certs",
+			ReadOnly:  true,
+		})
+	}
 
 	CustomizeConsumedServices(&pts.Spec, ba)
 
@@ -518,6 +569,17 @@ func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, ba common.BaseAppl
 		}
 	}
 
+}
+
+// CustomizeServiceCertificate configuration cert-manager certficate object
+func CustomizeServiceCertificate(crt *certmngrv1alpha2.Certificate, ba common.BaseApplication) {
+	obj := ba.(metav1.Object)
+	crt.Labels = ba.GetLabels()
+
+	crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
+	crt.Spec = ba.GetService().GetCertificate().GetSpec()
+	crt.Spec.CommonName = obj.GetName() + "." + obj.GetNamespace() + "." + "svc"
+	crt.Spec.SecretName = obj.GetName() + "-svc-tls"
 }
 
 // GetCondition ...

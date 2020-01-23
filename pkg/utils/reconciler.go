@@ -10,15 +10,18 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody/appsody-operator/pkg/common"
+	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	v1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	routev1 "github.com/openshift/api/route/v1" 
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -501,6 +504,76 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 		}
 	}
 	return r.ManageSuccess(common.StatusConditionTypeDependenciesSatisfied, ba)
+}
+
+// ReconcileCertificate ...
+func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconcile.Result, error) {
+	owner := ba.(metav1.Object)
+	if ok, err := r.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String()); err != nil {
+		r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+	} else if ok {
+		if ba.GetService() != nil && ba.GetService().GetCertificate() != nil {
+			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName(), Namespace: owner.GetNamespace()}}
+			r.CreateOrUpdate(crt, owner, func() error {
+				obj := ba.(metav1.Object)
+				crt.Labels = ba.GetLabels()
+
+				crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
+				crt.Spec = ba.GetService().GetCertificate().GetSpec()
+				crt.Spec.CommonName = obj.GetName() + "." + obj.GetNamespace() + "." + "svc"
+				crt.Spec.SecretName = obj.GetName() + "-svc-tls"
+				return nil
+			})
+			r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
+
+			crtReady := false
+			for i := range crt.Status.Conditions {
+				if crt.Status.Conditions[i].Type == certmngrv1alpha2.CertificateConditionReady {
+					if crt.Status.Conditions[i].Status == v1.ConditionTrue {
+						crtReady = true
+					}
+				}
+			}
+			if !crtReady {
+				return reconcile.Result{}, errors.New("Certificate not ready")
+			}
+
+		} else {
+			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName(), Namespace: owner.GetNamespace()}}
+			err = r.DeleteResource(crt)
+			if err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			}
+		}
+
+		if ba.GetRoute() != nil && ba.GetRoute().GetCertificate() != nil {
+			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName() + "-route-crt", Namespace: owner.GetNamespace()}}
+			r.CreateOrUpdate(crt, owner, func() error {
+				obj := ba.(metav1.Object)
+				crt.Labels = ba.GetLabels()
+
+				crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
+				crt.Spec = ba.GetRoute().GetCertificate().GetSpec()
+				crt.Spec.SecretName = obj.GetName() + "-route-tls"
+				return nil
+			})
+			r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
+
+			crtReady := false
+			for i := range crt.Status.Conditions {
+				if crt.Status.Conditions[i].Type == certmngrv1alpha2.CertificateConditionReady {
+					if crt.Status.Conditions[i].Status == v1.ConditionTrue {
+						crtReady = true
+					}
+				}
+			}
+			if !crtReady {
+				return reconcile.Result{}, errors.New("Certificate not ready")
+			}
+		}
+
+	}
+	return reconcile.Result{}, nil
 }
 
 // IsOpenShift returns true if the operator is running on an OpenShift platform
