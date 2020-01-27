@@ -89,6 +89,8 @@ type BaseApplicationRoute interface {
 	GetTermination() *routev1.TLSTerminationType
 	GetInsecureEdgeTerminationPolicy() *routev1.InsecureEdgeTerminationPolicyType
 	GetAnnotations() map[string]string
+	GetHost() string
+	GetPath() string
 }
 
 // ServiceBindingProvides represents a service to be provided

@@ -115,6 +115,8 @@ type AppsodyRoute struct {
 	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
 	Certificate                   *Certificate                               `json:"certificate,omitempty"`
+	Host                          string                                     `json:"host,omitempty"`
+	Path                          string                                     `json:"path,omitempty"`
 }
 
 // ServiceBindingAuth allows a service to provide authentication information
@@ -496,6 +498,16 @@ func (r *AppsodyRoute) GetTermination() *routev1.TLSTerminationType {
 // GetInsecureEdgeTerminationPolicy returns terminatation of the route's TLS
 func (r *AppsodyRoute) GetInsecureEdgeTerminationPolicy() *routev1.InsecureEdgeTerminationPolicyType {
 	return r.InsecureEdgeTerminationPolicy
+}
+
+// GetHost returns hostname to be used by the route
+func (r *AppsodyRoute) GetHost() string {
+	return r.Host
+}
+
+// GetPath returns path to use for the route
+func (r *AppsodyRoute) GetPath() string {
+	return r.Path
 }
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap

@@ -67,3 +67,10 @@ rules:
   - services
   verbs:
   - '*'
+- apiGroups:
+  - cert-manager.io
+  attributeRestrictions: null
+  resources:
+  - certificates
+  verbs:
+  - '*'    

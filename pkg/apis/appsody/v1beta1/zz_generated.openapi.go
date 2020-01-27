@@ -479,6 +479,18 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyRoute(ref common.ReferenceCallback) 
 							Ref: ref("./pkg/apis/appsody/v1beta1.Certificate"),
 						},
 					},
+					"host": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
 				},
 			},
 		},

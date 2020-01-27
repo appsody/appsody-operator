@@ -91,35 +91,37 @@ func CustomizeRoute(route *routev1.Route, ba common.BaseApplication, key string,
 	route.Annotations = MergeMaps(route.Annotations, ba.GetAnnotations())
 
 	if ba.GetRoute() != nil {
+		rt := ba.GetRoute()
 		route.Annotations = MergeMaps(route.Annotations, ba.GetRoute().GetAnnotations())
+		route.Spec.Host = rt.GetHost()
+		route.Spec.Path = rt.GetPath()
 		if ba.GetRoute().GetTermination() != nil {
 			if route.Spec.TLS == nil {
 				route.Spec.TLS = &routev1.TLSConfig{}
 			}
-			route.Spec.TLS.Termination = *ba.GetRoute().GetTermination()
+			route.Spec.TLS.Termination = *rt.GetTermination()
 			if route.Spec.TLS.Termination == routev1.TLSTerminationReencrypt {
 				route.Spec.TLS.Certificate = crt
 				route.Spec.TLS.CACertificate = ca
 				route.Spec.TLS.Key = key
 				route.Spec.TLS.DestinationCACertificate = destCACert
+				route.Spec.TLS.InsecureEdgeTerminationPolicy = ""
 			} else if route.Spec.TLS.Termination == routev1.TLSTerminationPassthrough {
 				route.Spec.TLS.Certificate = ""
 				route.Spec.TLS.CACertificate = ""
 				route.Spec.TLS.Key = ""
 				route.Spec.TLS.DestinationCACertificate = ""
+				route.Spec.TLS.InsecureEdgeTerminationPolicy = ""
 			} else if route.Spec.TLS.Termination == routev1.TLSTerminationEdge {
 				route.Spec.TLS.Certificate = crt
 				route.Spec.TLS.CACertificate = ca
 				route.Spec.TLS.Key = key
 				route.Spec.TLS.DestinationCACertificate = ""
+				if rt.GetInsecureEdgeTerminationPolicy() != nil {
+					route.Spec.TLS.InsecureEdgeTerminationPolicy = *rt.GetInsecureEdgeTerminationPolicy()
+				}
 			}
 
-		}
-		if ba.GetRoute().GetInsecureEdgeTerminationPolicy() != nil {
-			if route.Spec.TLS == nil {
-				route.Spec.TLS = &routev1.TLSConfig{}
-			}
-			route.Spec.TLS.InsecureEdgeTerminationPolicy = *ba.GetRoute().GetInsecureEdgeTerminationPolicy()
 		}
 	}
 	route.Spec.To.Kind = "Service"
