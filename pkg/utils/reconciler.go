@@ -506,7 +506,7 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 	return r.ManageSuccess(common.StatusConditionTypeDependenciesSatisfied, ba)
 }
 
-// ReconcileCertificate ...
+// ReconcileCertificate used to manage cert-manager integration
 func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconcile.Result, error) {
 	owner := ba.(metav1.Object)
 	if ok, err := r.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String()); err != nil {
@@ -514,18 +514,23 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 	} else if ok {
 		if ba.GetService() != nil && ba.GetService().GetCertificate() != nil {
 			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName(), Namespace: owner.GetNamespace()}}
-			r.CreateOrUpdate(crt, owner, func() error {
+			err = r.CreateOrUpdate(crt, owner, func() error {
 				obj := ba.(metav1.Object)
 				crt.Labels = ba.GetLabels()
-
 				crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
 				crt.Spec = ba.GetService().GetCertificate().GetSpec()
 				crt.Spec.CommonName = obj.GetName() + "." + obj.GetNamespace() + "." + "svc"
 				crt.Spec.SecretName = obj.GetName() + "-svc-tls"
 				return nil
 			})
-			r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
 
+			if err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
+			if err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			}
 			crtReady := false
 			for i := range crt.Status.Conditions {
 				if crt.Status.Conditions[i].Type == certmngrv1alpha2.CertificateConditionReady {
@@ -535,6 +540,14 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				}
 			}
 			if !crtReady {
+				c := ba.GetStatus().NewCondition()
+				c.SetType(common.StatusConditionTypeReconciled)
+				c.SetStatus(corev1.ConditionFalse)
+				c.SetReason("CertificateNotReady")
+				c.SetMessage("Waiting for service certificate to be generated")
+				ba.GetStatus().SetCondition(c)
+				rtObj := ba.(runtime.Object)
+				r.UpdateStatus(rtObj)
 				return reconcile.Result{}, errors.New("Certificate not ready")
 			}
 
@@ -548,17 +561,21 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 
 		if ba.GetRoute() != nil && ba.GetRoute().GetCertificate() != nil {
 			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName() + "-route-crt", Namespace: owner.GetNamespace()}}
-			r.CreateOrUpdate(crt, owner, func() error {
+			err = r.CreateOrUpdate(crt, owner, func() error {
 				obj := ba.(metav1.Object)
 				crt.Labels = ba.GetLabels()
-
 				crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
 				crt.Spec = ba.GetRoute().GetCertificate().GetSpec()
 				crt.Spec.SecretName = obj.GetName() + "-route-tls"
 				return nil
 			})
-			r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
-
+			if err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			}
+			err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
+			if err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			}
 			crtReady := false
 			for i := range crt.Status.Conditions {
 				if crt.Status.Conditions[i].Type == certmngrv1alpha2.CertificateConditionReady {
@@ -568,7 +585,21 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				}
 			}
 			if !crtReady {
+				c := ba.GetStatus().NewCondition()
+				c.SetType(common.StatusConditionTypeReconciled)
+				c.SetStatus(corev1.ConditionFalse)
+				c.SetReason("CertificateNotReady")
+				c.SetMessage("Waiting for route certificate to be generated")
+				ba.GetStatus().SetCondition(c)
+				rtObj := ba.(runtime.Object)
+				r.UpdateStatus(rtObj)
 				return reconcile.Result{}, errors.New("Certificate not ready")
+			}
+		} else {
+			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName() + "-route-crt", Namespace: owner.GetNamespace()}}
+			err = r.DeleteResource(crt)
+			if err != nil {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			}
 		}
 

@@ -6,6 +6,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -890,8 +891,11 @@ func (s *AppsodyApplicationStatus) SetCondition(c common.StatusCondition) {
 		}
 	}
 
-	condition.SetLastTransitionTime(c.GetLastTransitionTime())
-	condition.SetLastUpdateTime(c.GetLastUpdateTime())
+	if condition.GetStatus() != c.GetStatus() {
+		condition.SetLastTransitionTime(&metav1.Time{Time: time.Now()})
+	}
+
+	condition.SetLastUpdateTime(metav1.Time{Time: time.Now()})
 	condition.SetReason(c.GetReason())
 	condition.SetMessage(c.GetMessage())
 	condition.SetStatus(c.GetStatus())
