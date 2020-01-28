@@ -1,4 +1,4 @@
-FROM quay.io/openshift/origin-must-gather:4.2
+FROM registry.redhat.io/openshift4/ose-must-gather
 
 # Save original gather script
 COPY /usr/bin/gather /usr/bin/gather_original
