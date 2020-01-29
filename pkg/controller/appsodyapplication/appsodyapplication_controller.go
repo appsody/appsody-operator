@@ -23,7 +23,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -591,34 +590,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if instance.Spec.Expose != nil && *instance.Spec.Expose {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(route, instance, func() error {
-				//Check if the CA available in a secret
-				destCACert := ""
-				caCert := ""
-				cert := ""
-				key := ""
-				if instance.Spec.Service != nil && instance.Spec.Service.Certificate != nil {
-					tlsSecret := &corev1.Secret{}
-					r.GetClient().Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-svc-tls", Namespace: instance.Namespace}, tlsSecret)
-					caCrt, ok := tlsSecret.Data["ca.crt"]
-					if ok {
-						destCACert = string(caCrt)
-					}
-				}
-				if instance.Spec.Route != nil && instance.Spec.Route.Certificate != nil {
-					tlsSecret := &corev1.Secret{}
-					r.GetClient().Get(context.TODO(), types.NamespacedName{Name: instance.Name + "-route-tls", Namespace: instance.Namespace}, tlsSecret)
-					v, ok := tlsSecret.Data["ca.crt"]
-					if ok {
-						caCert = string(v)
-					}
-					v, ok = tlsSecret.Data["tls.crt"]
-					if ok {
-						cert = string(v)
-					}
-					v, ok = tlsSecret.Data["tls.key"]
-					if ok {
-						key = string(v)
-					}
+				key, cert, caCert, destCACert, err := r.GetRouteTLSValues(ba)
+				if err != nil {
+					return err
 				}
 				appsodyutils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
 

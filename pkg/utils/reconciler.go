@@ -517,7 +517,7 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 		r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 	} else if ok {
 		if ba.GetService() != nil && ba.GetService().GetCertificate() != nil {
-			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName(), Namespace: owner.GetNamespace()}}
+			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName() + "-svc-crt", Namespace: owner.GetNamespace()}}
 			err = r.CreateOrUpdate(crt, owner, func() error {
 				obj := ba.(metav1.Object)
 				crt.Labels = ba.GetLabels()
@@ -527,11 +527,6 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				crt.Spec.SecretName = obj.GetName() + "-svc-tls"
 				return nil
 			})
-
-			if err != nil {
-				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
-			}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
 			if err != nil {
 				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			}
@@ -556,14 +551,14 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 			}
 
 		} else {
-			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName(), Namespace: owner.GetNamespace()}}
+			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName() + "-svc-crt", Namespace: owner.GetNamespace()}}
 			err = r.DeleteResource(crt)
 			if err != nil {
 				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			}
 		}
 
-		if ba.GetRoute() != nil && ba.GetRoute().GetCertificate() != nil {
+		if ba.GetExpose() != nil && *ba.GetExpose() && ba.GetRoute() != nil && ba.GetRoute().GetCertificate() != nil {
 			crt := &certmngrv1alpha2.Certificate{ObjectMeta: metav1.ObjectMeta{Name: owner.GetName() + "-route-crt", Namespace: owner.GetNamespace()}}
 			err = r.CreateOrUpdate(crt, owner, func() error {
 				obj := ba.(metav1.Object)
@@ -575,12 +570,11 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				if crt.Spec.CommonName == "" {
 					crt.Spec.CommonName = ba.GetRoute().GetHost()
 				}
+				if len(crt.Spec.DNSNames) == 0 {
+					crt.Spec.DNSNames = append(crt.Spec.DNSNames, crt.Spec.CommonName)
+				}
 				return nil
 			})
-			if err != nil {
-				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
-			}
-			err = r.client.Get(context.TODO(), types.NamespacedName{Namespace: crt.Namespace, Name: crt.Name}, crt)
 			if err != nil {
 				return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			}
@@ -623,4 +617,43 @@ func (r *ReconcilerBase) IsOpenShift() bool {
 		return false
 	}
 	return isOpenShift
+}
+
+// GetRouteTLSValues returns certificate an key values to be used in the route
+func (r *ReconcilerBase) GetRouteTLSValues(ba common.BaseApplication) (key string, cert string, ca string, destCa string, err error) {
+	key, cert, ca, destCa = "", "", "", ""
+	mObj := ba.(metav1.Object)
+	if ba.GetService() != nil && ba.GetService().GetCertificate() != nil {
+		tlsSecret := &corev1.Secret{}
+		err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: mObj.GetName() + "-svc-tls", Namespace: mObj.GetNamespace()}, tlsSecret)
+		if err != nil {
+			r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			return "", "", "", "", err
+		}
+		caCrt, ok := tlsSecret.Data["ca.crt"]
+		if ok {
+			destCa = string(caCrt)
+		}
+	}
+	if ba.GetRoute() != nil && ba.GetRoute().GetCertificate() != nil {
+		tlsSecret := &corev1.Secret{}
+		err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: mObj.GetName() + "-route-tls", Namespace: mObj.GetNamespace()}, tlsSecret)
+		if err != nil {
+			r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+			return "", "", "", "", err
+		}
+		v, ok := tlsSecret.Data["ca.crt"]
+		if ok {
+			ca = string(v)
+		}
+		v, ok = tlsSecret.Data["tls.crt"]
+		if ok {
+			cert = string(v)
+		}
+		v, ok = tlsSecret.Data["tls.key"]
+		if ok {
+			key = string(v)
+		}
+	}
+	return key, cert, ca, destCa, nil
 }

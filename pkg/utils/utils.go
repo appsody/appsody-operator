@@ -2,7 +2,6 @@ package utils
 
 import (
 	"fmt"
-	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	"strconv"
 	"strings"
 
@@ -92,7 +91,7 @@ func CustomizeRoute(route *routev1.Route, ba common.BaseApplication, key string,
 
 	if ba.GetRoute() != nil {
 		rt := ba.GetRoute()
-		route.Annotations = MergeMaps(route.Annotations, ba.GetRoute().GetAnnotations())
+		route.Annotations = MergeMaps(route.Annotations, rt.GetAnnotations())
 		route.Spec.Host = rt.GetHost()
 		route.Spec.Path = rt.GetPath()
 		if ba.GetRoute().GetTermination() != nil {
@@ -575,17 +574,6 @@ func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, ba common.BaseAppl
 		}
 	}
 
-}
-
-// CustomizeServiceCertificate configuration cert-manager certficate object
-func CustomizeServiceCertificate(crt *certmngrv1alpha2.Certificate, ba common.BaseApplication) {
-	obj := ba.(metav1.Object)
-	crt.Labels = ba.GetLabels()
-
-	crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
-	crt.Spec = ba.GetService().GetCertificate().GetSpec()
-	crt.Spec.CommonName = obj.GetName() + "." + obj.GetNamespace() + "." + "svc"
-	crt.Spec.SecretName = obj.GetName() + "-svc-tls"
 }
 
 // GetCondition ...
