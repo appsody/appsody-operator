@@ -567,6 +567,10 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				crt.Annotations = MergeMaps(crt.Annotations, ba.GetAnnotations())
 				crt.Spec = ba.GetRoute().GetCertificate().GetSpec()
 				crt.Spec.SecretName = obj.GetName() + "-route-tls"
+				// use routes host if no DNS information provided on certificate
+				if crt.Spec.CommonName == "" && len(crt.Spec.DNSNames) == 0 && len(crt.Spec.URISANs) == 0 {
+					crt.Spec.CommonName = ba.GetRoute().GetHost()
+				}
 				return nil
 			})
 			if err != nil {
@@ -585,6 +589,7 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				}
 			}
 			if !crtReady {
+				log.Info("Status", "Conditions", crt.Status.Conditions)
 				c := ba.GetStatus().NewCondition()
 				c.SetType(common.StatusConditionTypeReconciled)
 				c.SetStatus(corev1.ConditionFalse)

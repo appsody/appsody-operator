@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Certificate ...
+// Certificate is used to request certificates
 type Certificate struct {
 	// CommonName is a common name to be used on the Certificate.
 	// The CommonName should have a length of 64 characters or fewer to avoid
@@ -81,7 +81,7 @@ type Certificate struct {
 	KeyEncoding certmngrv1alpha2.KeyEncoding `json:"keyEncoding,omitempty"`
 }
 
-// GetSpec ...
+// GetSpec returns certificate spec
 func (crt *Certificate) GetSpec() certmngrv1alpha2.CertificateSpec {
 	newCrt := certmngrv1alpha2.CertificateSpec{}
 	newCrt.CommonName = crt.CommonName

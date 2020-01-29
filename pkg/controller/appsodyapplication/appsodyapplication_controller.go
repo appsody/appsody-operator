@@ -110,6 +110,9 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
+
+	reconciler := r.(*ReconcileAppsodyApplication)
+
 	c, err := controller.New("appsodyapplication-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
@@ -154,7 +157,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	predSubResource := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
+			return (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			return false
@@ -217,21 +220,37 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	ok, err := reconciler.IsGroupVersionSupported(routev1.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 
-	err = c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	ok, err = reconciler.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 
-	err = c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	ok, err = reconciler.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 
+	ok, err = reconciler.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &prometheusv1.ServiceMonitor{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 	return nil
 }
 
