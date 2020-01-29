@@ -105,7 +105,9 @@ func CustomizeRoute(route *routev1.Route, ba common.BaseApplication, key string,
 				route.Spec.TLS.CACertificate = ca
 				route.Spec.TLS.Key = key
 				route.Spec.TLS.DestinationCACertificate = destCACert
-				route.Spec.TLS.InsecureEdgeTerminationPolicy = ""
+				if rt.GetInsecureEdgeTerminationPolicy() != nil {
+					route.Spec.TLS.InsecureEdgeTerminationPolicy = *rt.GetInsecureEdgeTerminationPolicy()
+				}
 			} else if route.Spec.TLS.Termination == routev1.TLSTerminationPassthrough {
 				route.Spec.TLS.Certificate = ""
 				route.Spec.TLS.CACertificate = ""
@@ -121,8 +123,10 @@ func CustomizeRoute(route *routev1.Route, ba common.BaseApplication, key string,
 					route.Spec.TLS.InsecureEdgeTerminationPolicy = *rt.GetInsecureEdgeTerminationPolicy()
 				}
 			}
-
 		}
+	}
+	if ba.GetRoute() == nil || ba.GetRoute().GetTermination() == nil {
+		route.Spec.TLS = nil
 	}
 	route.Spec.To.Kind = "Service"
 	route.Spec.To.Name = obj.GetName()

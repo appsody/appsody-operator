@@ -188,6 +188,10 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 
 	err := r.UpdateStatus(rObj)
 	if err != nil {
+
+		if apierrors.IsConflict(issue) {
+			return reconcile.Result{Requeue: true}, nil
+		}
 		logger.Error(err, "Unable to update status")
 		return reconcile.Result{
 			RequeueAfter: time.Second,
@@ -568,7 +572,7 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				crt.Spec = ba.GetRoute().GetCertificate().GetSpec()
 				crt.Spec.SecretName = obj.GetName() + "-route-tls"
 				// use routes host if no DNS information provided on certificate
-				if crt.Spec.CommonName == "" && len(crt.Spec.DNSNames) == 0 && len(crt.Spec.URISANs) == 0 {
+				if crt.Spec.CommonName == "" {
 					crt.Spec.CommonName = ba.GetRoute().GetHost()
 				}
 				return nil
