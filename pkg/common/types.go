@@ -94,6 +94,9 @@ type ServiceBindingConsumes interface {
 	GetNamespace() string
 	GetCategory() ServiceBindingCategory
 	GetMountPath() string
+	GetGroup() string
+	GetVersion() string
+	GetKind() string
 }
 
 // ServiceBindingAuth represents authentication info when binding services
@@ -106,8 +109,11 @@ type ServiceBindingAuth interface {
 type ServiceBindingCategory string
 
 const (
-	// ServiceBindingCategoryOpenAPI ...
+	// ServiceBindingCategoryOpenAPI is a constant identifying OpenAPI service binding category
 	ServiceBindingCategoryOpenAPI ServiceBindingCategory = "openapi"
+
+	// ServiceBindingCategoryResource is a constant identifying Resource service binding category
+	ServiceBindingCategoryResource ServiceBindingCategory = "resource"
 )
 
 // BaseApplication represents basic kubernetes application

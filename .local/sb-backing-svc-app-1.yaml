@@ -1,0 +1,18 @@
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: app-1
+  namespace: sb-backing-svc
+spec:
+  applicationImage: image-registry.openshift-image-registry.svc:5000/service-binding-demo/nodejs-rest-http-crud:latest
+  expose: true
+  service:
+    port: 8080
+    type: ClusterIP
+    consumes:
+      - category: resource
+        name: db-demo
+        namespace: sb-backing-svc
+        group: postgresql.baiju.dev
+        version: v1alpha1
+        kind: Database

@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 
+	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
-
-	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	servicebindingv1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -249,7 +249,47 @@ func CustomizeConsumedServices(podSpec *corev1.PodSpec, ba common.BaseApplicatio
 				}
 			}
 		}
+		for _, svc := range ba.GetStatus().GetConsumedServices()[common.ServiceBindingCategoryResource] {
+			c, _ := findConsumes(svc, ba)
+			if c.GetMountPath() != "" {
+				actualMountPath := strings.Join([]string{c.GetMountPath(), c.GetNamespace(), c.GetName()}, "/")
+				volMount := corev1.VolumeMount{Name: svc, MountPath: actualMountPath, ReadOnly: true}
+				podSpec.Containers[0].VolumeMounts = append(podSpec.Containers[0].VolumeMounts, volMount)
+
+				vol := corev1.Volume{
+					Name: svc,
+					VolumeSource: corev1.VolumeSource{
+						Secret: &corev1.SecretVolumeSource{
+							SecretName: svc,
+						},
+					},
+				}
+				podSpec.Volumes = append(podSpec.Volumes, vol)
+			} else {
+				envFrom := corev1.EnvFromSource{
+					SecretRef: &corev1.SecretEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: svc,
+						},
+					},
+				}
+				podSpec.Containers[0].EnvFrom = append(podSpec.Containers[0].EnvFrom, envFrom)
+			}
+		}
 	}
+}
+
+// CustomizeServieBindingRequest ...
+func CustomizeServieBindingRequest(serviceBindingRequest *servicebindingv1alpha1.ServiceBindingRequest, consumes common.ServiceBindingConsumes, ba common.BaseApplication) {
+	serviceBindingRequest.Labels = ba.GetLabels()
+	serviceBindingRequest.Annotations = MergeMaps(serviceBindingRequest.Annotations, ba.GetAnnotations())
+	serviceBindingRequest.Spec.BackingServiceSelector = servicebindingv1alpha1.BackingServiceSelector{
+		Version:     consumes.GetVersion(),
+		Group:       consumes.GetGroup(),
+		Kind:        consumes.GetKind(),
+		ResourceRef: consumes.GetName(),
+	}
+	serviceBindingRequest.Spec.CustomEnvVar = []servicebindingv1alpha1.CustomEnvMap{}
 }
 
 // CustomizePersistence ...
@@ -454,6 +494,21 @@ func Validate(ba common.BaseApplication) (bool, error) {
 		}
 	}
 
+	// Consumes validation
+	for _, con := range ba.GetService().GetConsumes() {
+		if con.GetCategory() == common.ServiceBindingCategoryResource {
+			if con.GetGroup() == "" {
+				return false, fmt.Errorf("validation failed: missing field" + requiredFieldMessage("spec.service.consumes.group"))
+			}
+			if con.GetKind() == "" {
+				return false, fmt.Errorf("validation failed: missing field" + requiredFieldMessage("spec.service.consumes.kind"))
+			}
+			if con.GetVersion() == "" {
+				return false, fmt.Errorf("validation failed: missing field" + requiredFieldMessage("spec.service.consumes.version"))
+			}
+		}
+	}
+
 	return true, nil
 }
 
@@ -573,15 +628,21 @@ func MergeMaps(maps ...map[string]string) map[string]string {
 	return dest
 }
 
-// BuildServiceBindingSecretName returns secret name of a consumable service
-func BuildServiceBindingSecretName(name, namespace string) string {
-	return fmt.Sprintf("%s-%s", namespace, name)
+// BuildServiceBindingSecretName concatenates the input strings with '-' in between strings
+func BuildServiceBindingSecretName(ba common.BaseApplication, name, namespace string, category common.ServiceBindingCategory) string {
+	if category == common.ServiceBindingCategoryOpenAPI {
+		return strings.Join([]string{name, namespace, "openapi"}, "-")
+	} else if category == common.ServiceBindingCategoryResource {
+		mObj := ba.(metav1.Object)
+		return strings.Join([]string{name, namespace, mObj.GetName(), mObj.GetNamespace(), "resource"}, "-")
+	}
+	panic(category)
 }
 
 func findConsumes(secretName string, ba common.BaseApplication) (common.ServiceBindingConsumes, error) {
-	for _, v := range ba.GetService().GetConsumes() {
-		if BuildServiceBindingSecretName(v.GetName(), v.GetNamespace()) == secretName {
-			return v, nil
+	for _, c := range ba.GetService().GetConsumes() {
+		if BuildServiceBindingSecretName(ba, c.GetName(), c.GetNamespace(), c.GetCategory()) == secretName {
+			return c, nil
 		}
 	}
 

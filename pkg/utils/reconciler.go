@@ -10,7 +10,9 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody/appsody-operator/pkg/common"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/pkg/errors"
+	servicebindingv1alpha1 "github.com/redhat-developer/service-binding-operator/pkg/apis/apps/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,7 +20,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	routev1 "github.com/openshift/api/route/v1" 
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
@@ -351,7 +352,7 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 	mObj := ba.(metav1.Object)
 	logger := log.WithValues("ba.Namespace", mObj.GetNamespace(), "ba.Name", mObj.GetName())
 
-	secretName := BuildServiceBindingSecretName(mObj.GetName(), mObj.GetNamespace())
+	secretName := BuildServiceBindingSecretName(ba, mObj.GetName(), mObj.GetNamespace(), common.ServiceBindingCategoryOpenAPI)
 	if ba.GetService().GetProvides() != nil && ba.GetService().GetProvides().GetCategory() == common.ServiceBindingCategoryOpenAPI {
 		var creds map[string]string
 		if ba.GetService().GetProvides().GetAuth() != nil {
@@ -416,9 +417,10 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile.Result, error) {
 	rObj := ba.(runtime.Object)
 	mObj := ba.(metav1.Object)
+	sbrNamesToConsume := map[string]bool{}
 	for _, con := range ba.GetService().GetConsumes() {
 		if con.GetCategory() == common.ServiceBindingCategoryOpenAPI {
-			secretName := BuildServiceBindingSecretName(con.GetName(), con.GetNamespace())
+			secretName := BuildServiceBindingSecretName(ba, con.GetName(), con.GetNamespace(), con.GetCategory())
 			existingSecret := &corev1.Secret{}
 			err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: con.GetNamespace()}, existingSecret)
 			if err != nil {
@@ -496,6 +498,87 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 				if err != nil {
 					r.ManageError(errors.Wrapf(err, "unable to update status with service binding secret information"), common.StatusConditionTypeDependenciesSatisfied, ba)
 					return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+				}
+			}
+		} else if con.GetCategory() == common.ServiceBindingCategoryResource {
+			if ok, err := r.IsGroupVersionSupported(servicebindingv1alpha1.SchemeGroupVersion.String()); err != nil {
+				return r.ManageError(errors.New("failed to check if Service Binding Request CRD is installed"), common.StatusConditionTypeReconciled, ba)
+			} else if ok {
+				if con.GetNamespace() == mObj.GetNamespace() {
+					sbrName := BuildServiceBindingSecretName(ba, con.GetName(), con.GetNamespace(), con.GetCategory())
+					sbrNamesToConsume[sbrName] = true
+					sbr := &servicebindingv1alpha1.ServiceBindingRequest{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      sbrName,
+							Namespace: mObj.GetNamespace(),
+						}}
+					err = r.CreateOrUpdate(sbr, mObj, func() error {
+						CustomizeServieBindingRequest(sbr, con, ba)
+						// TODO :: add a dummy deployment. MUST BE REMOVED ONCE SBO MAKES APP SELECTOR OPTIONAL
+						sbr.Spec.ApplicationSelector = servicebindingv1alpha1.ApplicationSelector{
+							Group:       "extensions",
+							Version:     "v1beta1",
+							Resource:    "deployments",
+							ResourceRef: mObj.GetName(),
+						}
+						return nil
+					})
+					if err != nil {
+						r.ManageError(errors.Wrapf(err, "service binding dependency not satisfied"), common.StatusConditionTypeDependenciesSatisfied, ba)
+						return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
+					}
+
+					if sbr.Status.BindingStatus != "Success" {
+						r.ManageError(errors.Errorf("service binding dependency not satisfied. statuc field for %q Service Binding Request's status (%q) is not \"Success\". ", sbr.Name, sbr.Status.BindingStatus), common.StatusConditionTypeDependenciesSatisfied, ba)
+						return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
+					}
+
+					bindingSecret := &corev1.Secret{}
+					err = r.GetClient().Get(context.TODO(), types.NamespacedName{Name: sbr.Status.Secret, Namespace: mObj.GetNamespace()}, bindingSecret)
+					if err != nil {
+						if kerrors.IsNotFound(err) {
+							err = errors.Wrapf(err, "unable to find service binding secret %q for Service Binding Request resource in namespace %q", sbrName, mObj.GetNamespace())
+						}
+						r.ManageError(errors.Wrapf(err, "service binding dependency not satisfied"), common.StatusConditionTypeDependenciesSatisfied, ba)
+						return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
+					}
+
+					consumedServices := ba.GetStatus().GetConsumedServices()
+					if consumedServices == nil {
+						consumedServices = common.ConsumedServices{}
+					}
+					if !ContainsString(consumedServices[common.ServiceBindingCategoryResource], sbr.Status.Secret) {
+						consumedServices[common.ServiceBindingCategoryResource] =
+							append(consumedServices[common.ServiceBindingCategoryResource], sbr.Status.Secret)
+						ba.GetStatus().SetConsumedServices(consumedServices)
+						err := r.UpdateStatus(rObj)
+						if err != nil {
+							r.ManageError(errors.Wrapf(err, "unable to update status with service binding secret information"), common.StatusConditionTypeDependenciesSatisfied, ba)
+							return r.ManageError(err, common.StatusConditionTypeReconciled, ba)
+						}
+					}
+				} else {
+					// TODO :: handle when backing service is in another namespace
+				}
+			} else {
+				r.ManageError(errors.Errorf("could not find ServiceBindingRequest CRD (%q) in the cluster. ensure Service Binding Operator is installed", servicebindingv1alpha1.SchemeGroupVersion.String()), common.StatusConditionTypeDependenciesSatisfied, ba)
+				return r.ManageError(errors.New("dependency not satisfied"), common.StatusConditionTypeReconciled, ba)
+			}
+		}
+	}
+
+	// Cleaning up leftover SBR resources if not consumes anymore
+	if ok, _ := r.IsGroupVersionSupported(servicebindingv1alpha1.SchemeGroupVersion.String()); ok {
+		sbrList := &servicebindingv1alpha1.ServiceBindingRequestList{}
+		err := r.GetClient().List(context.Background(), sbrList, client.InNamespace(mObj.GetNamespace()), client.MatchingLabels(ba.GetLabels()))
+		if err != nil {
+			return r.ManageError(errors.New("failed to look up Service Binding Requests to clean up"), common.StatusConditionTypeReconciled, ba)
+		}
+		for _, sbr := range sbrList.Items {
+			if !sbrNamesToConsume[sbr.Name] {
+				err = r.DeleteResource(&sbr)
+				if err != nil {
+					return r.ManageError(errors.New("failed to delete Service Binding Requests"), common.StatusConditionTypeReconciled, ba)
 				}
 			}
 		}

@@ -83,10 +83,13 @@ type ServiceBindingProvides struct {
 // ServiceBindingConsumes represents a service to be consumed
 // +k8s:openapi-gen=true
 type ServiceBindingConsumes struct {
+	Category  common.ServiceBindingCategory `json:"category"`
 	Name      string                        `json:"name"`
 	Namespace string                        `json:"namespace,omitempty"`
-	Category  common.ServiceBindingCategory `json:"category"`
 	MountPath string                        `json:"mountPath,omitempty"`
+	Group     string                        `json:"group,omitempty"`
+	Version   string                        `json:"version,omitempty"`
+	Kind      string                        `json:"kind,omitempty"`
 }
 
 // AppsodyApplicationStorage ...
@@ -418,12 +421,27 @@ func (c *ServiceBindingConsumes) GetNamespace() string {
 
 // GetCategory returns category of a service consumer configuration
 func (c *ServiceBindingConsumes) GetCategory() common.ServiceBindingCategory {
-	return common.ServiceBindingCategoryOpenAPI
+	return c.Category
 }
 
 // GetMountPath returns mount path of a service consumer configuration
 func (c *ServiceBindingConsumes) GetMountPath() string {
 	return c.MountPath
+}
+
+// GetGroup returns Group of the resource to be bound. Used in creating ServiceBindingRequest resource.
+func (c *ServiceBindingConsumes) GetGroup() string {
+	return c.Group
+}
+
+// GetVersion returns Version of the resource to be bound. Used in creating ServiceBindingRequest resource.
+func (c *ServiceBindingConsumes) GetVersion() string {
+	return c.Version
+}
+
+// GetKind returns Kind of the resource to be bound. Used in creating ServiceBindingRequest resource.
+func (c *ServiceBindingConsumes) GetKind() string {
+	return c.Kind
 }
 
 // GetUsername returns username of a service binding auth object
@@ -550,7 +568,8 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 	}
 
 	for i := range cr.Spec.Service.Consumes {
-		if cr.Spec.Service.Consumes[i].Category == common.ServiceBindingCategoryOpenAPI {
+		if cr.Spec.Service.Consumes[i].Category == common.ServiceBindingCategoryOpenAPI ||
+			cr.Spec.Service.Consumes[i].Category == common.ServiceBindingCategoryResource {
 			if cr.Spec.Service.Consumes[i].Namespace == "" {
 				cr.Spec.Service.Consumes[i].Namespace = cr.Namespace
 			}

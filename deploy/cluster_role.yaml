@@ -54,6 +54,13 @@ rules:
   verbs:
   - '*'
 - apiGroups:
+  - apps.openshift.io
+  attributeRestrictions: null
+  resources:
+  - servicebindingrequests
+  verbs:
+  - '*'
+- apiGroups:
   - route.openshift.io
   attributeRestrictions: null
   resources:
