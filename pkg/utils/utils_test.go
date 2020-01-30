@@ -76,7 +76,7 @@ func TestCustomizeRoute(t *testing.T) {
 	spec := appsodyv1beta1.AppsodyApplicationSpec{Service: service}
 	route, appsody := &routev1.Route{}, createAppsodyApp(name, namespace, spec)
 
-	CustomizeRoute(route, appsody)
+	CustomizeRoute(route, appsody, "", "", "", "")
 
 	//TestGetLabels
 	testCR := []Test{

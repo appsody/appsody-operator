@@ -12,6 +12,7 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
+	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
@@ -108,6 +109,9 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
+
+	reconciler := r.(*ReconcileAppsodyApplication)
+
 	c, err := controller.New("appsodyapplication-controller", mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
@@ -152,7 +156,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	predSubResource := predicate.Funcs{
 		UpdateFunc: func(e event.UpdateEvent) bool {
 			// Ignore updates to CR status in which case metadata.Generation does not change
-			return e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration() && (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
+			return (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()])
 		},
 		CreateFunc: func(e event.CreateEvent) bool {
 			return false
@@ -215,16 +219,37 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	ok, err := reconciler.IsGroupVersionSupported(routev1.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 
-	err = c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
-		IsController: true,
-		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	ok, err = reconciler.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 
+	ok, err = reconciler.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
+
+	ok, err = reconciler.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String())
+	if ok {
+		err = c.Watch(&source.Kind{Type: &prometheusv1.ServiceMonitor{}}, &handler.EnqueueRequestForOwner{
+			IsController: true,
+			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
+		}, predSubResource)
+	}
 	return nil
 }
 
@@ -378,6 +403,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	result, err = r.ReconcileConsumes(instance)
 	if err != nil || result != (reconcile.Result{}) {
 		return result, err
+	}
+	result, err = r.ReconcileCertificate(instance)
+	if err != nil || result != (reconcile.Result{}) {
+		return result, nil
 	}
 
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
@@ -561,7 +590,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if instance.Spec.Expose != nil && *instance.Spec.Expose {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(route, instance, func() error {
-				appsodyutils.CustomizeRoute(route, instance)
+				key, cert, caCert, destCACert, err := r.GetRouteTLSValues(ba)
+				if err != nil {
+					return err
+				}
+				appsodyutils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
+
 				return nil
 			})
 			if err != nil {

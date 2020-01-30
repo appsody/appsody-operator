@@ -3,8 +3,10 @@ package v1beta1
 import (
 	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"time"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -44,6 +46,7 @@ type AppsodyApplicationSpec struct {
 	// +listType=map
 	// +listMapKey=name
 	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	Route          *AppsodyRoute      `json:"route,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -69,6 +72,8 @@ type AppsodyApplicationService struct {
 	// +listType=atomic
 	Consumes []ServiceBindingConsumes `json:"consumes,omitempty"`
 	Provides *ServiceBindingProvides  `json:"provides,omitempty"`
+	// +k8s:openapi-gen=true
+	Certificate *Certificate `json:"certificate,omitempty"`
 }
 
 // ServiceBindingProvides represents information about
@@ -102,6 +107,17 @@ type AppsodyApplicationStorage struct {
 type AppsodyApplicationMonitoring struct {
 	Labels    map[string]string       `json:"labels,omitempty"`
 	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
+}
+
+// AppsodyRoute ...
+// +k8s:openapi-gen=true
+type AppsodyRoute struct {
+	Annotations                   map[string]string                          `json:"annotations,omitempty"`
+	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
+	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
+	Certificate                   *Certificate                               `json:"certificate,omitempty"`
+	Host                          string                                     `json:"host,omitempty"`
+	Path                          string                                     `json:"path,omitempty"`
 }
 
 // ServiceBindingAuth allows a service to provide authentication information
@@ -308,6 +324,14 @@ func (cr *AppsodyApplication) GetGroupName() string {
 	return "appsody.dev"
 }
 
+// GetRoute returns appsody route configuration
+func (cr *AppsodyApplication) GetRoute() common.BaseApplicationRoute {
+	if cr.Spec.Route == nil {
+		return nil
+	}
+	return cr.Spec.Route
+}
+
 // GetConsumedServices returns a map of all the service names to be consumed by the application
 func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices {
 	if s.ConsumedServices == nil {
@@ -372,6 +396,14 @@ func (s *AppsodyApplicationService) GetProvides() common.ServiceBindingProvides 
 		return nil
 	}
 	return s.Provides
+}
+
+// GetCertificate returns services certificate configuration
+func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
+	if s.Certificate == nil {
+		return nil
+	}
+	return s.Certificate
 }
 
 // GetCategory returns category of a service provider configuration
@@ -444,6 +476,39 @@ func (m *AppsodyApplicationMonitoring) GetLabels() map[string]string {
 // GetEndpoints returns endpoints to be added to ServiceMonitor
 func (m *AppsodyApplicationMonitoring) GetEndpoints() []prometheusv1.Endpoint {
 	return m.Endpoints
+}
+
+// GetAnnotations returns route annotations
+func (r *AppsodyRoute) GetAnnotations() map[string]string {
+	return r.Annotations
+}
+
+// GetCertificate returns certficate spec for route
+func (r *AppsodyRoute) GetCertificate() common.Certificate {
+	if r.Certificate == nil {
+		return nil
+	}
+	return r.Certificate
+}
+
+// GetTermination returns terminatation of the route's TLS
+func (r *AppsodyRoute) GetTermination() *routev1.TLSTerminationType {
+	return r.Termination
+}
+
+// GetInsecureEdgeTerminationPolicy returns terminatation of the route's TLS
+func (r *AppsodyRoute) GetInsecureEdgeTerminationPolicy() *routev1.InsecureEdgeTerminationPolicyType {
+	return r.InsecureEdgeTerminationPolicy
+}
+
+// GetHost returns hostname to be used by the route
+func (r *AppsodyRoute) GetHost() string {
+	return r.Host
+}
+
+// GetPath returns path to use for the route
+func (r *AppsodyRoute) GetPath() string {
+	return r.Path
 }
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
@@ -826,8 +891,11 @@ func (s *AppsodyApplicationStatus) SetCondition(c common.StatusCondition) {
 		}
 	}
 
-	condition.SetLastTransitionTime(c.GetLastTransitionTime())
-	condition.SetLastUpdateTime(c.GetLastUpdateTime())
+	if condition.GetStatus() != c.GetStatus() {
+		condition.SetLastTransitionTime(&metav1.Time{Time: time.Now()})
+	}
+
+	condition.SetLastUpdateTime(metav1.Time{Time: time.Now()})
 	condition.SetReason(c.GetReason())
 	condition.SetMessage(c.GetMessage())
 	condition.SetStatus(c.GetStatus())

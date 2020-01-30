@@ -40,6 +40,8 @@ test-e2e-locally: setup
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
+	cat deploy/crds/appsody.dev_appsodyapplications_crd.yaml | awk '/type: object/ {max=NR} {a[NR]=$$0} END{for (i=1;i<=NR;i++) {if (i!=max) print a[i]}}' > deploy/crds/appsody.dev_appsodyapplications_crd.yaml.tmp
+	mv deploy/crds/appsody.dev_appsodyapplications_crd.yaml.tmp deploy/crds/appsody.dev_appsodyapplications_crd.yaml
 
 build-image: setup ## Build operator Docker image and tag with "${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}"
 	operator-sdk build ${OPERATOR_IMAGE}:${OPERATOR_IMAGE_TAG}
