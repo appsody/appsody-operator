@@ -499,6 +499,11 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, ba common.BaseAppl
 
 // Validate if the BaseApplication is valid
 func Validate(ba common.BaseApplication) (bool, error) {
+	// Image validation
+	if ba.GetApplicationImage() == "" && ba.GetApplicationImageStream() == nil {
+		return false, fmt.Errorf("validation failed: must set one of the fields: spec.applicationImage, spec.applicationImageStream")
+	}
+
 	// Storage validation
 	if ba.GetStorage() != nil {
 		if ba.GetStorage().GetVolumeClaimTemplate() == nil {
@@ -519,7 +524,7 @@ func createValidationError(msg string) error {
 }
 
 func requiredFieldMessage(fieldPaths ...string) string {
-	return "must set the field(s): " + strings.Join(fieldPaths, ",")
+	return "must set the field(s): " + strings.Join(fieldPaths, ", ")
 }
 
 // CustomizeServiceMonitor ...

@@ -12,17 +12,19 @@ import (
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
+	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
-
-	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
+	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -42,6 +44,7 @@ var watchNamespaces []string
 // Add creates a new AppsodyApplication Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
 func Add(mgr manager.Manager) error {
+	setup(mgr)
 	return add(mgr, newReconciler(mgr))
 }
 
@@ -114,6 +117,34 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	}
 
 	return reconciler
+}
+
+func setup(mgr manager.Manager) error {
+	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
+		instance, ok := obj.(*appsodyv1beta1.AppsodyApplication)
+		if !ok {
+			return nil
+		}
+
+		if instance.Spec.ApplicationImageStream != nil {
+			return []string{string(instance.Spec.ApplicationImageStream.Name)}
+		}
+		return nil
+	})
+
+	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamNamespace, func(obj runtime.Object) []string {
+		instance, ok := obj.(*appsodyv1beta1.AppsodyApplication)
+		if !ok {
+			return nil
+		}
+
+		if instance.Spec.ApplicationImageStream != nil {
+			return []string{string(instance.Spec.ApplicationImageStream.Namespace)}
+		}
+		return nil
+	})
+
+	return nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -424,6 +455,27 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	result, err = r.ReconcileCertificate(instance)
 	if err != nil || result != (reconcile.Result{}) {
 		return result, nil
+	}
+
+	if instance.Spec.ApplicationImageStream != nil {
+		// Check if Knative is supported and delete Knative service if supported
+		if ok, err = r.IsGroupVersionSupported(imagev1.SchemeGroupVersion.String()); err != nil {
+			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", imagev1.SchemeGroupVersion.String()))
+			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		} else if ok {
+			imageStreamTag := &imagev1.ImageStreamTag{}
+			key := types.NamespacedName{Name: instance.Spec.ApplicationImageStream.Name, Namespace: instance.Spec.ApplicationImageStream.Namespace}
+			err := r.GetClient().Get(context.Background(), key, imageStreamTag)
+			if err != nil {
+				if kerrors.IsNotFound(err) {
+					return r.ManageError(errors.Wrapf(err, "failed to find ImageStreamTag %q", instance.Spec.ApplicationImageStream), common.StatusConditionTypeReconciled, ba)
+				}
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+			instance.Spec.ApplicationImage = imageStreamTag.Image.DockerImageReference
+		} else {
+			reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", imagev1.SchemeGroupVersion.String()))
+		}
 	}
 
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {

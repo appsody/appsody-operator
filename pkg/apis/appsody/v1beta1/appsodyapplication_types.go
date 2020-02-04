@@ -14,12 +14,13 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
-	Version          string                         `json:"version,omitempty"`
-	ApplicationImage string                         `json:"applicationImage"`
-	Replicas         *int32                         `json:"replicas,omitempty"`
-	Autoscaling      *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy       *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
-	PullSecret       *string                        `json:"pullSecret,omitempty"`
+	Version                string                         `json:"version,omitempty"`
+	ApplicationImage       string                         `json:"applicationImage,omitempty"`
+	ApplicationImageStream *corev1.ObjectReference        `json:"applicationImageStream,omitempty"`
+	Replicas               *int32                         `json:"replicas,omitempty"`
+	Autoscaling            *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
+	PullPolicy             *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
+	PullSecret             *string                        `json:"pullSecret,omitempty"`
 	// +listType=map
 	// +listMapKey=name
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
@@ -195,6 +196,11 @@ func init() {
 // GetApplicationImage returns application image
 func (cr *AppsodyApplication) GetApplicationImage() string {
 	return cr.Spec.ApplicationImage
+}
+
+// GetApplicationImageStream returns application image stream
+func (cr *AppsodyApplication) GetApplicationImageStream() *corev1.ObjectReference {
+	return cr.Spec.ApplicationImageStream
 }
 
 // GetPullPolicy returns image pull policy
@@ -513,6 +519,9 @@ func (r *AppsodyRoute) GetPath() string {
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
 func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
+	if cr.Spec.ApplicationImageStream == nil {
+		cr.Spec.ApplicationImageStream = defaults.ApplicationImageStream
+	}
 
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy
@@ -660,6 +669,10 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 
 	if constants.ApplicationImage != "" {
 		cr.Spec.ApplicationImage = constants.ApplicationImage
+	}
+
+	if constants.ApplicationImageStream != nil {
+		cr.Spec.ApplicationImageStream = constants.ApplicationImageStream
 	}
 
 	if constants.PullPolicy != nil {

@@ -126,6 +126,7 @@ const (
 // BaseApplication represents basic kubernetes application
 type BaseApplication interface {
 	GetApplicationImage() string
+	GetApplicationImageStream() *corev1.ObjectReference
 	GetPullPolicy() *corev1.PullPolicy
 	GetPullSecret() *string
 	GetServiceAccountName() *string
