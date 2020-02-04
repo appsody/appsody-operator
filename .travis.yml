@@ -36,14 +36,12 @@ jobs:
   - name: Build amd64
     stage: build
     os: linux
-    arch: amd64
+    arch:
+      - amd64
+      - ppc64le
+      - s390x
     script:
       - ls
-  - name: Build ppc64le
-    os: linux
-    arch: ppc64le
-    script:
-      -ls
 
   # - name: Run end-to-end tests
   #   stage: e2e test
