@@ -576,8 +576,12 @@ _This feature is only available if you have kAppNav installed on your cluster. A
 
 ### Certificate Manager Integration
 
-Appsody Operator is enabled to take advantage of cert-manager tool, if it is installed on the cluster.
+Appsody Operator is enabled to take advantage of [cert-manager](https://cert-manager.io/) tool, if it is installed on the cluster.
 This allows to automatically provision TLS certificates for pods as well as routes.
+
+Cert-manager installation instruction can be found [here](https://cert-manager.io/docs/installation/)
+
+When creating certificates via the AppsodyApplication CR the user can specify a particular issuer name and toggle the scopes between `ClusterIssuer` (cluster scoped) and `Issuer` (namespace scoped). If not specified, these values are retrieved from a ConfigMap called `appsody-operator`, with keys `defaultIssuer` (default value of `self-signed`) and `useClusterIssuer` (default value of `"true"`)
 
 #### Create an ClusterIssuer or Issuer
 
@@ -607,9 +611,6 @@ spec:
 
 #### Simple scenario (Pods certificate)
 
-By default the operator will use `self-signed` `ClusterIssuer`
-This is configurable through `appsody-operator` ConfigMap using `defaultIssuer` and `useClusterIssuer` properties
-
 ```yaml
 apiVersion: appsody.dev/v1beta1
 kind: AppsodyApplication
@@ -628,16 +629,13 @@ spec:
 In this scenario the operator will generate `Certificate` resource with common name of `myapp.test.svc` that can be used for service to service communication.
 
 Once this certificate request is resolved by cert-manager the resulting secret `myapp-svc-tls` will be 
-mounted into each pod inside `/etc/x509/certs` folder. 
+mounted into each pod inside `/etc/x509/certs` folder. Mounted files will be always up to date with a secret.
 
 It will contain private key, certificate and CA certificate.
-It is up to runtime to read and enable use of this files.
+It is up to the application container to consume these artifacts, applying any needed transformation or modification.
 
 
 #### Simple scenario (Route certificate)
-
-By default the operator will use `self-signed` `ClusterIssuer`. 
-This is configurable through `appsody-operator` ConfigMap using `defaultIssuer` and `useClusterIssuer` properties
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -658,11 +656,8 @@ In this scenario the operator will generate `Certificate` resource with common n
 
 #### Advanced scenario
 
-By default the operator will use `self-signed` `ClusterIssuer`. 
-This is configurable through `appsody-operator` ConfigMap using `defaultIssuer` and `useClusterIssuer` properties.
-
-In this example we overriding Issuer to be used for application.
-Certificate will be generated for specific organiation and duration. Extra properties can be added as well 
+In this example we are overriding Issuer to be used for application.
+Certificate will be generated for specific organization and duration. Extra properties can be added as well.
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
