@@ -18,29 +18,41 @@ cache:
     - vendor
 
 stages:
-  - name: build
   - name: unit test
-  - name: e2e test
-  - name: build and push must gather
+  - name: build
+  # - name: e2e test
+  # - name: build and push must gather
 
 jobs:
  include:
-  - name: Build docker image
-    stage: build
-    script:
-    - make build-image
+  # - name: Build docker image
+  #   stage: build
+  #   script:
+  #   - make build-image
   - name: Run unit tests
     stage: unit test
     script:
-    - make unit-test
-  - name: Run end-to-end tests
-    stage: e2e test
+      - make unit-test
+  - name: Build amd64
+    stage: build
+    os: linux
+    arch: amd64
     script:
-    - make test-e2e
-  - name: Build must gather image and push
-    stage: build and push must gather
+      - ls
+  - name: Build ppc64le
+    os: linux
+    arch: ppc64le
     script:
-    - make build-must-gather
-    - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
-    - make push-must-gather
-    if: branch = master AND fork = false AND type != pull_request AND env(DOCKER_USERNAME) IS NOT blank AND env(DOCKER_PASSWORD) IS NOT blank
+      -ls
+
+  # - name: Run end-to-end tests
+  #   stage: e2e test
+  #   script:
+  #   - make test-e2e
+  # - name: Build must gather image and push
+  #   stage: build and push must gather
+  #   script:
+  #   - make build-must-gather
+  #   - docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+  #   - make push-must-gather
+  #   if: branch = master AND fork = false AND type != pull_request AND env(DOCKER_USERNAME) IS NOT blank AND env(DOCKER_PASSWORD) IS NOT blank
