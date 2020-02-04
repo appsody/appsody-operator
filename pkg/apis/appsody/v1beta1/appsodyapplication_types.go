@@ -625,6 +625,27 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 	if constants != nil {
 		cr.applyConstants(defaults, constants)
 	}
+
+	if cr.Spec.Service.Certificate != nil {
+		if cr.Spec.Service.Certificate.IssuerRef.Name == "" {
+			cr.Spec.Service.Certificate.IssuerRef.Name = common.Config[common.OpConfigPropDefaultIssuer]
+		}
+
+		if cr.Spec.Service.Certificate.IssuerRef.Kind == "" && common.Config[common.OpConfigPropUseClusterIssuer] != "false" {
+			cr.Spec.Service.Certificate.IssuerRef.Kind = "ClusterIssuer"
+		}
+	}
+
+	if cr.Spec.Route != nil && cr.Spec.Route.Certificate != nil {
+		if cr.Spec.Route.Certificate.IssuerRef.Name == "" {
+			cr.Spec.Route.Certificate.IssuerRef.Name = common.Config[common.OpConfigPropDefaultIssuer]
+		}
+
+		if cr.Spec.Route.Certificate.IssuerRef.Kind == "" && common.Config[common.OpConfigPropUseClusterIssuer] != "false" {
+			cr.Spec.Route.Certificate.IssuerRef.Kind = "ClusterIssuer"
+		}
+	}
+
 }
 
 func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
