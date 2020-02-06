@@ -233,6 +233,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	pts.Spec.Volumes = ba.GetVolumes()
 
 	if ba.GetService().GetCertificate() != nil {
+		pts.Spec.Containers[0].Env = append(pts.Spec.Containers[0].Env, corev1.EnvVar{Name: "TLS_DIR", Value: "/etc/x509/certs"})
 		pts.Spec.Volumes = append(pts.Spec.Volumes, corev1.Volume{
 			Name: "svc-certificate",
 			VolumeSource: corev1.VolumeSource{

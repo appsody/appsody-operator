@@ -59,6 +59,7 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `service.port` | The port exposed by the container. |
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |
+| `service.certificate` | A YAML object representing a [Certificate](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1alpha2.CertificateSpec). |
 | `service.provides.category` | Service binding type to be provided by this CR. At this time, the only allowed value is `openapi`. |
 | `service.provides.protocol` | Protocol of the provided service. Defauts to `http`. |
 | `service.provides.context` | Specifies context root of the service. |
@@ -91,6 +92,11 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `monitoring.labels` | Labels to set on [ServiceMonitor](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#servicemonitor). |
 | `monitoring.endpoints` | A YAML snippet representing an array of [Endpoint](https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint) component from ServiceMonitor. |
 | `createAppDefinition`   | A boolean to toggle the automatic configuration of `AppsodyApplication`'s Kubernetes resources to allow creation of an application definition by [kAppNav](https://kappnav.io/). The default value is `true`. See [Application Navigator](#kubernetes-application-navigator-kappnav-support) for more information. |
+| `route.host`   | Hostname to be used for the Route. |
+| `route.path`   | Path to be used for Route. |
+| `route.termination`   | TLS termination policy. Can be one of `edge`, `reencrypt` and `passthrough`. |
+| `route.insecureEdgeTerminationPolicy`   | HTTP traffic policy with TLS enabled. Can be one of `Allow`, `Redirect` and `None`. |
+| `route.certificate`  | A YAML object representing a [Certificate](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1alpha2.CertificateSpec). |
 
 ### Basic usage
 
@@ -575,6 +581,117 @@ By default, Appsody Operator configures the Kubernetes resources it generates to
 To join an existing application definition, disable auto-creation and set the label(s) needed to join the application on `AppsodyApplication` CR. See [Labels](#labels) section for more information.
 
 _This feature is only available if you have kAppNav installed on your cluster. Auto creation of an application definition is not supported when Knative service is created_
+
+
+### Certificate Manager Integration
+
+Appsody Operator is enabled to take advantage of [cert-manager](https://cert-manager.io/) tool, if it is installed on the cluster.
+This allows to automatically provision TLS certificates for pods as well as routes.
+
+Cert-manager installation instruction can be found [here](https://cert-manager.io/docs/installation/)
+
+When creating certificates via the AppsodyApplication CR the user can specify a particular issuer name and toggle the scopes between `ClusterIssuer` (cluster scoped) and `Issuer` (namespace scoped). If not specified, these values are retrieved from a ConfigMap called `appsody-operator`, with keys `defaultIssuer` (default value of `self-signed`) and `useClusterIssuer` (default value of `"true"`)
+
+_This feature does not support integration with Knative Service._
+
+
+#### Create an ClusterIssuer or Issuer
+
+Self signed:
+
+```yaml
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: self-signed
+spec:
+  selfSigned: {}
+```
+
+Using custom CA key:
+
+```yaml
+apiVersion: cert-manager.io/v1alpha2
+kind: ClusterIssuer
+metadata:
+  name: mycompany-ca
+spec:
+  ca:
+    secretName: mycompany-ca-tls
+```
+
+
+#### Simple scenario (Pods certificate)
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: myapp
+  namespace: test
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  ....
+  service:
+    port: 9080
+    certificate: {}
+```
+
+In this scenario the operator will generate `Certificate` resource with common name of `myapp.test.svc` that can be used for service to service communication.
+
+Once this certificate request is resolved by cert-manager the resulting secret `myapp-svc-tls` will be 
+mounted into each pod inside `/etc/x509/certs` folder. Mounted files will be always up to date with a secret.
+
+It will contain private key, certificate and CA certificate.
+It is up to the application container to consume these artifacts, applying any needed transformation or modification.
+
+
+#### Simple scenario (Route certificate)
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: myapp
+  namespace: test
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  expose: true
+  route:
+    host: myapp.mycompany.com
+    termination: reencrypt
+    certificate: {}
+```
+In this scenario the operator will generate `Certificate` resource with common name of `myapp.mycompany.com` that will be injected into `Route` resource.
+
+#### Advanced scenario
+
+In this example we are overriding Issuer to be used for application.
+Certificate will be generated for specific organization and duration. Extra properties can be added as well.
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: myapp
+  namespace: test
+spec:
+  stack: java-microprofile
+  applicationImage: quay.io/my-repo/my-app:1.0
+  expose: true
+  route:
+    host: myapp.mycompany.com
+    termination: reencrypt
+    certificate:
+      duration: 8760h0m0s
+      organization:
+        - My Company
+      issuerRef:
+        name: myComanyIssuer
+        kind: ClusterIssuer
+```
 
 ### Troubleshooting
 

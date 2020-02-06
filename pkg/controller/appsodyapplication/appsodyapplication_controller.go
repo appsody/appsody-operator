@@ -65,13 +65,23 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		ns = watchNamespaces[0]
 	}
 
+	configMap := &corev1.ConfigMap{}
+	configMap.Namespace = ns
+	configMap.Name = "appsody-operator"
+	configMap.Data = common.DefaultOpConfig()
+	err = reconciler.GetClient().Create(context.TODO(), configMap)
+	if err != nil && !kerrors.IsAlreadyExists(err) {
+		log.Error(err, "Failed to create config map for the operator")
+		os.Exit(1)
+	}
+
 	fData, err := ioutil.ReadFile("deploy/stack_defaults.yaml")
 	if err != nil {
 		log.Error(err, "Failed to read defaults config map from file")
 		os.Exit(1)
 	}
 
-	configMap := &corev1.ConfigMap{}
+	configMap = &corev1.ConfigMap{}
 	err = yaml.Unmarshal(fData, configMap)
 	if err != nil {
 		log.Error(err, "Failed to parse defaults config map from file")
@@ -332,6 +342,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 		}
 		r.lastConstantsRV = configMap.ResourceVersion
+	}
+
+	configMap, err = r.GetAppsodyOpConfigMap("appsody-operator", ns)
+	if err != nil {
+		log.Info("Failed to find appsody operator config map")
+	} else {
+		common.Config.LoadFromConfigMap(configMap)
 	}
 
 	// Fetch the AppsodyApplication instance
