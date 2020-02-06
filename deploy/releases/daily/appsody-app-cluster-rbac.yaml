@@ -68,6 +68,13 @@ rules:
   - services
   verbs:
   - '*'
+- apiGroups:
+  - cert-manager.io
+  attributeRestrictions: null
+  resources:
+  - certificates
+  verbs:
+  - '*'
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

@@ -583,6 +583,9 @@ Cert-manager installation instruction can be found [here](https://cert-manager.i
 
 When creating certificates via the AppsodyApplication CR the user can specify a particular issuer name and toggle the scopes between `ClusterIssuer` (cluster scoped) and `Issuer` (namespace scoped). If not specified, these values are retrieved from a ConfigMap called `appsody-operator`, with keys `defaultIssuer` (default value of `self-signed`) and `useClusterIssuer` (default value of `"true"`)
 
+_This feature does not support integration with Knative Service._
+
+
 #### Create an ClusterIssuer or Issuer
 
 Self signed:

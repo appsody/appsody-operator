@@ -154,6 +154,7 @@ type BaseApplication interface {
 	GetRoute() BaseApplicationRoute
 }
 
+// Certificate returns cert-manager CertificateSpec
 type Certificate interface {
 	GetSpec() certmngrv1alpha2.CertificateSpec
 }

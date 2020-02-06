@@ -32,5 +32,6 @@ func (oc OpConfig) LoadFromConfigMap(cm *corev1.ConfigMap) {
 func DefaultOpConfig() OpConfig {
 	cfg := OpConfig{}
 	cfg[OpConfigPropDefaultIssuer] = "self-signed"
+	cfg[OpConfigPropUseClusterIssuer] = "true"
 	return cfg
 }
