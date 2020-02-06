@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/appsody/appsody-operator/pkg/common"
 
@@ -119,32 +120,15 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return reconciler
 }
 
-func setup(mgr manager.Manager) error {
+func setup(mgr manager.Manager) {
 	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
-		instance, ok := obj.(*appsodyv1beta1.AppsodyApplication)
-		if !ok {
-			return nil
-		}
-
-		if instance.Spec.ApplicationImageStream != nil {
-			return []string{string(instance.Spec.ApplicationImageStream.Name)}
+		appImageStream := obj.(*appsodyv1beta1.AppsodyApplication).Spec.ApplicationImageStream
+		if appImageStream != nil {
+			fullName := fmt.Sprintf("%s/%s", appImageStream.Namespace, strings.Split(appImageStream.Name, ":")[0])
+			return []string{fullName}
 		}
 		return nil
 	})
-
-	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamNamespace, func(obj runtime.Object) []string {
-		instance, ok := obj.(*appsodyv1beta1.AppsodyApplication)
-		if !ok {
-			return nil
-		}
-
-		if instance.Spec.ApplicationImageStream != nil {
-			return []string{string(instance.Spec.ApplicationImageStream.Namespace)}
-		}
-		return nil
-	})
-
-	return nil
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -260,33 +244,43 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	ok, err := reconciler.IsGroupVersionSupported(routev1.SchemeGroupVersion.String())
+	ok, _ := reconciler.IsGroupVersionSupported(imagev1.SchemeGroupVersion.String())
 	if ok {
-		err = c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
+		c.Watch(
+			&source.Kind{Type: &imagev1.ImageStream{}},
+			&EnqueueRequestsForImageStream{
+				Client:          mgr.GetClient(),
+				WatchNamespaces: watchNamespaces,
+			})
+	}
+
+	ok, _ = reconciler.IsGroupVersionSupported(routev1.SchemeGroupVersion.String())
+	if ok {
+		c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 		}, predSubResource)
 	}
 
-	ok, err = reconciler.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
 	if ok {
-		err = c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
+		c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 		}, predSubResource)
 	}
 
-	ok, err = reconciler.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String())
 	if ok {
-		err = c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
+		c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 		}, predSubResource)
 	}
 
-	ok, err = reconciler.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String())
 	if ok {
-		err = c.Watch(&source.Kind{Type: &prometheusv1.ServiceMonitor{}}, &handler.EnqueueRequestForOwner{
+		c.Watch(&source.Kind{Type: &prometheusv1.ServiceMonitor{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &appsodyv1beta1.AppsodyApplication{},
 		}, predSubResource)
@@ -457,27 +451,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return result, nil
 	}
 
-	if instance.Spec.ApplicationImageStream != nil {
-		// Check if Knative is supported and delete Knative service if supported
-		if ok, err = r.IsGroupVersionSupported(imagev1.SchemeGroupVersion.String()); err != nil {
-			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", imagev1.SchemeGroupVersion.String()))
-			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		} else if ok {
-			imageStreamTag := &imagev1.ImageStreamTag{}
-			key := types.NamespacedName{Name: instance.Spec.ApplicationImageStream.Name, Namespace: instance.Spec.ApplicationImageStream.Namespace}
-			err := r.GetClient().Get(context.Background(), key, imageStreamTag)
-			if err != nil {
-				if kerrors.IsNotFound(err) {
-					return r.ManageError(errors.Wrapf(err, "failed to find ImageStreamTag %q", instance.Spec.ApplicationImageStream), common.StatusConditionTypeReconciled, ba)
-				}
-				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-			}
-			instance.Spec.ApplicationImage = imageStreamTag.Image.DockerImageReference
-		} else {
-			reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", imagev1.SchemeGroupVersion.String()))
-		}
-	}
-
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
@@ -497,21 +470,48 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	}
 
-	if instance.Spec.CreateKnativeService != nil && *instance.Spec.CreateKnativeService {
-		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
-		err = r.CreateOrUpdate(ksvc, instance, func() error {
-			appsodyutils.CustomizeKnativeService(ksvc, instance)
-			if r.IsOpenShift() {
-				ksvc.Spec.Template.ObjectMeta.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
-			}
-			return nil
-		})
-
+	if instance.Spec.ApplicationImageStream != nil {
+		if !r.IsOpenShift() {
+			return r.ManageError(errors.New("ImageStream is not supported"), common.StatusConditionTypeReconciled, instance)
+		}
+		imageName, imageTag, err := appsodyutils.ExtractImageStreamInfo(instance.Spec.ApplicationImageStream.Name)
 		if err != nil {
-			reqLogger.Error(err, "Failed to reconcile Knative Service")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
+		imageStream := &imagev1.ImageStream{}
+		key := types.NamespacedName{Name: imageName, Namespace: instance.Spec.ApplicationImageStream.Namespace}
+		err = r.GetClient().Get(context.Background(), key, imageStream)
+		if err != nil {
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+		found := false
+		for i := range imageStream.Status.Tags {
+			if imageStream.Status.Tags[i].Tag == imageTag {
+				if instance.Spec.ApplicationImage != imageStream.Status.Tags[i].Items[0].DockerImageReference {
+					instance.Spec.ApplicationImage = imageStream.Status.Tags[i].Items[0].DockerImageReference
+					err = r.GetClient().Update(context.TODO(), instance)
+					if err != nil {
+						reqLogger.Error(err, "Error updating AppsodyApplication")
+						return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+					}
+				}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return r.ManageError(errors.Errorf("failed to find referenced ImageStreamTag %q", instance.Spec.ApplicationImageStream), common.StatusConditionTypeReconciled, instance)
+		}
+	}
 
+	isKnativeSupported, err := r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
+	if err != nil {
+		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+	} else if !isKnativeSupported {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported on the cluster", servingv1alpha1.SchemeGroupVersion.String()))
+	}
+
+	if instance.Spec.CreateKnativeService != nil && *instance.Spec.CreateKnativeService {
 		// Clean up non-Knative resources
 		resources := []runtime.Object{
 			&corev1.Service{ObjectMeta: defaultMeta},
@@ -526,23 +526,33 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			reqLogger.Error(err, "Failed to clean up non-Knative resources")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
+		if isKnativeSupported {
+			ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
+			err = r.CreateOrUpdate(ksvc, instance, func() error {
+				appsodyutils.CustomizeKnativeService(ksvc, instance)
+				if r.IsOpenShift() {
+					ksvc.Spec.Template.ObjectMeta.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
+				}
+				return nil
+			})
 
-		return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
+			if err != nil {
+				reqLogger.Error(err, "Failed to reconcile Knative Service")
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+			return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
+		} else {
+			return r.ManageError(errors.New("failed to reconcile Knative service as operator could not find Knative CRDs"), common.StatusConditionTypeReconciled, instance)
+		}
 	}
 
-	// Check if Knative is supported and delete Knative service if supported
-	if ok, err = r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String()); err != nil {
-		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", servingv1alpha1.SchemeGroupVersion.String()))
-		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-	} else if ok {
+	if isKnativeSupported {
 		ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 		err = r.DeleteResource(ksvc)
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete Knative Service")
 			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
-	} else {
-		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported. Skip deleting the resource", servingv1alpha1.SchemeGroupVersion.String()))
 	}
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}

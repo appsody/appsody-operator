@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -735,4 +736,13 @@ func GetConnectToAnnotation(ba common.BaseApplication) map[string]string {
 // IsClusterWide returns true if watchNamespaces is set to [""]
 func IsClusterWide(watchNamespaces []string) bool {
 	return len(watchNamespaces) == 1 && watchNamespaces[0] == ""
+}
+
+// ExtractImageStreamInfo returns image stream name and tag from ImageStreamTag name
+func ExtractImageStreamInfo(isTag string) (string, string, error) {
+	imageTag := strings.Split(isTag, ":")
+	if len(imageTag) != 2 {
+		return "", "", errors.New("invalid image stream tag format: expecting <image stream name>:<tag>")
+	}
+	return imageTag[0], imageTag[1], nil
 }

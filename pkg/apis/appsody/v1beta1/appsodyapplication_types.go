@@ -1,12 +1,13 @@
 package v1beta1
 
 import (
+	"time"
+
 	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -521,6 +522,10 @@ func (r *AppsodyRoute) GetPath() string {
 func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
 	if cr.Spec.ApplicationImageStream == nil {
 		cr.Spec.ApplicationImageStream = defaults.ApplicationImageStream
+	} else {
+		if cr.Spec.ApplicationImageStream.Namespace == "" {
+			cr.Spec.ApplicationImageStream.Namespace = cr.Namespace
+		}
 	}
 
 	if cr.Spec.PullPolicy == nil {
