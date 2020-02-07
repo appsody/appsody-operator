@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	"strings"
 	"time"
 
 	"github.com/appsody/appsody-operator/pkg/common"
@@ -64,7 +65,7 @@ type AppsodyApplicationAutoScaling struct {
 // AppsodyApplicationImageStream represents ImageStreamTag including application image
 // +k8s:openapi-gen=true
 type AppsodyApplicationImageStream struct {
-	// +kubebuilder:validation:Pattern=`^(?:[a-z0-9])+(?:[._-][a-z0-9]+)*:[\w][\w.-]*$`
+	// +kubebuilder:validation:Pattern=`^(?:[a-z0-9])+(?:[._-][a-z0-9]+)*(:[\w][\w.-]*){0,1}$`
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
@@ -541,6 +542,10 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 	if cr.Spec.ApplicationImageStream == nil {
 		cr.Spec.ApplicationImageStream = defaults.ApplicationImageStream
 	} else {
+		isTag := cr.Spec.ApplicationImageStream.Name
+		if len(strings.Split(isTag, ":")) < 2 {
+			cr.Spec.ApplicationImageStream.Name = cr.Spec.ApplicationImageStream.Name + ":latest"
+		}
 		if cr.Spec.ApplicationImageStream.Namespace == "" {
 			cr.Spec.ApplicationImageStream.Namespace = cr.Namespace
 		}

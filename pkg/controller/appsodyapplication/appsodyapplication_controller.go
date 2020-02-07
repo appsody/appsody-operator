@@ -412,13 +412,45 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			instance.Initialize(stackDefaults, r.StackConstants["generic"])
 		}
 	}
-
 	_, err = appsodyutils.Validate(instance)
 	// If there's any validation error, don't bother with requeuing
 	if err != nil {
 		reqLogger.Error(err, "Error validating AppsodyApplication")
 		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		return reconcile.Result{}, nil
+	}
+
+	if instance.Spec.ApplicationImageStream != nil {
+		if !r.IsOpenShift() {
+			return r.ManageError(errors.New("ImageStream is not supported"), common.StatusConditionTypeReconciled, instance)
+		}
+		imageName, imageTag, err := appsodyutils.ExtractImageStreamInfo(instance.Spec.ApplicationImageStream.Name)
+		if err != nil {
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+		imageStream := &imagev1.ImageStream{}
+		key := types.NamespacedName{Name: imageName, Namespace: instance.Spec.ApplicationImageStream.Namespace}
+		err = r.GetClient().Get(context.Background(), key, imageStream)
+		if err != nil {
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
+		found := false
+		for i := range imageStream.Status.Tags {
+			if imageStream.Status.Tags[i].Tag == imageTag {
+				history := imageStream.Status.Tags[i].Items
+				found = len(history) > 0
+				if found && instance.Spec.ApplicationImage != history[0].DockerImageReference {
+					if instance.Labels == nil {
+						instance.Labels = map[string]string{}
+					}
+					instance.Spec.ApplicationImage = imageStream.Status.Tags[i].Items[0].DockerImageReference
+				}
+				break
+			}
+		}
+		if !found {
+			return r.ManageError(errors.Errorf("failed to find referenced ImageStreamTag %q", instance.Spec.ApplicationImageStream), common.StatusConditionTypeReconciled, instance)
+		}
 	}
 
 	currentGen := instance.Generation
@@ -467,41 +499,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if err != nil {
 			reqLogger.Error(err, "Failed to delete ServiceAccount")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		}
-	}
-
-	if instance.Spec.ApplicationImageStream != nil {
-		if !r.IsOpenShift() {
-			return r.ManageError(errors.New("ImageStream is not supported"), common.StatusConditionTypeReconciled, instance)
-		}
-		imageName, imageTag, err := appsodyutils.ExtractImageStreamInfo(instance.Spec.ApplicationImageStream.Name)
-		if err != nil {
-			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		}
-		imageStream := &imagev1.ImageStream{}
-		key := types.NamespacedName{Name: imageName, Namespace: instance.Spec.ApplicationImageStream.Namespace}
-		err = r.GetClient().Get(context.Background(), key, imageStream)
-		if err != nil {
-			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		}
-		found := false
-		for i := range imageStream.Status.Tags {
-			if imageStream.Status.Tags[i].Tag == imageTag {
-				history := imageStream.Status.Tags[i].Items
-				found = len(history) > 0
-				if found && instance.Spec.ApplicationImage != history[0].DockerImageReference {
-					instance.Spec.ApplicationImage = imageStream.Status.Tags[i].Items[0].DockerImageReference
-					err = r.GetClient().Update(context.TODO(), instance)
-					if err != nil {
-						reqLogger.Error(err, "Error updating AppsodyApplication")
-						return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-					}
-				}
-				break
-			}
-		}
-		if !found {
-			return r.ManageError(errors.Errorf("failed to find referenced ImageStreamTag %q", instance.Spec.ApplicationImageStream), common.StatusConditionTypeReconciled, instance)
 		}
 	}
 
