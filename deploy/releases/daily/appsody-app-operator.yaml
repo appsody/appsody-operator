@@ -77,7 +77,6 @@ rules:
   - '*'
 - apiGroups:
   - cert-manager.io
-  attributeRestrictions: null
   resources:
   - certificates
   verbs:

@@ -73,7 +73,7 @@ spec:
                 including application image
               properties:
                 name:
-                  pattern: '[a-z0-9]+(?:[._-][a-z0-9]+)*:[\w][\w.-]*'
+                  pattern: ^(?:[a-z0-9])+(?:[._-][a-z0-9]+)*:[\w][\w.-]*$
                   type: string
                 namespace:
                   type: string

@@ -64,7 +64,7 @@ type AppsodyApplicationAutoScaling struct {
 // AppsodyApplicationImageStream represents ImageStreamTag including application image
 // +k8s:openapi-gen=true
 type AppsodyApplicationImageStream struct {
-	// +kubebuilder:validation:Pattern=`[a-z0-9]+(?:[._-][a-z0-9]+)*:[\w][\w.-]*`
+	// +kubebuilder:validation:Pattern=`^(?:[a-z0-9])+(?:[._-][a-z0-9]+)*:[\w][\w.-]*$`
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
 }
