@@ -44,7 +44,7 @@ spec:
 
 The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](../deploy/crds/appsody_v1beta1_appsodyapplication_crd.yaml).
 
-Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifying other parameters is optional.
+At a minimum, each `AppsodyApplication` CR must specify either `applicationImage` or `applicationImageStream` parameter. Specifying other parameters is optional.
 
 | Parameter | Description |
 |---|---|
@@ -52,6 +52,8 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `version` | The current version of the application. Label `app.kubernetes.io/version` will be added to all resources when the version is defined. |
 | `serviceAccountName` | The name of the OpenShift service account to be used during deployment. |
 | `applicationImage` | The absolute name of the image to be deployed, containing the registry and the tag. |
+| `applicationImageStream.name` | The `ImageStreamTag` used to reference or retrieve an image for a given image stream and tag. It follows the `<image stream name>[:<tag>]` convention. `<tag>` defaults to `latest` if not defined. |
+| `applicationImageStream.namespace` | The namespace of the image stream to be deployed from. Defaults to CR's namespace. |
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
@@ -112,7 +114,7 @@ spec:
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
 
-The `applicationImage` value is required to be defined in `AppsodyApplication` CR. The `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
+The `applicationImage` value should to be defined in `AppsodyApplication` CR. The `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
 To get information on the deployed CR, use either of the following:
 
@@ -120,6 +122,26 @@ To get information on the deployed CR, use either of the following:
 oc get appsodyapplication my-appsody-app
 oc get app my-appsody-app
 ```
+
+### Image Streams
+
+To deploy an application image in an image stream in an OpenShift cluster, you can use the following CR:
+
+```yaml
+apiVersion: appsody.dev/v1beta1
+kind: AppsodyApplication
+metadata:
+  name: my-appsody-app
+spec:
+  stack: java-microprofile
+  applicationImageStream:
+    name: my-image-stream:1.0
+    namespace: my-namespace
+```
+
+The above example will look up the `1.0` tag from the `my-image-stream` image stream in `my-namespace` project and populate the `applicationImage` field with the exact referenced image reference similar to the following: `image-registry.openshift-image-registry.svc:5000/my-namespace/my-image-stream@sha256:8a829d579b114a9115c0a7172d089413c5d5dd6120665406aae0600f338654d8`. The operator keeps watching the specified image stream and will deploy new images as new images are available for the specified tag.
+
+_This feature is only available if you are running on OKD or OpenShift._
 
 ### Service account
 

@@ -12,13 +12,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
-
-## [0.4.0]
-
-### Added
-
 - Added the shortnames `app` and `apps` to the AppsodyApplication CRD. ([#198](https://github.com/appsody/appsody-operator/issues/198))
+- Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
+- Added support for integration with OpenShift's Certificate Management. ([#214](https://github.com/appsody/appsody-operator/pull/214))
+- Added support for referencing images in image streams. ([#218](https://github.com/appsody/appsody-operator/pull/218))
 
 ## [0.3.0]
 
