@@ -2,7 +2,6 @@ package appsodyapplication
 
 import (
 	"context"
-	"fmt"
 
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
@@ -73,8 +72,6 @@ func (e *EnqueueRequestsForImageStream) matchApplication(imageStreamTag metav1.O
 	} else {
 		namespaces = e.WatchNamespaces
 	}
-
-	fmt.Printf("imageStreamTag :: name:%s, namespace:%s", imageStreamTag.GetName(), imageStreamTag.GetNamespace())
 	for _, ns := range namespaces {
 		appList := &appsodyv1beta1.AppsodyApplicationList{}
 		err := e.Client.List(context.Background(),
@@ -82,13 +79,9 @@ func (e *EnqueueRequestsForImageStream) matchApplication(imageStreamTag metav1.O
 			client.InNamespace(ns),
 			client.MatchingFields{indexFieldImageStreamName: imageStreamTag.GetNamespace() + "/" + imageStreamTag.GetName()})
 		if err != nil {
-			fmt.Println(err)
 			return nil, err
 		}
 		apps = append(apps, appList.Items...)
 	}
-
-	fmt.Println("Aapps :: ")
-	fmt.Print(apps)
 	return apps, nil
 }

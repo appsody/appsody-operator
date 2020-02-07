@@ -53,6 +53,12 @@ const (
 	StatusConditionTypeDependenciesSatisfied StatusConditionType = "DependenciesSatisfied"
 )
 
+// BaseApplicationImageStream represents ImageStreamTag including application image
+type BaseApplicationImageStream interface {
+	GetName() string
+	GetNamespace() string
+}
+
 // BaseApplicationAutoscaling represents basic HPA configuration
 type BaseApplicationAutoscaling interface {
 	GetMinReplicas() *int32
@@ -126,7 +132,7 @@ const (
 // BaseApplication represents basic kubernetes application
 type BaseApplication interface {
 	GetApplicationImage() string
-	GetApplicationImageStream() *corev1.ObjectReference
+	GetApplicationImageStream() BaseApplicationImageStream
 	GetPullPolicy() *corev1.PullPolicy
 	GetPullSecret() *string
 	GetServiceAccountName() *string

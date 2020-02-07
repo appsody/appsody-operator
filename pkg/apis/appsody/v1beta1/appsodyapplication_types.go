@@ -17,7 +17,7 @@ import (
 type AppsodyApplicationSpec struct {
 	Version                string                         `json:"version,omitempty"`
 	ApplicationImage       string                         `json:"applicationImage,omitempty"`
-	ApplicationImageStream *corev1.ObjectReference        `json:"applicationImageStream,omitempty"`
+	ApplicationImageStream *AppsodyApplicationImageStream `json:"applicationImageStream,omitempty"`
 	Replicas               *int32                         `json:"replicas,omitempty"`
 	Autoscaling            *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
 	PullPolicy             *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
@@ -59,6 +59,14 @@ type AppsodyApplicationAutoScaling struct {
 
 	// +kubebuilder:validation:Minimum=1
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`
+}
+
+// AppsodyApplicationImageStream represents ImageStreamTag including application image
+// +k8s:openapi-gen=true
+type AppsodyApplicationImageStream struct {
+	// +kubebuilder:validation:Pattern=`[a-z0-9]+(?:[._-][a-z0-9]+)*:[\w][\w.-]*`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // AppsodyApplicationService ...
@@ -200,8 +208,18 @@ func (cr *AppsodyApplication) GetApplicationImage() string {
 }
 
 // GetApplicationImageStream returns application image stream
-func (cr *AppsodyApplication) GetApplicationImageStream() *corev1.ObjectReference {
+func (cr *AppsodyApplication) GetApplicationImageStream() common.BaseApplicationImageStream {
 	return cr.Spec.ApplicationImageStream
+}
+
+// GetName returns ImageStreamTag for application
+func (is *AppsodyApplicationImageStream) GetName() string {
+	return is.Name
+}
+
+// GetNamespace returns ImageStream's namespace
+func (is *AppsodyApplicationImageStream) GetNamespace() string {
+	return is.Namespace
 }
 
 // GetPullPolicy returns image pull policy

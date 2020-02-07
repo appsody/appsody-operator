@@ -487,7 +487,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		found := false
 		for i := range imageStream.Status.Tags {
 			if imageStream.Status.Tags[i].Tag == imageTag {
-				if instance.Spec.ApplicationImage != imageStream.Status.Tags[i].Items[0].DockerImageReference {
+				history := imageStream.Status.Tags[i].Items
+				found = len(history) > 0
+				if found && instance.Spec.ApplicationImage != history[0].DockerImageReference {
 					instance.Spec.ApplicationImage = imageStream.Status.Tags[i].Items[0].DockerImageReference
 					err = r.GetClient().Update(context.TODO(), instance)
 					if err != nil {
@@ -495,7 +497,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 						return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 					}
 				}
-				found = true
 				break
 			}
 		}
