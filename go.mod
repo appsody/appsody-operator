@@ -11,6 +11,7 @@ require (
 	github.com/jetstack/cert-manager v0.12.0
 	github.com/knative/serving v0.7.1-0.20190701162519-7ca25646a186
 	github.com/openshift/api v3.9.1-0.20190424152011-77b8897ec79a+incompatible
+	github.com/openshift/library-go v0.0.0-20190717192022-0597a29991ca50513df1fdb76e7e2a267e3a3e3f
 	github.com/operator-framework/operator-sdk v0.12.0
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/pflag v1.0.3
@@ -25,6 +26,8 @@ require (
 
 // Pinned to kubernetes-1.15.4
 replace (
+	github.com/openshift/api => github.com/openshift/api v3.9.1-0.20190424152011-77b8897ec79a+incompatible
+	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20190717192022
 	k8s.io/api => k8s.io/api v0.0.0-20190918195907-bd6ac527cfd2
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20190918201827-3de75813f604
 	k8s.io/apimachinery => k8s.io/apimachinery v0.0.0-20190817020851-f2f3a405f61d

@@ -13,7 +13,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 	return map[string]common.OpenAPIDefinition{
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplication":            schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
-		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationImageStream": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationImageStream(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationSpec":        schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStatus":      schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref),
@@ -94,32 +93,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref common.Re
 						},
 					},
 				},
-			},
-		},
-	}
-}
-
-func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationImageStream(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "AppsodyApplicationImageStream represents ImageStreamTag including application image",
-				Type:        []string{"object"},
-				Properties: map[string]spec.Schema{
-					"name": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-					"namespace": {
-						SchemaProps: spec.SchemaProps{
-							Type:   []string{"string"},
-							Format: "",
-						},
-					},
-				},
-				Required: []string{"name"},
 			},
 		},
 	}
@@ -210,11 +183,6 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
-						},
-					},
-					"applicationImageStream": {
-						SchemaProps: spec.SchemaProps{
-							Ref: ref("github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationImageStream"),
 						},
 					},
 					"replicas": {
@@ -412,10 +380,11 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 						},
 					},
 				},
+				Required: []string{"applicationImage"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationImageStream", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyRoute", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
+			"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyRoute", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
 	}
 }
 
@@ -462,6 +431,12 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationStatus(ref common.Referen
 									},
 								},
 							},
+						},
+					},
+					"imageReference": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
 						},
 					},
 				},

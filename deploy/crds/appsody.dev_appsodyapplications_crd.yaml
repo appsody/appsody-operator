@@ -68,18 +68,6 @@ spec:
           properties:
             applicationImage:
               type: string
-            applicationImageStream:
-              description: AppsodyApplicationImageStream represents ImageStreamTag
-                including application image
-              properties:
-                name:
-                  pattern: ^(?:[a-z0-9])+(?:[._-][a-z0-9]+)*(:[\w][\w.-]*){0,1}$
-                  type: string
-                namespace:
-                  type: string
-              required:
-              - name
-              type: object
             architecture:
               items:
                 type: string
@@ -3375,6 +3363,8 @@ spec:
                 - name
                 type: object
               type: array
+          required:
+          - applicationImage
           type: object
         status:
           description: AppsodyApplicationStatus defines the observed state of AppsodyApplication
@@ -3407,6 +3397,8 @@ spec:
                 type: array
               description: ConsumedServices stores status of the service binding dependencies
               type: object
+            imageReference:
+              type: string
           type: object
   version: v1beta1
   versions:

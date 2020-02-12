@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -500,11 +499,6 @@ func CustomizeHPA(hpa *autoscalingv1.HorizontalPodAutoscaler, ba common.BaseAppl
 
 // Validate if the BaseApplication is valid
 func Validate(ba common.BaseApplication) (bool, error) {
-	// Image validation
-	if ba.GetApplicationImage() == "" && ba.GetApplicationImageStream() == nil {
-		return false, fmt.Errorf("validation failed: must set one of the fields: spec.applicationImage, spec.applicationImageStream")
-	}
-
 	// Storage validation
 	if ba.GetStorage() != nil {
 		if ba.GetStorage().GetVolumeClaimTemplate() == nil {
@@ -738,11 +732,7 @@ func IsClusterWide(watchNamespaces []string) bool {
 	return len(watchNamespaces) == 1 && watchNamespaces[0] == ""
 }
 
-// ExtractImageStreamInfo returns image stream name and tag from ImageStreamTag name
-func ExtractImageStreamInfo(isTag string) (string, string, error) {
-	imageTag := strings.Split(isTag, ":")
-	if len(imageTag) != 2 {
-		return "", "", errors.New("invalid image stream tag format: expecting <image stream name>:<tag>")
-	}
-	return imageTag[0], imageTag[1], nil
+// ExtractImageStreamInfo extracts project, image stream, and tag from image. 
+func ExtractImageStreamInfo(image string) (string, string, string, error) {
+	return "", "", "", nil
 }

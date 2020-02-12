@@ -1,7 +1,6 @@
 package v1beta1
 
 import (
-	"strings"
 	"time"
 
 	"github.com/appsody/appsody-operator/pkg/common"
@@ -16,13 +15,12 @@ import (
 // AppsodyApplicationSpec defines the desired state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
-	Version                string                         `json:"version,omitempty"`
-	ApplicationImage       string                         `json:"applicationImage,omitempty"`
-	ApplicationImageStream *AppsodyApplicationImageStream `json:"applicationImageStream,omitempty"`
-	Replicas               *int32                         `json:"replicas,omitempty"`
-	Autoscaling            *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy             *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
-	PullSecret             *string                        `json:"pullSecret,omitempty"`
+	Version          string                         `json:"version,omitempty"`
+	ApplicationImage string                         `json:"applicationImage"`
+	Replicas         *int32                         `json:"replicas,omitempty"`
+	Autoscaling      *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
+	PullPolicy       *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
+	PullSecret       *string                        `json:"pullSecret,omitempty"`
 	// +listType=map
 	// +listMapKey=name
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
@@ -60,14 +58,6 @@ type AppsodyApplicationAutoScaling struct {
 
 	// +kubebuilder:validation:Minimum=1
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`
-}
-
-// AppsodyApplicationImageStream represents ImageStreamTag including application image
-// +k8s:openapi-gen=true
-type AppsodyApplicationImageStream struct {
-	// +kubebuilder:validation:Pattern=`^(?:[a-z0-9])+(?:[._-][a-z0-9]+)*(:[\w][\w.-]*){0,1}$`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace,omitempty"`
 }
 
 // AppsodyApplicationService ...
@@ -145,6 +135,7 @@ type AppsodyApplicationStatus struct {
 	// +listType=atomic
 	Conditions       []StatusCondition       `json:"conditions,omitempty"`
 	ConsumedServices common.ConsumedServices `json:"consumedServices,omitempty"`
+	ImageReference   string                  `json:"imageReference,omitempty"`
 }
 
 // StatusCondition ...
@@ -206,21 +197,6 @@ func init() {
 // GetApplicationImage returns application image
 func (cr *AppsodyApplication) GetApplicationImage() string {
 	return cr.Spec.ApplicationImage
-}
-
-// GetApplicationImageStream returns application image stream
-func (cr *AppsodyApplication) GetApplicationImageStream() common.BaseApplicationImageStream {
-	return cr.Spec.ApplicationImageStream
-}
-
-// GetName returns ImageStreamTag for application
-func (is *AppsodyApplicationImageStream) GetName() string {
-	return is.Name
-}
-
-// GetNamespace returns ImageStream's namespace
-func (is *AppsodyApplicationImageStream) GetNamespace() string {
-	return is.Namespace
 }
 
 // GetPullPolicy returns image pull policy
@@ -539,18 +515,6 @@ func (r *AppsodyRoute) GetPath() string {
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
 func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
-	if cr.Spec.ApplicationImageStream == nil {
-		cr.Spec.ApplicationImageStream = defaults.ApplicationImageStream
-	} else {
-		isTag := cr.Spec.ApplicationImageStream.Name
-		if len(strings.Split(isTag, ":")) < 2 {
-			cr.Spec.ApplicationImageStream.Name = cr.Spec.ApplicationImageStream.Name + ":latest"
-		}
-		if cr.Spec.ApplicationImageStream.Namespace == "" {
-			cr.Spec.ApplicationImageStream.Namespace = cr.Namespace
-		}
-	}
-
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy
 		if cr.Spec.PullPolicy == nil {
@@ -697,10 +661,6 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 
 	if constants.ApplicationImage != "" {
 		cr.Spec.ApplicationImage = constants.ApplicationImage
-	}
-
-	if constants.ApplicationImageStream != nil {
-		cr.Spec.ApplicationImageStream = constants.ApplicationImageStream
 	}
 
 	if constants.PullPolicy != nil {

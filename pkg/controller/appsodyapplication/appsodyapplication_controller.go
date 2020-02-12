@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/appsody/appsody-operator/pkg/common"
 
@@ -18,6 +17,7 @@ import (
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
 	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
+	imageutil "github.com/openshift/library-go/pkg/image/imageutil"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -122,9 +122,9 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 func setup(mgr manager.Manager) {
 	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
-		appImageStream := obj.(*appsodyv1beta1.AppsodyApplication).Spec.ApplicationImageStream
-		if appImageStream != nil {
-			fullName := fmt.Sprintf("%s/%s", appImageStream.Namespace, strings.Split(appImageStream.Name, ":")[0])
+		image, err := imageutil.ParseDockerImageReference(obj.(*appsodyv1beta1.AppsodyApplication).Spec.ApplicationImage)
+		if err != nil {
+			fullName := fmt.Sprintf("%s/%s", image.Namespace, image.Name)
 			return []string{fullName}
 		}
 		return nil
@@ -420,36 +420,18 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, nil
 	}
 
-	if instance.Spec.ApplicationImageStream != nil {
-		if !r.IsOpenShift() {
-			return r.ManageError(errors.New("ImageStream is not supported"), common.StatusConditionTypeReconciled, instance)
-		}
-		imageName, imageTag, err := appsodyutils.ExtractImageStreamInfo(instance.Spec.ApplicationImageStream.Name)
-		if err != nil {
-			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		}
-		imageStream := &imagev1.ImageStream{}
-		key := types.NamespacedName{Name: imageName, Namespace: instance.Spec.ApplicationImageStream.Namespace}
-		err = r.GetClient().Get(context.Background(), key, imageStream)
-		if err != nil {
-			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
-		}
-		found := false
-		for i := range imageStream.Status.Tags {
-			if imageStream.Status.Tags[i].Tag == imageTag {
-				history := imageStream.Status.Tags[i].Items
-				found = len(history) > 0
-				if found && instance.Spec.ApplicationImage != history[0].DockerImageReference {
-					if instance.Labels == nil {
-						instance.Labels = map[string]string{}
-					}
-					instance.Spec.ApplicationImage = imageStream.Status.Tags[i].Items[0].DockerImageReference
+	instance.Status.ImageReference = instance.Spec.ApplicationImage
+	if instance.Spec.ApplicationImage != "" && r.IsOpenShift() {
+		image, err := imageutil.ParseDockerImageReference(instance.Spec.ApplicationImage)
+		if err == nil {
+			imageStream := &imagev1.ImageStream{}
+			err = r.GetClient().Get(context.Background(), types.NamespacedName{Name: image.Name, Namespace: image.Namespace}, imageStream)
+			if err != nil && !kerrors.IsNotFound(err) {
+				image := imageutil.LatestTaggedImage(imageStream, image.Tag)
+				if image != nil {
+					instance.Status.ImageReference = image.DockerImageReference
 				}
-				break
 			}
-		}
-		if !found {
-			return r.ManageError(errors.Errorf("failed to find referenced ImageStreamTag %q", instance.Spec.ApplicationImageStream), common.StatusConditionTypeReconciled, instance)
 		}
 	}
 
