@@ -212,7 +212,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	}
 
 	pts.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
-	pts.Spec.Containers[0].Image = ba.GetApplicationImage()
+	pts.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
 	pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
 	if ba.GetResourceConstraints() != nil {
 		pts.Spec.Containers[0].Resources = *ba.GetResourceConstraints()
@@ -439,7 +439,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 	ksvc.Spec.Template.ObjectMeta.Annotations = MergeMaps(ksvc.Spec.Template.ObjectMeta.Annotations, ba.GetAnnotations())
 
 	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
-	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetApplicationImage()
+	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
 	// Knative sets its own resource constraints
 	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = ba.GetReadinessProbe()
@@ -730,9 +730,4 @@ func GetConnectToAnnotation(ba common.BaseApplication) map[string]string {
 // IsClusterWide returns true if watchNamespaces is set to [""]
 func IsClusterWide(watchNamespaces []string) bool {
 	return len(watchNamespaces) == 1 && watchNamespaces[0] == ""
-}
-
-// ExtractImageStreamInfo extracts project, image stream, and tag from image. 
-func ExtractImageStreamInfo(image string) (string, string, string, error) {
-	return "", "", "", nil
 }

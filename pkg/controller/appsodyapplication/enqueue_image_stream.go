@@ -18,7 +18,7 @@ import (
 var _ handler.EventHandler = &EnqueueRequestsForImageStream{}
 
 const (
-	indexFieldImageStreamName = "spec.applicationImageStream.name"
+	indexFieldImageStreamName = "spec.applicationImage"
 )
 
 // EnqueueRequestsForImageStream enqueues reconcile Requests Appsody Applications if the app is relying on

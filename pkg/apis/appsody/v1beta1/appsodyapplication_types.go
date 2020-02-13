@@ -347,6 +347,16 @@ func (s *AppsodyApplicationStatus) SetConsumedServices(c common.ConsumedServices
 	s.ConsumedServices = c
 }
 
+// GetImageReference returns Docker image reference to be deployed by the CR
+func (s *AppsodyApplicationStatus) GetImageReference() string {
+	return s.ImageReference
+}
+
+// SetImageReference sets Docker image reference on the status portion of the CR
+func (s *AppsodyApplicationStatus) SetImageReference(imageReference string) {
+	s.ImageReference = imageReference
+}
+
 // GetMinReplicas returns minimum replicas
 func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
 	return a.MinReplicas

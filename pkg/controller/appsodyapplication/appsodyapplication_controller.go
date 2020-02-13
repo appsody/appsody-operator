@@ -122,9 +122,14 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 
 func setup(mgr manager.Manager) {
 	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
-		image, err := imageutil.ParseDockerImageReference(obj.(*appsodyv1beta1.AppsodyApplication).Spec.ApplicationImage)
-		if err != nil {
-			fullName := fmt.Sprintf("%s/%s", image.Namespace, image.Name)
+		instance := obj.(*appsodyv1beta1.AppsodyApplication)
+		image, err := imageutil.ParseDockerImageReference(instance.Spec.ApplicationImage)
+		if err == nil {
+			imageNamespace := image.Namespace
+			if imageNamespace == "" {
+				imageNamespace = instance.Namespace
+			}
+			fullName := fmt.Sprintf("%s/%s", imageNamespace, image.Name)
 			return []string{fullName}
 		}
 		return nil
@@ -420,21 +425,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return reconcile.Result{}, nil
 	}
 
-	instance.Status.ImageReference = instance.Spec.ApplicationImage
-	if instance.Spec.ApplicationImage != "" && r.IsOpenShift() {
-		image, err := imageutil.ParseDockerImageReference(instance.Spec.ApplicationImage)
-		if err == nil {
-			imageStream := &imagev1.ImageStream{}
-			err = r.GetClient().Get(context.Background(), types.NamespacedName{Name: image.Name, Namespace: image.Namespace}, imageStream)
-			if err != nil && !kerrors.IsNotFound(err) {
-				image := imageutil.LatestTaggedImage(imageStream, image.Tag)
-				if image != nil {
-					instance.Status.ImageReference = image.DockerImageReference
-				}
-			}
-		}
-	}
-
 	currentGen := instance.Generation
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
@@ -449,6 +439,36 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	defaultMeta := metav1.ObjectMeta{
 		Name:      instance.Name,
 		Namespace: instance.Namespace,
+	}
+
+	imageReferenceOld := instance.Status.ImageReference
+	instance.Status.ImageReference = instance.Spec.ApplicationImage
+	if r.IsOpenShift() {
+		image, err := imageutil.ParseDockerImageReference(instance.Spec.ApplicationImage)
+		if err == nil {
+			imageStream := &imagev1.ImageStream{}
+			imageNamespace := image.Namespace
+			if imageNamespace == "" {
+				imageNamespace = instance.Namespace
+			}
+			err = r.GetClient().Get(context.Background(), types.NamespacedName{Name: image.Name, Namespace: imageNamespace}, imageStream)
+			if err == nil {
+				image := imageutil.LatestTaggedImage(imageStream, image.Tag)
+				if image != nil {
+					instance.Status.ImageReference = image.DockerImageReference
+				}
+			} else if err != nil && !kerrors.IsNotFound(err) {
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+		}
+	}
+	if imageReferenceOld != instance.Status.ImageReference {
+		reqLogger.Info("Updating status.imageReference", "status.imageReference", instance.Status.ImageReference)
+		err = r.UpdateStatus(instance)
+		if err != nil {
+			reqLogger.Error(err, "Error updating AppsodyApplication status")
+			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		}
 	}
 
 	result, err := r.ReconcileProvides(instance)
