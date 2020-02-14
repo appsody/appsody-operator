@@ -44,16 +44,14 @@ spec:
 
 The following table lists configurable parameters of the `AppsodyApplication` CRD. For complete OpenAPI v3 representation of these values please see [`AppsodyApplication` CRD](../deploy/crds/appsody_v1beta1_appsodyapplication_crd.yaml).
 
-At a minimum, each `AppsodyApplication` CR must specify either `applicationImage` or `applicationImageStream` parameter. Specifying other parameters is optional.
+Each `AppsodyApplication` CR must at least specify the `applicationImage` parameter. Specifying other parameters is optional.
 
 | Parameter | Description |
 |---|---|
 | `stack` | The name of the Appsody Application Stack that produced this application image. |
 | `version` | The current version of the application. Label `app.kubernetes.io/version` will be added to all resources when the version is defined. |
 | `serviceAccountName` | The name of the OpenShift service account to be used during deployment. |
-| `applicationImage` | The absolute name of the image to be deployed, containing the registry and the tag. |
-| `applicationImageStream.name` | The `ImageStreamTag` used to reference or retrieve an image for a given image stream and tag. It follows the `<image stream name>[:<tag>]` convention. `<tag>` defaults to `latest` if not defined. |
-| `applicationImageStream.namespace` | The namespace of the image stream to be deployed from. Defaults to CR's namespace. |
+| `applicationImage` | The Docker image name to be deployes. On OpenShift, it can also be set to `<project name>/<image stream name>[:<tag>]` to reference an image from an image stream. `<project name>` and `tag` defaults to CR's namespace and `latest` if not defined, respectively. |
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
@@ -114,7 +112,9 @@ spec:
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
 
-The `applicationImage` value should to be defined in `AppsodyApplication` CR. The `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
+The `applicationImage` value must be defined in `AppsodyApplication` CR. On OpenShift, the Operator would try to match an image stream name with the `applicationImage` value and fallbacks into registry lookup if it is not able to find any image stream that matches the value. If you want to distinguish an image stream called `my-company/my-app` (project: `my-company`, image stream name: `my-app`) from the Docker Hub `my-company/my-app` image, you can use the full image reference as `docker.io/my-company/my-app`.
+
+The `stack` should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
 To get information on the deployed CR, use either of the following:
 
@@ -125,7 +125,7 @@ oc get app my-appsody-app
 
 ### Image Streams
 
-To deploy an application image in an image stream in an OpenShift cluster, you can use the following CR:
+To deploy an image from an image stream, you can use the following CR:
 
 ```yaml
 apiVersion: appsody.dev/v1beta1
@@ -134,12 +134,14 @@ metadata:
   name: my-appsody-app
 spec:
   stack: java-microprofile
-  applicationImageStream:
-    name: my-image-stream:1.0
-    namespace: my-namespace
+  applicationImage: my-namespace/my-image-stream:1.0
 ```
 
-The above example will look up the `1.0` tag from the `my-image-stream` image stream in `my-namespace` project and populate the `applicationImage` field with the exact referenced image reference similar to the following: `image-registry.openshift-image-registry.svc:5000/my-namespace/my-image-stream@sha256:8a829d579b114a9115c0a7172d089413c5d5dd6120665406aae0600f338654d8`. The operator keeps watching the specified image stream and will deploy new images as new images are available for the specified tag.
+The above example will look up the `1.0` tag from the `my-image-stream` image stream in `my-namespace` project and populate the CR's `.status.imageReference` field with the exact referenced image similar to the following: `image-registry.openshift-image-registry.svc:5000/my-namespace/my-image-stream@sha256:8a829d579b114a9115c0a7172d089413c5d5dd6120665406aae0600f338654d8`. The operator keeps watching the specified image stream and will deploy new images as new ones are available for the specified tag.
+
+To reference an image stream, the `applicationImage` should follow `<project name>/<image stream name>[:<tag>]` format. If `<project name>` or `<tag>` is not specified, the operator default the values to CR's namespace and `latest`, respectively. For example `applicationImage: my-image-stream` would be the same as `my-namespace/my-image-stream:latest`.
+
+The Operator would try to match an image stream name first with `<project name>/<image stream name>[:<tag>]` format and fallback into registry lookup if it is not able to find any image stream that matches the value. 
 
 _This feature is only available if you are running on OKD or OpenShift._
 
