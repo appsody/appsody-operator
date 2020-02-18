@@ -131,12 +131,12 @@ github.com/openshift/api/image/docker10
 github.com/openshift/api/image/dockerpre012
 github.com/openshift/api/image/v1
 github.com/openshift/api/route/v1
-# github.com/openshift/library-go v0.0.0-20200210105614-4bf528465627
+# github.com/openshift/library-go v0.0.0-20200214084717-e77ad9dd8ebd
 github.com/openshift/library-go/pkg/image/imageutil
 github.com/openshift/library-go/pkg/image/internal/digest
 github.com/openshift/library-go/pkg/image/internal/reference
 github.com/openshift/library-go/pkg/image/reference
-# github.com/operator-framework/operator-sdk v0.15.1
+# github.com/operator-framework/operator-sdk v0.15.2
 github.com/operator-framework/operator-sdk/internal/scaffold
 github.com/operator-framework/operator-sdk/internal/scaffold/input
 github.com/operator-framework/operator-sdk/internal/scaffold/internal/deps
@@ -147,7 +147,6 @@ github.com/operator-framework/operator-sdk/internal/util/yamlutil
 github.com/operator-framework/operator-sdk/pkg/k8sutil
 github.com/operator-framework/operator-sdk/pkg/leader
 github.com/operator-framework/operator-sdk/pkg/log/zap
-github.com/operator-framework/operator-sdk/pkg/restmapper
 github.com/operator-framework/operator-sdk/pkg/test
 github.com/operator-framework/operator-sdk/pkg/test/e2eutil
 github.com/operator-framework/operator-sdk/version
@@ -522,7 +521,7 @@ k8s.io/utils/buffer
 k8s.io/utils/integer
 k8s.io/utils/pointer
 k8s.io/utils/trace
-# knative.dev/pkg v0.0.0-20200213010836-558f848aa040
+# knative.dev/pkg v0.0.0-20200218144759-9b3ea736c68c
 knative.dev/pkg/apis
 knative.dev/pkg/apis/duck
 knative.dev/pkg/apis/duck/v1

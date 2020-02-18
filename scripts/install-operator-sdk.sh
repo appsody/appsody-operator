@@ -8,7 +8,7 @@ if [ -x "$(command -v operator-sdk)" ]; then
   exit 0
 fi
 
-DEFAULT_RELEASE_VERSION=v0.15.1
+DEFAULT_RELEASE_VERSION=v0.15.2
 RELEASE_VERSION=${1:-$DEFAULT_RELEASE_VERSION}
 
 if [ "$(uname)" == "Darwin" ]; then

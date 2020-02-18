@@ -9,15 +9,15 @@ require (
 	github.com/jetstack/cert-manager v0.12.0
 	github.com/knative/serving v0.7.1-0.20190701162519-7ca25646a186
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
-	github.com/openshift/library-go v0.0.0-20200210105614-4bf528465627
-	github.com/operator-framework/operator-sdk v0.15.1
+	github.com/openshift/library-go v0.0.0-20200214084717-e77ad9dd8ebd
+	github.com/operator-framework/operator-sdk v0.15.2
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/pflag v1.0.5
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
-	knative.dev/pkg v0.0.0-20200213010836-558f848aa040 // indirect
+	knative.dev/pkg v0.0.0-20200218144759-9b3ea736c68c // indirect
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/yaml v1.1.0
 )
