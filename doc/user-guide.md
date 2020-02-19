@@ -56,7 +56,8 @@ Each `AppsodyApplication` CR must specify `applicationImage` parameter. Specifyi
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
 | `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates preference. |
-| `service.port` | The port exposed by the container. |
+| `service.port` | The port exposed by the container, directing traffic to the application. | 
+| `service.targetPort` | The port that the appsody application uses within the container. Defaults to the value of `service.port`. |
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |
 | `service.certificate` | A YAML object representing a [Certificate](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1alpha2.CertificateSpec). |
