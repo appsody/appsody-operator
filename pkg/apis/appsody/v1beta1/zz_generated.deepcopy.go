@@ -139,6 +139,11 @@ func (in *AppsodyApplicationService) DeepCopyInto(out *AppsodyApplicationService
 		*out = new(corev1.ServiceType)
 		**out = **in
 	}
+	if in.TargetPort != nil {
+		in, out := &in.TargetPort, &out.TargetPort
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Annotations != nil {
 		in, out := &in.Annotations, &out.Annotations
 		*out = make(map[string]string, len(*in))

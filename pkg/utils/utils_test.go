@@ -28,6 +28,7 @@ var (
 	expose             = true
 	createKNS          = true
 	targetCPUPer int32 = 30
+	targetPort   int32 = 8080
 	autoscaling        = &appsodyv1beta1.AppsodyApplicationAutoScaling{
 		TargetCPUUtilizationPercentage: &targetCPUPer,
 		MinReplicas:                    &replicas,
@@ -99,8 +100,22 @@ func TestCustomizeService(t *testing.T) {
 	CustomizeService(svc, appsody)
 	testCS := []Test{
 		{"Service number of exposed ports", 1, len(svc.Spec.Ports)},
-		{"Sercice first exposed port", appsody.Spec.Service.Port, svc.Spec.Ports[0].Port},
+		{"Service first exposed port", appsody.Spec.Service.Port, svc.Spec.Ports[0].Port},
 		{"Service first exposed target port", intstr.FromInt(int(appsody.Spec.Service.Port)), svc.Spec.Ports[0].TargetPort},
+		{"Service type", *appsody.Spec.Service.Type, svc.Spec.Type},
+		{"Service selector", name, svc.Spec.Selector["app.kubernetes.io/instance"]},
+	}
+	verifyTests(testCS, t)
+
+	// Verify behaviour of optional target port functionality
+	spec.Service.TargetPort = &targetPort
+	svc, appsody = &corev1.Service{}, createAppsodyApp(name, namespace, spec)
+
+	CustomizeService(svc, appsody)
+	testCS = []Test{
+		{"Service number of exposed ports", 1, len(svc.Spec.Ports)},
+		{"Service first exposed port", appsody.Spec.Service.Port, svc.Spec.Ports[0].Port},
+		{"Service first exposed target port", intstr.FromInt(int(*appsody.Spec.Service.TargetPort)), svc.Spec.Ports[0].TargetPort},
 		{"Service type", *appsody.Spec.Service.Type, svc.Spec.Type},
 		{"Service selector", name, svc.Spec.Selector["app.kubernetes.io/instance"]},
 	}
