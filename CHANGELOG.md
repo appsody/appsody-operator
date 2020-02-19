@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 
 - Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
+- Added optional targetPort field to CRD ([#181](https://github.com/appsody/appsody-operator/issues/181))
 
 ## [0.4.0]
 
