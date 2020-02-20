@@ -4,7 +4,6 @@ language: go
 
 go:
   - 1.13.x
-
 env:
   - GO111MODULE=on
 
@@ -13,14 +12,9 @@ go_import_path: github.com/appsody/appsody-operator
 services:
   - docker
 
-cache:
-  directories:
-    - vendor
-
 stages:
   - name: build
-  - name: unit test
-  - name: e2e test
+  - name: test
   - name: build and push must gather
 
 jobs:
@@ -30,11 +24,11 @@ jobs:
     script:
     - make build-image
   - name: Run unit tests
-    stage: unit test
+    stage: test
     script:
     - make unit-test
   - name: Run end-to-end tests
-    stage: e2e test
+    stage: test
     script:
     - make test-e2e
   - name: Build must gather image and push
