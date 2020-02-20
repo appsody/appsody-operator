@@ -67,7 +67,7 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
-	TargetPort *int32 `json:targetPort,omitempty`
+	TargetPort *int32 `json:"targetPort,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +listType=atomic

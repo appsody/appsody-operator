@@ -118,8 +118,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	}
 
 	serviceType := corev1.ServiceTypeNodePort
-	targetHelper := int32(8080)
-	if apps.Spec.Service.Port == 3000 && apps.Spec.Service.TargetPort == &targetHelper && *apps.Spec.Service.Type == serviceType && apps.Spec.Service.Annotations != nil {
+	if apps.Spec.Service.Port == 3000 && *apps.Spec.Service.TargetPort == int32(8080) && *apps.Spec.Service.Type == serviceType && apps.Spec.Service.Annotations != nil {
 		t.Log("Service in configmap defaults is applied")
 	} else {
 		t.Fatal("Service in configmap defaults is not applied")
