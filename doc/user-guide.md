@@ -112,7 +112,7 @@ spec:
   applicationImage: quay.io/my-repo/my-app:1.0
 ```
 
-The `applicationImage` value must be defined in the `AppsodyApplication` CR. On OpenShift, the operator tries to find an image stream name with the `applicationImage` value. The operator falls back into registry lookup if it is not able to find any image stream that matches the value. If you want to distinguish an image stream called `my-company/my-app` (project: `my-company`, image stream name: `my-app`) from the Docker Hub `my-company/my-app` image, you can use the full image reference as `docker.io/my-company/my-app`.
+The `applicationImage` value must be defined in the `AppsodyApplication` CR. On OpenShift, the operator tries to find an image stream name with the `applicationImage` value. The operator falls back to the registry lookup if it is not able to find any image stream that matches the value. If you want to distinguish an image stream called `my-company/my-app` (project: `my-company`, image stream name: `my-app`) from the Docker Hub `my-company/my-app` image, you can use the full image reference as `docker.io/my-company/my-app`.
 
 The `stack` parameter should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
