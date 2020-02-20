@@ -51,7 +51,7 @@ Each `AppsodyApplication` CR must at least specify the `applicationImage` parame
 | `stack` | The name of the Appsody Application Stack that produced this application image. |
 | `version` | The current version of the application. Label `app.kubernetes.io/version` will be added to all resources when the version is defined. |
 | `serviceAccountName` | The name of the OpenShift service account to be used during deployment. |
-| `applicationImage` | The Docker image name to be deployes. On OpenShift, it can also be set to `<project name>/<image stream name>[:<tag>]` to reference an image from an image stream. `<project name>` and `tag` defaults to CR's namespace and `latest` if not defined, respectively. |
+| `applicationImage` | The Docker image name to be deployed. On OpenShift, it can also be set to `<project name>/<image stream name>[:<tag>]` to reference an image from an image stream. `<project name>` and `tag` defaults to CR's namespace and `latest` if not defined, respectively. |
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
@@ -139,7 +139,7 @@ spec:
 
 The above example will look up the `1.0` tag from the `my-image-stream` image stream in `my-namespace` project and populate the CR's `.status.imageReference` field with the exact referenced image similar to the following: `image-registry.openshift-image-registry.svc:5000/my-namespace/my-image-stream@sha256:8a829d579b114a9115c0a7172d089413c5d5dd6120665406aae0600f338654d8`. The operator keeps watching the specified image stream and will deploy new images as new ones are available for the specified tag.
 
-To reference an image stream, the `applicationImage` should follow `<project name>/<image stream name>[:<tag>]` format. If `<project name>` or `<tag>` is not specified, the operator default the values to CR's namespace and `latest`, respectively. For example `applicationImage: my-image-stream` would be the same as `my-namespace/my-image-stream:latest`.
+To reference an image stream, the `applicationImage` should follow `<project name>/<image stream name>[:<tag>]` format. If `<project name>` or `<tag>` is not specified, the operator default the values to CR's namespace and `latest`, respectively. For example, `applicationImage: my-image-stream` would be the same as `applicationImage: my-namespace/my-image-stream:latest`.
 
 The Operator would try to match an image stream name first with `<project name>/<image stream name>[:<tag>]` format and fallback into registry lookup if it is not able to find any image stream that matches the value. 
 
