@@ -1,12 +1,13 @@
 package v1beta1
 
 import (
+	"time"
+
 	"github.com/appsody/appsody-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"time"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -135,6 +136,7 @@ type AppsodyApplicationStatus struct {
 	// +listType=atomic
 	Conditions       []StatusCondition       `json:"conditions,omitempty"`
 	ConsumedServices common.ConsumedServices `json:"consumedServices,omitempty"`
+	ImageReference   string                  `json:"imageReference,omitempty"`
 }
 
 // StatusCondition ...
@@ -346,6 +348,16 @@ func (s *AppsodyApplicationStatus) SetConsumedServices(c common.ConsumedServices
 	s.ConsumedServices = c
 }
 
+// GetImageReference returns Docker image reference to be deployed by the CR
+func (s *AppsodyApplicationStatus) GetImageReference() string {
+	return s.ImageReference
+}
+
+// SetImageReference sets Docker image reference on the status portion of the CR
+func (s *AppsodyApplicationStatus) SetImageReference(imageReference string) {
+	s.ImageReference = imageReference
+}
+
 // GetMinReplicas returns minimum replicas
 func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
 	return a.MinReplicas
@@ -522,7 +534,6 @@ func (r *AppsodyRoute) GetPath() string {
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
 func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
-
 	if cr.Spec.PullPolicy == nil {
 		cr.Spec.PullPolicy = defaults.PullPolicy
 		if cr.Spec.PullPolicy == nil {

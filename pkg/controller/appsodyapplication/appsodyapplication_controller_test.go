@@ -12,6 +12,7 @@ import (
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
+	imagev1 "github.com/openshift/api/image/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
@@ -76,6 +77,10 @@ func TestAppsodyController(t *testing.T) {
 
 	if err := routev1.AddToScheme(s); err != nil {
 		t.Fatalf("Unable to add route scheme: (%v)", err)
+	}
+
+	if err := imagev1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add image scheme: (%v)", err)
 	}
 
 	if err := certmngrv1alpha2.AddToScheme(s); err != nil {
@@ -403,6 +408,12 @@ func createFakeDiscoveryClient() discovery.DiscoveryInterface {
 			GroupVersion: prometheusv1.SchemeGroupVersion.String(),
 			APIResources: []metav1.APIResource{
 				{Name: "servicemonitors", Namespaced: true, Kind: "ServiceMonitor", SingularName: "servicemonitor"},
+			},
+		},
+		{
+			GroupVersion: imagev1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "imagestreams", Namespaced: true, Kind: "ImageStream", SingularName: "imagestream"},
 			},
 		},
 	}

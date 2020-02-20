@@ -216,7 +216,7 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	}
 
 	pts.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
-	pts.Spec.Containers[0].Image = ba.GetApplicationImage()
+	pts.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
 	pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
 
 	if ba.GetService().GetTargetPort() != nil {
@@ -454,7 +454,7 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 		ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	}
 
-	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetApplicationImage()
+	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
 	// Knative sets its own resource constraints
 	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints
 	ksvc.Spec.Template.Spec.Containers[0].ReadinessProbe = ba.GetReadinessProbe()
@@ -534,7 +534,7 @@ func createValidationError(msg string) error {
 }
 
 func requiredFieldMessage(fieldPaths ...string) string {
-	return "must set the field(s): " + strings.Join(fieldPaths, ",")
+	return "must set the field(s): " + strings.Join(fieldPaths, ", ")
 }
 
 // CustomizeServiceMonitor ...

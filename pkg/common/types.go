@@ -40,6 +40,8 @@ type BaseApplicationStatus interface {
 	NewCondition() StatusCondition
 	GetConsumedServices() ConsumedServices
 	SetConsumedServices(ConsumedServices)
+	GetImageReference() string
+	SetImageReference(string)
 }
 
 // ConsumedServices stores status of the service binding dependencies
