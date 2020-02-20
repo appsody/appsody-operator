@@ -1,4 +1,4 @@
-OPERATOR_SDK_RELEASE_VERSION ?= v0.12.0
+OPERATOR_SDK_RELEASE_VERSION ?= v0.15.2
 OPERATOR_IMAGE ?= appsody/application-operator
 OPERATOR_IMAGE_TAG ?= daily
 OPERATOR_MUST_GATHER_TAG ?= daily-must-gather
@@ -40,6 +40,10 @@ test-e2e-locally: setup
 generate: setup ## Invoke `k8s` and `openapi` generators
 	operator-sdk generate k8s
 	operator-sdk generate openapi
+	
+	# Remove `x-kubernetes-int-or-string: true` from CRD. Cusing issues on clusters with older k8s: https://github.com/kubernetes/kubernetes/issues/83778 https://github.com/openshift/api/pull/505
+	sed -i '' '/x\-kubernetes\-int\-or\-string\: true/d' deploy/crds/appsody.dev_appsodyapplications_crd.yaml
+	
 	cat deploy/crds/appsody.dev_appsodyapplications_crd.yaml | awk '/type: object/ {max=NR} {a[NR]=$$0} END{for (i=1;i<=NR;i++) {if (i!=max) print a[i]}}' > deploy/crds/appsody.dev_appsodyapplications_crd.yaml.tmp
 	mv deploy/crds/appsody.dev_appsodyapplications_crd.yaml.tmp deploy/crds/appsody.dev_appsodyapplications_crd.yaml
 
