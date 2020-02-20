@@ -448,11 +448,11 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 	ksvc.Spec.Template.ObjectMeta.Labels = ba.GetLabels()
 	ksvc.Spec.Template.ObjectMeta.Annotations = MergeMaps(ksvc.Spec.Template.ObjectMeta.Annotations, ba.GetAnnotations())
 
-	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	if ba.GetService().GetTargetPort() != nil {
 		ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = *ba.GetService().GetTargetPort()
+	} else {
+		ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	}
-
 
 	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetApplicationImage()
 	// Knative sets its own resource constraints
