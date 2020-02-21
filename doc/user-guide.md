@@ -114,7 +114,7 @@ spec:
 
 The `applicationImage` value must be defined in the `AppsodyApplication` CR. On OpenShift, the operator tries to find an image stream name with the `applicationImage` value. The operator falls back to the registry lookup if it is not able to find any image stream that matches the value. If you want to distinguish an image stream called `my-company/my-app` (project: `my-company`, image stream name: `my-app`) from the Docker Hub `my-company/my-app` image, you can use the full image reference as `docker.io/my-company/my-app`.
 
-The `stack` parameter should be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
+The `stack` parameter must be the same value as the [Appsody application stack](https://github.com/appsody/stacks) you used to create your application.
 
 To get information on the deployed CR, use either of the following:
 
@@ -139,7 +139,7 @@ spec:
 
 The previous example looks up the `1.0` tag from the `my-image-stream` image stream in the `my-namespace` project and populates the CR `.status.imageReference` field with the exact referenced image similar to the following one: `image-registry.openshift-image-registry.svc:5000/my-namespace/my-image-stream@sha256:8a829d579b114a9115c0a7172d089413c5d5dd6120665406aae0600f338654d8`. The operator watches the specified image stream and deploys new images as new ones are available for the specified tag.
 
-To reference an image stream, the `applicationImage` parameter must follow the `<project name>/<image stream name>[:<tag>]` format. If `<project name>` or `<tag>` is not specified, the operator defaults the values to the namespace of the CR and the value of `latest`, respectively. For example, `applicationImage: my-image-stream` would be the same as `applicationImage: my-namespace/my-image-stream:latest`.
+To reference an image stream, the `applicationImage` parameter must follow the `<project name>/<image stream name>[:<tag>]` format. If `<project name>` or `<tag>` is not specified, the operator defaults the values to the namespace of the CR and the value of `latest`, respectively. For example, the `applicationImage: my-image-stream` configuration is the same as the `applicationImage: my-namespace/my-image-stream:latest` configuration.
 
 The Operator tries to find an image stream name first with the `<project name>/<image stream name>[:<tag>]` format and falls back to the registry lookup if it is not able to find any image stream that matches the value. 
 
