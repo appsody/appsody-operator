@@ -29,11 +29,6 @@ main() {
     operator-sdk build $BUILD_IMAGE
     echo "****** Pushing image into registry..."
     docker push $BUILD_IMAGE
-    ## ensure that maps are set to the proper objects and not overwrote
-    ## by previous config/default test failures that don't clean up
-    echo "****** Adding config and defaults maps..."
-    oc apply -f ./deploy/stack_constants.yaml
-    oc apply -f ./deploy/stack_defaults.yaml
     echo "****** Starting e2e tests..."
     operator-sdk test local github.com/appsody/appsody-operator/test/e2e --go-test-flags "-timeout 35m" --image $(oc registry info)/openshift/application-operator-$TRAVIS_BUILD_NUMBER:daily --verbose
     result=$?
