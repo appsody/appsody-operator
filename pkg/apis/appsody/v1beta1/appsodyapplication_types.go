@@ -68,6 +68,7 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
 	Port int32 `json:"port,omitempty"`
+	TargetPort *int32 `json:"targetPort,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +listType=atomic
@@ -397,6 +398,14 @@ func (s *AppsodyApplicationService) GetPort() int32 {
 	return s.Port
 }
 
+func (s *AppsodyApplicationService) GetTargetPort() *int32 {
+	if s.TargetPort == nil {
+		return nil
+	}
+	return s.TargetPort
+}
+
+
 // GetType returns service type
 func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 	return s.Type
@@ -602,6 +611,11 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 			cr.Spec.Service.Port = 8080
 		}
 	}
+	if cr.Spec.Service.TargetPort == nil {
+		if defaults.Service != nil && defaults.Service.TargetPort != nil {
+			cr.Spec.Service.TargetPort = defaults.Service.TargetPort
+		}
+	}
 
 	if cr.Spec.CreateAppDefinition == nil {
 		if defaults.CreateAppDefinition != nil {
@@ -773,7 +787,11 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 		if constants.Service.Port != 0 {
 			cr.Spec.Service.Port = constants.Service.Port
 		}
+		if constants.Service.TargetPort != nil {
+			cr.Spec.Service.TargetPort = constants.Service.TargetPort
+		}
 	}
+
 
 	if constants.Autoscaling != nil {
 		cr.Spec.Autoscaling = constants.Autoscaling

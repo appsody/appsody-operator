@@ -41,7 +41,7 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 	}
 
 	// Values to be loaded in the constants configmap
-	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort}, "livenessProbe":{"failureThreshold": 8, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 8, "periodSeconds": 2}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}}`}
+	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"targetPort": 8080,"type": NodePort}, "livenessProbe":{"failureThreshold": 8, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 8, "periodSeconds": 2}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}}`}
 	configMap := &corev1.ConfigMap{}
 
 	// Wait for the operator as the following configmaps won't exist until it has deployed
@@ -147,7 +147,7 @@ func AppsodyConfigMapsConstTest(t *testing.T) {
 	}
 
 	serviceType = corev1.ServiceTypeNodePort
-	if apps.Spec.Service.Port == 3000 && *apps.Spec.Service.Type == serviceType {
+	if apps.Spec.Service.Port == 3000 && *apps.Spec.Service.TargetPort == int32(8080) && *apps.Spec.Service.Type == serviceType {
 		t.Log("Service from configmap constants is applied and not changed")
 	} else {
 		t.Fatal("Service in configmap constants is not applied")

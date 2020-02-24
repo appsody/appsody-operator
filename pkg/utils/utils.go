@@ -160,6 +160,10 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 	svc.Spec.Selector = map[string]string{
 		"app.kubernetes.io/instance": obj.GetName(),
 	}
+
+	if ba.GetService().GetTargetPort() != nil {
+		svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(*ba.GetService().GetTargetPort()))
+	}
 }
 
 // CustomizeServieBindingSecret ...
@@ -214,6 +218,12 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 	pts.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	pts.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
 	pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+
+	if ba.GetService().GetTargetPort() != nil {
+		pts.Spec.Containers[0].Ports[0].ContainerPort = *ba.GetService().GetTargetPort()
+		pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(*ba.GetService().GetTargetPort())) + "-tcp"
+	}
+
 	if ba.GetResourceConstraints() != nil {
 		pts.Spec.Containers[0].Resources = *ba.GetResourceConstraints()
 	}
@@ -438,7 +448,12 @@ func CustomizeKnativeService(ksvc *servingv1alpha1.Service, ba common.BaseApplic
 	ksvc.Spec.Template.ObjectMeta.Labels = ba.GetLabels()
 	ksvc.Spec.Template.ObjectMeta.Annotations = MergeMaps(ksvc.Spec.Template.ObjectMeta.Annotations, ba.GetAnnotations())
 
-	ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
+	if ba.GetService().GetTargetPort() != nil {
+		ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = *ba.GetService().GetTargetPort()
+	} else {
+		ksvc.Spec.Template.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
+	}
+
 	ksvc.Spec.Template.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
 	// Knative sets its own resource constraints
 	//ksvc.Spec.Template.Spec.Containers[0].Resources = *cr.Spec.ResourceConstraints

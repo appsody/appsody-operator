@@ -117,6 +117,12 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 							Format: "int32",
 						},
 					},
+					"TargetPort": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"integer"},
+							Format: "int32",
+						},
+					},
 					"annotations": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"object"},
@@ -159,6 +165,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref common.Refere
 						},
 					},
 				},
+				Required: []string{"TargetPort"},
 			},
 		},
 		Dependencies: []string{

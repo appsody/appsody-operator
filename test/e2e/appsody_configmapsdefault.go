@@ -39,7 +39,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	}
 
 	// Values to be loaded into the default configmap
-	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"type": NodePort, "annotations":{"prometheus.io/scrape": true}}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}, "livenessProbe":{"failureThreshold": 12, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2}}`}
+	updateData := map[string]string{"jstack": `{"version": 1.0.0,"expose":true, "service":{"port": 3000,"targetPort": 8080,"type": NodePort, "annotations":{"prometheus.io/scrape": true}}, "readinessProbe":{"failureThreshold": 12, "httpGet":{"path": /ready, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2, "timeoutSeconds": 1}, "livenessProbe":{"failureThreshold": 12, "httpGet":{"path": /live, "port": 3000}, "initialDelaySeconds": 5, "periodSeconds": 2}}`}
 	configMap := &corev1.ConfigMap{}
 
 	// Wait for the operator as the following configmaps won't exist until it has deployed
@@ -118,7 +118,7 @@ func AppsodyConfigMapsDefaultTest(t *testing.T) {
 	}
 
 	serviceType := corev1.ServiceTypeNodePort
-	if apps.Spec.Service.Port == 3000 && *apps.Spec.Service.Type == serviceType && apps.Spec.Service.Annotations != nil {
+	if apps.Spec.Service.Port == 3000 && *apps.Spec.Service.TargetPort == int32(8080) && *apps.Spec.Service.Type == serviceType && apps.Spec.Service.Annotations != nil {
 		t.Log("Service in configmap defaults is applied")
 	} else {
 		t.Fatal("Service in configmap defaults is not applied")
