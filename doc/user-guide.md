@@ -128,7 +128,9 @@ oc get app my-appsody-app
 
 Appsody Application Operator is based on the generic [Application Stacks
 Operator](https://github.com/application-stacks/operator). To see more
-information on the usage of common functionality, see Application Stacks documentation: 
+information on the usage of common functionality, see Application Stacks
+documentation below. Note that, in the samples from the links below, the instances of `Kind:
+RuntimeComponent` must be replaced with `Kind: AppsodyApplication`.
 
 - [Image Streams](https://github.com/application-stacks/operator/blob/master/doc/user-guide.md#Image-streams)
 - [Service Account](https://github.com/application-stacks/operator/blob/master/doc/user-guide.md#Service-account)
@@ -142,9 +144,8 @@ information on the usage of common functionality, see Application Stacks documen
 - [Knative Support](https://github.com/application-stacks/operator/blob/master/doc/user-guide.md#Knative-support)
 - [Exposing Service](https://github.com/application-stacks/operator/blob/master/doc/user-guide.md#Exposing-service-externally)
 - [Kubernetes Application Navigator](https://github.com/application-stacks/operator/blob/master/doc/user-guide.md#kubernetes-application-navigator-kappnav-support)
+- [Certificate Manager Support](https://github.com/application-stacks/operator/blob/master/doc/user-guide.md#certificate-manager-integration)
 
-Note that for the above examples you will always need to change the kind from
-`RuntimeApplication` to `AppsodyApplication` when working with Appsody Operator.
 For functionality that is unique to the Appsody Application Operator, see the
 following sections.
 
@@ -226,27 +227,6 @@ spec:
   -  name: DB_URL
      value: url     
 ```
-
-### Kubernetes Application Navigator (kAppNav) support
-
-By default, Appsody Operator configures the Kubernetes resources it generates to allow automatic creation of an application definition by [kAppNav](https://kappnav.io/), Kubernetes Application Navigator. You can easily view and manage the deployed resources that comprise your application using Application Navigator. You can disable auto-creation by setting `createAppDefinition` to `false`.
-
-To join an existing application definition, disable auto-creation and set the label(s) needed to join the application on `AppsodyApplication` CR. See [Labels](#labels) section for more information.
-
-_This feature is only available if you have kAppNav installed on your cluster. Auto creation of an application definition is not supported when Knative service is created_
-
-
-### Certificate Manager Integration
-
-Appsody Operator is enabled to take advantage of [cert-manager](https://cert-manager.io/) tool, if it is installed on the cluster.
-This allows to automatically provision TLS certificates for pods as well as routes.
-
-Cert-manager installation instruction can be found [here](https://cert-manager.io/docs/installation/)
-
-When creating certificates via the AppsodyApplication CR the user can specify a particular issuer name and toggle the scopes between `ClusterIssuer` (cluster scoped) and `Issuer` (namespace scoped). If not specified, these values are retrieved from a ConfigMap called `appsody-operator`, with keys `defaultIssuer` (default value of `self-signed`) and `useClusterIssuer` (default value of `"true"`)
-
-_This feature does not support integration with Knative Service._
-
 
 #### Create an ClusterIssuer or Issuer
 
