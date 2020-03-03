@@ -78,6 +78,7 @@ type BaseApplicationService interface {
 	GetProvides() ServiceBindingProvides
 	GetConsumes() []ServiceBindingConsumes
 	GetCertificate() Certificate
+	GetCertificateSecretRef() *string
 }
 
 // BaseApplicationMonitoring represents basic service monitoring configuration
@@ -94,6 +95,7 @@ type BaseApplicationRoute interface {
 	GetAnnotations() map[string]string
 	GetHost() string
 	GetPath() string
+	GetCertificateSecretRef() *string
 }
 
 // ServiceBindingProvides represents a service to be provided

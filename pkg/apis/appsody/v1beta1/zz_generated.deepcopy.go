@@ -166,6 +166,11 @@ func (in *AppsodyApplicationService) DeepCopyInto(out *AppsodyApplicationService
 		*out = new(Certificate)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.CertificateSecretRef != nil {
+		in, out := &in.CertificateSecretRef, &out.CertificateSecretRef
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
@@ -393,6 +398,11 @@ func (in *AppsodyRoute) DeepCopyInto(out *AppsodyRoute) {
 		in, out := &in.Certificate, &out.Certificate
 		*out = new(Certificate)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.CertificateSecretRef != nil {
+		in, out := &in.CertificateSecretRef, &out.CertificateSecretRef
+		*out = new(string)
+		**out = **in
 	}
 	return
 }

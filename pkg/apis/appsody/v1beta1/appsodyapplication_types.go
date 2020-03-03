@@ -67,7 +67,7 @@ type AppsodyApplicationService struct {
 
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
-	Port int32 `json:"port,omitempty"`
+	Port       int32  `json:"port,omitempty"`
 	TargetPort *int32 `json:"targetPort,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -75,7 +75,8 @@ type AppsodyApplicationService struct {
 	Consumes []ServiceBindingConsumes `json:"consumes,omitempty"`
 	Provides *ServiceBindingProvides  `json:"provides,omitempty"`
 	// +k8s:openapi-gen=true
-	Certificate *Certificate `json:"certificate,omitempty"`
+	Certificate          *Certificate `json:"certificate,omitempty"`
+	CertificateSecretRef *string      `json:"certificateSecretRef,omitempty"`
 }
 
 // ServiceBindingProvides represents information about
@@ -118,6 +119,7 @@ type AppsodyRoute struct {
 	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
 	Certificate                   *Certificate                               `json:"certificate,omitempty"`
+	CertificateSecretRef          *string                                    `json:"certificateSecretRef,omitempty"`
 	Host                          string                                     `json:"host,omitempty"`
 	Path                          string                                     `json:"path,omitempty"`
 }
@@ -405,7 +407,6 @@ func (s *AppsodyApplicationService) GetTargetPort() *int32 {
 	return s.TargetPort
 }
 
-
 // GetType returns service type
 func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 	return s.Type
@@ -425,6 +426,11 @@ func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
 		return nil
 	}
 	return s.Certificate
+}
+
+// GetCertificateSecretRef returns services certificate configuration
+func (s *AppsodyApplicationService) GetCertificateSecretRef() *string {
+	return s.CertificateSecretRef
 }
 
 // GetCategory returns category of a service provider configuration
@@ -510,6 +516,11 @@ func (r *AppsodyRoute) GetCertificate() common.Certificate {
 		return nil
 	}
 	return r.Certificate
+}
+
+// GetCertificateSecretRef returns services certificate configuration
+func (r *AppsodyRoute) GetCertificateSecretRef() *string {
+	return r.CertificateSecretRef
 }
 
 // GetTermination returns terminatation of the route's TLS
@@ -791,7 +802,6 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 			cr.Spec.Service.TargetPort = constants.Service.TargetPort
 		}
 	}
-
 
 	if constants.Autoscaling != nil {
 		cr.Spec.Autoscaling = constants.Autoscaling
