@@ -9,7 +9,7 @@ assignees: ''
 
 ## Feature Request
 
-### Is your feature reuqest related to a generic (non-Appsody) problem?
+### Is your feature request related to a generic (non-Appsody) problem?
 
 If so, please open an issue with the [upstream Operator](https://github.com/application-stacks/runtime-component-operator/issues), which gets pulled into this Operator.
 
