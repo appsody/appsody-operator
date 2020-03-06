@@ -126,9 +126,8 @@ oc get app my-appsody-app
 
 ### Common Component Documentation
 
-Appsody Application Operator is based on the generic [Application Stacks
-Operator](https://github.com/application-stacks/operator). To see more
-information on the usage of common functionality, see Application Stacks
+Appsody Application Operator is based on the generic [Runtime Component Operator](https://github.com/application-stacks/runtime-component-operator). To see more
+information on the usage of common functionality, see Runtime Component
 documentation below. Note that, in the samples from the links below, the instances of `Kind:
 RuntimeComponent` must be replaced with `Kind: AppsodyApplication`.
 
