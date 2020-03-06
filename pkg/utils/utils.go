@@ -746,7 +746,7 @@ func GetOpenShiftAnnotations(ba common.BaseApplication) map[string]string {
 	annos := map[string]string{}
 
 	for key, val := range ba.GetLabels() {
-		if key == "image.opencontainer.org/source" {
+		if key == "image.opencontainers.org/source" {
 			annos["app.openshift.io/vcs-ref"] = val
 		}
 	}
