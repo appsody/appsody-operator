@@ -134,7 +134,11 @@ func CustomizeRoute(route *routev1.Route, ba common.BaseApplication, key string,
 	if route.Spec.Port == nil {
 		route.Spec.Port = &routev1.RoutePort{}
 	}
-	route.Spec.Port.TargetPort = intstr.FromString(strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp")
+	if ba.GetService().GetPortName() != "" {
+		route.Spec.Port.TargetPort = intstr.FromString(ba.GetService().GetPortName())
+	} else {
+		route.Spec.Port.TargetPort = intstr.FromString(strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp")
+	}
 
 }
 
@@ -155,7 +159,11 @@ func CustomizeService(svc *corev1.Service, ba common.BaseApplication) {
 
 	svc.Spec.Ports[0].Port = ba.GetService().GetPort()
 	svc.Spec.Ports[0].TargetPort = intstr.FromInt(int(ba.GetService().GetPort()))
-	svc.Spec.Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+	if ba.GetService().GetPortName() != "" {
+		svc.Spec.Ports[0].Name = ba.GetService().GetPortName()
+	} else {
+		svc.Spec.Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+	}
 	svc.Spec.Type = *ba.GetService().GetType()
 	svc.Spec.Selector = map[string]string{
 		"app.kubernetes.io/instance": obj.GetName(),
@@ -217,11 +225,19 @@ func CustomizePodSpec(pts *corev1.PodTemplateSpec, ba common.BaseApplication) {
 
 	pts.Spec.Containers[0].Ports[0].ContainerPort = ba.GetService().GetPort()
 	pts.Spec.Containers[0].Image = ba.GetStatus().GetImageReference()
-	pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+	if ba.GetService().GetPortName() != "" {
+		pts.Spec.Containers[0].Ports[0].Name = ba.GetService().GetPortName()
+	} else {
+		pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+	}
 
 	if ba.GetService().GetTargetPort() != nil {
 		pts.Spec.Containers[0].Ports[0].ContainerPort = *ba.GetService().GetTargetPort()
-		pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(*ba.GetService().GetTargetPort())) + "-tcp"
+		if ba.GetService().GetPortName() != "" {
+			pts.Spec.Containers[0].Ports[0].Name = ba.GetService().GetPortName()
+		} else {
+			pts.Spec.Containers[0].Ports[0].Name = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+		}
 	}
 
 	if ba.GetResourceConstraints() != nil {
@@ -552,7 +568,11 @@ func CustomizeServiceMonitor(sm *prometheusv1.ServiceMonitor, ba common.BaseAppl
 	if len(sm.Spec.Endpoints) == 0 {
 		sm.Spec.Endpoints = append(sm.Spec.Endpoints, prometheusv1.Endpoint{})
 	}
-	sm.Spec.Endpoints[0].Port = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+	if ba.GetService().GetPortName() != "" {
+		sm.Spec.Endpoints[0].Port = ba.GetService().GetPortName()
+	} else {
+		sm.Spec.Endpoints[0].Port = strconv.Itoa(int(ba.GetService().GetPort())) + "-tcp"
+	}
 	if len(ba.GetMonitoring().GetLabels()) > 0 {
 		for k, v := range ba.GetMonitoring().GetLabels() {
 			sm.Labels[k] = v

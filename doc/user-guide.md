@@ -57,6 +57,7 @@ Each `AppsodyApplication` CR must at least specify the `applicationImage` parame
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
 | `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates preference. |
 | `service.port` | The port exposed by the container, directing traffic to the application. | 
+| `service.portName` | The name for the port exposed by the container. | 
 | `service.targetPort` | The port that the appsody application uses within the container. Defaults to the value of `service.port`. |
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |

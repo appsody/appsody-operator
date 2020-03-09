@@ -73,6 +73,7 @@ type BaseApplicationStorage interface {
 type BaseApplicationService interface {
 	GetPort() int32
 	GetTargetPort() *int32
+	GetPortName() string
 	GetType() *corev1.ServiceType
 	GetAnnotations() map[string]string
 	GetProvides() ServiceBindingProvides

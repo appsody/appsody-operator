@@ -67,8 +67,10 @@ type AppsodyApplicationService struct {
 
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
-	Port int32 `json:"port,omitempty"`
+	Port       int32  `json:"port,omitempty"`
 	TargetPort *int32 `json:"targetPort,omitempty"`
+
+	PortName string `json:"portName,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +listType=atomic
@@ -405,6 +407,10 @@ func (s *AppsodyApplicationService) GetTargetPort() *int32 {
 	return s.TargetPort
 }
 
+// GetPortName returns name of service port
+func (s *AppsodyApplicationService) GetPortName() string {
+	return s.PortName
+}
 
 // GetType returns service type
 func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
@@ -791,7 +797,6 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 			cr.Spec.Service.TargetPort = constants.Service.TargetPort
 		}
 	}
-
 
 	if constants.Autoscaling != nil {
 		cr.Spec.Autoscaling = constants.Autoscaling
