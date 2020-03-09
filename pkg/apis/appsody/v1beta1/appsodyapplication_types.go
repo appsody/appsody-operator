@@ -46,8 +46,9 @@ type AppsodyApplicationSpec struct {
 	CreateAppDefinition  *bool                         `json:"createAppDefinition,omitempty"`
 	// +listType=map
 	// +listMapKey=name
-	InitContainers []corev1.Container `json:"initContainers,omitempty"`
-	Route          *AppsodyRoute      `json:"route,omitempty"`
+	InitContainers    []corev1.Container `json:"initContainers,omitempty"`
+	SidecarContainers []corev1.Container `json:"sidecarContainers,omitempty"`
+	Route             *AppsodyRoute      `json:"route,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -324,6 +325,11 @@ func (cr *AppsodyApplication) GetInitContainers() []corev1.Container {
 	return cr.Spec.InitContainers
 }
 
+// GetSidecarContainers returns list of user specified containers
+func (cr *AppsodyApplication) GetSidecarContainers() []corev1.Container {
+	return cr.Spec.SidecarContainers
+}
+
 // GetGroupName returns group name to be used in labels and annotation
 func (cr *AppsodyApplication) GetGroupName() string {
 	return "appsody.dev"
@@ -400,6 +406,7 @@ func (s *AppsodyApplicationService) GetPort() int32 {
 	return s.Port
 }
 
+// GetTargetPort returns target service port
 func (s *AppsodyApplicationService) GetTargetPort() *int32 {
 	if s.TargetPort == nil {
 		return nil
