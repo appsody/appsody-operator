@@ -293,6 +293,8 @@ func TestConfigMapDefaults(t *testing.T) {
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
 	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 
+	cl := fakeclient.NewFakeClient(objs...)
+
 	rb := oputils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
 	constantsMap := map[string]*appsodyv1beta1.AppsodyApplicationSpec{}

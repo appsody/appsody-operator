@@ -120,6 +120,15 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return reconciler
 }
 
+func getAppsodyOpConfigMap(name string, ns string, r *ReconcileAppsodyApplication) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
+	if err != nil {
+		return nil, err
+	}
+	return configMap, nil
+}
+
 func setup(mgr manager.Manager) {
 	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
 		instance := obj.(*appsodyv1beta1.AppsodyApplication)
@@ -753,13 +762,4 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
-}
-
-func getAppsodyOpConfigMap(name string, ns string, r *ReconcileAppsodyApplication) (*corev1.ConfigMap, error) {
-	configMap := &corev1.ConfigMap{}
-	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
-	if err != nil {
-		return nil, err
-	}
-	return configMap, nil
 }
