@@ -374,7 +374,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 							Format: "",
 						},
 					},
-					"application_name": {
+					"applicationName": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",
@@ -398,7 +398,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 							},
 						},
 					},
-					"sidecar_containers": {
+					"sidecarContainers": {
 						SchemaProps: spec.SchemaProps{
 							Type: []string{"array"},
 							Items: &spec.SchemaOrArray{
@@ -416,6 +416,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 						},
 					},
 				},
+				Required: []string{"applicationImage"},
 			},
 		},
 		Dependencies: []string{
@@ -520,7 +521,7 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyRoute(ref common.ReferenceCallback) 
 							Ref: ref("./pkg/apis/appsody/v1beta1.Certificate"),
 						},
 					},
-					"certificate_secret_ref": {
+					"certificateSecretRef": {
 						SchemaProps: spec.SchemaProps{
 							Type:   []string{"string"},
 							Format: "",

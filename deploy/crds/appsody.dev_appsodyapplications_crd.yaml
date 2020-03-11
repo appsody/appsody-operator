@@ -66,9 +66,9 @@ spec:
         spec:
           description: AppsodyApplicationSpec defines the desired state of AppsodyApplication
           properties:
-            application_name:
-              type: string
             applicationImage:
+              type: string
+            applicationName:
               type: string
             architecture:
               items:
@@ -467,8 +467,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Name or number of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -490,8 +490,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Number or name of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -561,8 +561,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Name or number of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -584,8 +584,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Number or name of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -653,8 +653,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Name or number of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -693,8 +693,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Number or name of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -813,8 +813,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Name or number of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -853,8 +853,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Number or name of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -1083,8 +1083,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Name or number of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -1123,8 +1123,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Number or name of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -1303,8 +1303,8 @@ spec:
                       type: string
                     port:
                       anyOf:
-                      - type: string
                       - type: integer
+                      - type: string
                       description: Name or number of the port to access on the container.
                         Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
                     scheme:
@@ -1341,8 +1341,8 @@ spec:
                       type: string
                     port:
                       anyOf:
-                      - type: string
                       - type: integer
+                      - type: string
                       description: Number or name of the port to access on the container.
                         Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
                   required:
@@ -1559,8 +1559,8 @@ spec:
                         type: string
                       targetPort:
                         anyOf:
-                        - type: string
                         - type: integer
+                        - type: string
                         description: Name or number of the target port of the endpoint.
                           Mutually exclusive with port.
                       tlsConfig:
@@ -1766,8 +1766,8 @@ spec:
                       type: string
                     port:
                       anyOf:
-                      - type: string
                       - type: integer
+                      - type: string
                       description: Name or number of the port to access on the container.
                         Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
                     scheme:
@@ -1804,8 +1804,8 @@ spec:
                       type: string
                     port:
                       anyOf:
-                      - type: string
                       - type: integer
+                      - type: string
                       description: Number or name of the port to access on the container.
                         Number must be in the range 1 to 65535. Name must be an IANA_SVC_NAME.
                   required:
@@ -1978,7 +1978,7 @@ spec:
                         type: string
                       type: array
                   type: object
-                certificate_secret_ref:
+                certificateSecretRef:
                   type: string
                 host:
                   type: string
@@ -2225,7 +2225,7 @@ spec:
               type: object
             serviceAccountName:
               type: string
-            sidecar_containers:
+            sidecarContainers:
               items:
                 description: A single application container that you want to run within
                   a pod.
@@ -2469,8 +2469,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Name or number of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -2492,8 +2492,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Number or name of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -2563,8 +2563,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Name or number of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -2586,8 +2586,8 @@ spec:
                                 type: string
                               port:
                                 anyOf:
-                                - type: string
                                 - type: integer
+                                - type: string
                                 description: Number or name of the port to access
                                   on the container. Number must be in the range 1
                                   to 65535. Name must be an IANA_SVC_NAME.
@@ -2655,8 +2655,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Name or number of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -2695,8 +2695,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Number or name of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -2815,8 +2815,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Name or number of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -2855,8 +2855,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Number or name of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -3085,8 +3085,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Name or number of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -3125,8 +3125,8 @@ spec:
                             type: string
                           port:
                             anyOf:
-                            - type: string
                             - type: integer
+                            - type: string
                             description: Number or name of the port to access on the
                               container. Number must be in the range 1 to 65535. Name
                               must be an IANA_SVC_NAME.
@@ -4673,6 +4673,8 @@ spec:
                 - name
                 type: object
               type: array
+          required:
+          - applicationImage
           type: object
         status:
           description: AppsodyApplicationStatus defines the observed state of AppsodyApplication

@@ -16,7 +16,7 @@ import (
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
 	Version          string                         `json:"version,omitempty"`
-	ApplicationImage string                         `json:"applicationImage,omitempty"`
+	ApplicationImage string                         `json:"applicationImage"`
 	Replicas         *int32                         `json:"replicas,omitempty"`
 	Autoscaling      *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
 	PullPolicy       *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
@@ -44,11 +44,11 @@ type AppsodyApplicationSpec struct {
 	Stack                string                        `json:"stack,omitempty"`
 	Monitoring           *AppsodyApplicationMonitoring `json:"monitoring,omitempty"`
 	CreateAppDefinition  *bool                         `json:"createAppDefinition,omitempty"`
-	ApplicationName      string                        `json:"application_name,omitempty"`
+	ApplicationName      string                        `json:"applicationName,omitempty"`
 	// +listType=map
 	// +listMapKey=name
 	InitContainers    []corev1.Container `json:"initContainers,omitempty"`
-	SidecarContainers []corev1.Container `json:"sidecar_containers,omitempty"`
+	SidecarContainers []corev1.Container `json:"sidecarContainers,omitempty"`
 	Route             *AppsodyRoute      `json:"route,omitempty"`
 }
 
@@ -122,7 +122,7 @@ type AppsodyRoute struct {
 	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
 	Certificate                   *Certificate                               `json:"certificate,omitempty"`
-	CertificateSecretRef          *string                                    `json:"certificate_secret_ref,omitempty"`
+	CertificateSecretRef          *string                                    `json:"certificateSecretRef,omitempty"`
 	Host                          string                                     `json:"host,omitempty"`
 	Path                          string                                     `json:"path,omitempty"`
 }
