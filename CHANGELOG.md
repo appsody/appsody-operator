@@ -27,6 +27,8 @@ All notable changes to this project will be documented in this file.
 
 ### Changed
 
+- Changed the default labels and annotations to more closely align with the
+  generic operator and OpenShift guidelines ([#233](https://github.com/appsody/appsody-operator/issues/233))
 - Changed the label corresponding to `metadata.name` to `app.kubernetes.io/instance` and made former label `app.kubernetes.io/name` user configurable. ([#179](https://github.com/appsody/appsody-operator/issues/179))
 
 ## [0.2.2]

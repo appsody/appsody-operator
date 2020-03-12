@@ -818,6 +818,8 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 		"app.kubernetes.io/instance":   cr.Name,
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
+		"app.kubernetes.io/part-of": cr.Name,
+		"app.kubernetes.io/component": "backend",
 	}
 
 	if cr.Spec.Stack != "" {

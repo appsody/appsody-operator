@@ -531,6 +531,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			err = r.CreateOrUpdate(ksvc, instance, func() error {
 				appsodyutils.CustomizeKnativeService(ksvc, instance)
 				if r.IsOpenShift() {
+					ksvc.Annotations = appsodyutils.MergeMaps(ksvc.Annotations, appsodyutils.GetOpenShiftAnnotations(instance))
 					ksvc.Spec.Template.ObjectMeta.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
 				}
 				return nil
@@ -557,6 +558,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
+		if r.IsOpenShift() {
+			instance.Annotations = appsodyutils.MergeMaps(instance.Annotations, appsodyutils.GetOpenShiftAnnotations(instance))
+		}
+
 		appsodyutils.CustomizeService(svc, ba)
 		svc.Annotations = appsodyutils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
 		if instance.Spec.Monitoring != nil {
@@ -584,6 +589,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
 		err = r.CreateOrUpdate(svc, instance, func() error {
+			if r.IsOpenShift() {
+				instance.Annotations = appsodyutils.MergeMaps(instance.Annotations, appsodyutils.GetOpenShiftAnnotations(instance))
+			}
+
 			appsodyutils.CustomizeService(svc, instance)
 			svc.Spec.ClusterIP = corev1.ClusterIPNone
 			svc.Spec.Type = corev1.ServiceTypeClusterIP
@@ -596,12 +605,13 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(statefulSet, instance, func() error {
+			if r.IsOpenShift() {
+				instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+			}
+
 			appsodyutils.CustomizeStatefulSet(statefulSet, instance)
 			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			appsodyutils.CustomizePersistence(statefulSet, instance)
-			if r.IsOpenShift() {
-				statefulSet.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), statefulSet.Annotations)
-			}
 			return nil
 		})
 		if err != nil {
@@ -628,11 +638,11 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(deploy, instance, func() error {
+			if r.IsOpenShift() {
+				instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+			}
 			appsodyutils.CustomizeDeployment(deploy, instance)
 			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
-			if r.IsOpenShift() {
-				deploy.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), deploy.Annotations)
-			}
 			return nil
 		})
 		if err != nil {
@@ -645,6 +655,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if instance.Spec.Autoscaling != nil {
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(hpa, instance, func() error {
+			if r.IsOpenShift() {
+				instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+			}
+
 			appsodyutils.CustomizeHPA(hpa, instance)
 			return nil
 		})
@@ -674,6 +688,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 					return err
 				}
 				appsodyutils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
+				if r.IsOpenShift() {
+					route.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(ba), route.Annotations)
+				}
 
 				return nil
 			})
@@ -700,6 +717,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
 			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(sm, instance, func() error {
+				if r.IsOpenShift() {
+					instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+				}
+
 				appsodyutils.CustomizeServiceMonitor(sm, instance)
 				return nil
 			})
