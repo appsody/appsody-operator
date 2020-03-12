@@ -55,7 +55,7 @@ Each `AppsodyApplication` CR must at least specify the `applicationImage` parame
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
-| `sidecarContainers` | The list of `sidecar` containers. These are additional containers to be added to the pods. Note: the sideContainers can not be named `app`. |
+| `sidecarContainers` | The list of `sidecar` containers. These are additional containers to be added to the pods. Note: Sidecar containers should not be name `app`. |
 | `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates preference. |
 | `service.port` | The port exposed by the container, directing traffic to the application. | 
 | `service.portName` | The name for the port exposed by the container. |
@@ -126,6 +126,8 @@ To get information on the deployed CR, use either of the following:
 oc get appsodyapplication my-appsody-app
 oc get app my-appsody-app
 ```
+
+The short name for `appsodyapplication` is `app`.
 
 ### Common Component Documentation
 
