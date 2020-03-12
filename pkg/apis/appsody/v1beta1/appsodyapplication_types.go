@@ -3,7 +3,7 @@ package v1beta1
 import (
 	"time"
 
-	"github.com/appsody/appsody-operator/pkg/common"
+	"github.com/application-stacks/runtime-component-operator/pkg/common"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,7 +16,7 @@ import (
 // +k8s:openapi-gen=true
 type AppsodyApplicationSpec struct {
 	Version          string                         `json:"version,omitempty"`
-	ApplicationImage string                         `json:"applicationImage"`
+	ApplicationImage string                         `json:"applicationImage,omitempty"`
 	Replicas         *int32                         `json:"replicas,omitempty"`
 	Autoscaling      *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
 	PullPolicy       *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
@@ -44,10 +44,12 @@ type AppsodyApplicationSpec struct {
 	Stack                string                        `json:"stack,omitempty"`
 	Monitoring           *AppsodyApplicationMonitoring `json:"monitoring,omitempty"`
 	CreateAppDefinition  *bool                         `json:"createAppDefinition,omitempty"`
+	ApplicationName      string                        `json:"application_name,omitempty"`
 	// +listType=map
 	// +listMapKey=name
-	InitContainers []corev1.Container `json:"initContainers,omitempty"`
-	Route          *AppsodyRoute      `json:"route,omitempty"`
+	InitContainers    []corev1.Container `json:"initContainers,omitempty"`
+	SidecarContainers []corev1.Container `json:"sidecar_containers,omitempty"`
+	Route             *AppsodyRoute      `json:"route,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -67,7 +69,8 @@ type AppsodyApplicationService struct {
 
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
-	Port int32 `json:"port,omitempty"`
+	Port       int32  `json:"port,omitempty"`
+	PortName   string `json:"portName,omitempty"`
 	TargetPort *int32 `json:"targetPort,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
@@ -75,7 +78,8 @@ type AppsodyApplicationService struct {
 	Consumes []ServiceBindingConsumes `json:"consumes,omitempty"`
 	Provides *ServiceBindingProvides  `json:"provides,omitempty"`
 	// +k8s:openapi-gen=true
-	Certificate *Certificate `json:"certificate,omitempty"`
+	Certificate          *Certificate `json:"certificate,omitempty"`
+	CertificateSecretRef *string      `json:"certificateSecretRef,omitempty"`
 }
 
 // ServiceBindingProvides represents information about
@@ -118,6 +122,7 @@ type AppsodyRoute struct {
 	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
 	Certificate                   *Certificate                               `json:"certificate,omitempty"`
+	CertificateSecretRef          *string                                    `json:"certificate_secret_ref,omitempty"`
 	Host                          string                                     `json:"host,omitempty"`
 	Path                          string                                     `json:"path,omitempty"`
 }
@@ -271,7 +276,7 @@ func (cr *AppsodyApplication) GetArchitecture() []string {
 }
 
 // GetAutoscaling returns autoscaling settings
-func (cr *AppsodyApplication) GetAutoscaling() common.BaseApplicationAutoscaling {
+func (cr *AppsodyApplication) GetAutoscaling() common.BaseComponentAutoscaling {
 	if cr.Spec.Autoscaling == nil {
 		return nil
 	}
@@ -279,7 +284,7 @@ func (cr *AppsodyApplication) GetAutoscaling() common.BaseApplicationAutoscaling
 }
 
 // GetStorage returns storage settings
-func (cr *AppsodyApplication) GetStorage() common.BaseApplicationStorage {
+func (cr *AppsodyApplication) GetStorage() common.BaseComponentStorage {
 	if cr.Spec.Storage == nil {
 		return nil
 	}
@@ -287,7 +292,7 @@ func (cr *AppsodyApplication) GetStorage() common.BaseApplicationStorage {
 }
 
 // GetService returns service settings
-func (cr *AppsodyApplication) GetService() common.BaseApplicationService {
+func (cr *AppsodyApplication) GetService() common.BaseComponentService {
 	if cr.Spec.Service == nil {
 		return nil
 	}
@@ -304,8 +309,13 @@ func (cr *AppsodyApplication) GetCreateAppDefinition() *bool {
 	return cr.Spec.CreateAppDefinition
 }
 
+// GetApplicationName returns Application name to be used for integration with kAppNav
+func (cr *AppsodyApplication) GetApplicationName() string {
+	return cr.Spec.ApplicationName
+}
+
 // GetMonitoring returns monitoring settings
-func (cr *AppsodyApplication) GetMonitoring() common.BaseApplicationMonitoring {
+func (cr *AppsodyApplication) GetMonitoring() common.BaseComponentMonitoring {
 	if cr.Spec.Monitoring == nil {
 		return nil
 	}
@@ -313,7 +323,7 @@ func (cr *AppsodyApplication) GetMonitoring() common.BaseApplicationMonitoring {
 }
 
 // GetStatus returns AppsodyApplication status
-func (cr *AppsodyApplication) GetStatus() common.BaseApplicationStatus {
+func (cr *AppsodyApplication) GetStatus() common.BaseComponentStatus {
 	return &cr.Status
 }
 
@@ -322,13 +332,18 @@ func (cr *AppsodyApplication) GetInitContainers() []corev1.Container {
 	return cr.Spec.InitContainers
 }
 
+// GetSidecarContainers returns the list of user specified containers
+func (cr *AppsodyApplication) GetSidecarContainers() []corev1.Container {
+	return cr.Spec.SidecarContainers
+}
+
 // GetGroupName returns group name to be used in labels and annotation
 func (cr *AppsodyApplication) GetGroupName() string {
 	return "appsody.dev"
 }
 
 // GetRoute returns appsody route configuration
-func (cr *AppsodyApplication) GetRoute() common.BaseApplicationRoute {
+func (cr *AppsodyApplication) GetRoute() common.BaseComponentRoute {
 	if cr.Spec.Route == nil {
 		return nil
 	}
@@ -398,13 +413,18 @@ func (s *AppsodyApplicationService) GetPort() int32 {
 	return s.Port
 }
 
+// GetPortName return the name of the service port
+func (s *AppsodyApplicationService) GetPortName() string {
+	return s.PortName
+}
+
+// GetTargetPort returns the internal container port to be targetted
 func (s *AppsodyApplicationService) GetTargetPort() *int32 {
 	if s.TargetPort == nil {
 		return nil
 	}
 	return s.TargetPort
 }
-
 
 // GetType returns service type
 func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
@@ -425,6 +445,15 @@ func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
 		return nil
 	}
 	return s.Certificate
+}
+
+// GetCertificateSecretRef ...
+func (s *AppsodyApplicationService) GetCertificateSecretRef() *string {
+	if s.CertificateSecretRef == nil {
+		return nil
+	}
+
+	return s.CertificateSecretRef
 }
 
 // GetCategory returns category of a service provider configuration
@@ -532,6 +561,14 @@ func (r *AppsodyRoute) GetPath() string {
 	return r.Path
 }
 
+// GetCertificateSecretRef returns the secret ref for route certificate
+func (r *AppsodyRoute) GetCertificateSecretRef() *string {
+	if r.CertificateSecretRef == nil {
+		return nil
+	}
+	return r.CertificateSecretRef
+}
+
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
 func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
 	if cr.Spec.PullPolicy == nil {
@@ -577,6 +614,18 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 		} else {
 			cr.Spec.ResourceConstraints = &corev1.ResourceRequirements{}
 		}
+	}
+
+	if cr.Spec.ApplicationName == "" {
+		if cr.Labels != nil && cr.Labels["app.kubernetes.io/part-of"] != "" {
+			cr.Spec.ApplicationName = cr.Labels["app.kubernetes.io/part-of"]
+		} else {
+			cr.Spec.ApplicationName = cr.Name
+		}
+	}
+
+	if cr.Labels != nil {
+		cr.Labels["app.kubernetes.io/part-of"] = cr.Spec.ApplicationName
 	}
 
 	if cr.Spec.Autoscaling == nil {
@@ -792,7 +841,6 @@ func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, co
 		}
 	}
 
-
 	if constants.Autoscaling != nil {
 		cr.Spec.Autoscaling = constants.Autoscaling
 	}
@@ -818,8 +866,8 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 		"app.kubernetes.io/instance":   cr.Name,
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
-		"app.kubernetes.io/part-of": cr.Name,
 		"app.kubernetes.io/component": "backend",
+		"app.kubernetes.io/part-of":    cr.Spec.ApplicationName,
 	}
 
 	if cr.Spec.Stack != "" {

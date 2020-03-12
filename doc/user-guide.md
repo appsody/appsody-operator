@@ -55,8 +55,10 @@ Each `AppsodyApplication` CR must at least specify the `applicationImage` parame
 | `pullPolicy` | The policy used when pulling the image.  One of: `Always`, `Never`, and `IfNotPresent`. |
 | `pullSecret` | If using a registry that requires authentication, the name of the secret containing credentials. |
 | `initContainers` | The list of [Init Container](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.14/#container-v1-core) definitions. |
+| `sidecarContainers` | The list of `sidecar` containers. These are additional containers to be added to the pods. Note: the sideContainers can not be named `app`. |
 | `architecture` | An array of architectures to be considered for deployment. Their position in the array indicates preference. |
 | `service.port` | The port exposed by the container, directing traffic to the application. | 
+| `service.portName` | The name for the port exposed by the container. |
 | `service.targetPort` | The port that the appsody application uses within the container. Defaults to the value of `service.port`. |
 | `service.type` | The Kubernetes [Service Type](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types). |
 | `service.annotations` | Annotations to be added to the service. |
@@ -98,6 +100,7 @@ Each `AppsodyApplication` CR must at least specify the `applicationImage` parame
 | `route.termination`   | TLS termination policy. Can be one of `edge`, `reencrypt` and `passthrough`. |
 | `route.insecureEdgeTerminationPolicy`   | HTTP traffic policy with TLS enabled. Can be one of `Allow`, `Redirect` and `None`. |
 | `route.certificate`  | A YAML object representing a [Certificate](https://cert-manager.io/docs/reference/api-docs/#cert-manager.io/v1alpha2.CertificateSpec). |
+| `route.certificateSecretRef` | A name of a secret that already contains TLS key, certificate and CA to be used in the route. Also can contain destination CA certificate. |
 
 ### Basic usage
 

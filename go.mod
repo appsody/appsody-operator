@@ -3,9 +3,9 @@ module github.com/appsody/appsody-operator
 go 1.13
 
 require (
+	github.com/application-stacks/runtime-component-operator v0.4.0
 	github.com/coreos/prometheus-operator v0.34.0
 	github.com/go-openapi/spec v0.19.4
-	github.com/google/go-containerregistry v0.0.0-20200212224832-c629a66d7231 // indirect
 	github.com/jetstack/cert-manager v0.12.0
 	github.com/knative/serving v0.7.1-0.20190701162519-7ca25646a186
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
@@ -16,8 +16,8 @@ require (
 	k8s.io/api v0.17.2
 	k8s.io/apimachinery v0.17.2
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
-	knative.dev/pkg v0.0.0-20200218144759-9b3ea736c68c // indirect
+	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
+	sigs.k8s.io/application v0.8.1
 	sigs.k8s.io/controller-runtime v0.4.0
 	sigs.k8s.io/yaml v1.1.0
 )

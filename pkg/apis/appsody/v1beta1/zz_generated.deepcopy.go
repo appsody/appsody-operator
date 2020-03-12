@@ -5,7 +5,7 @@
 package v1beta1
 
 import (
-	common "github.com/appsody/appsody-operator/pkg/common"
+	common "github.com/application-stacks/runtime-component-operator/pkg/common"
 	v1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	v1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	routev1 "github.com/openshift/api/route/v1"
@@ -166,6 +166,11 @@ func (in *AppsodyApplicationService) DeepCopyInto(out *AppsodyApplicationService
 		*out = new(Certificate)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.CertificateSecretRef != nil {
+		in, out := &in.CertificateSecretRef, &out.CertificateSecretRef
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 
@@ -292,6 +297,13 @@ func (in *AppsodyApplicationSpec) DeepCopyInto(out *AppsodyApplicationSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.SidecarContainers != nil {
+		in, out := &in.SidecarContainers, &out.SidecarContainers
+		*out = make([]corev1.Container, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Route != nil {
 		in, out := &in.Route, &out.Route
 		*out = new(AppsodyRoute)
@@ -393,6 +405,11 @@ func (in *AppsodyRoute) DeepCopyInto(out *AppsodyRoute) {
 		in, out := &in.Certificate, &out.Certificate
 		*out = new(Certificate)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.CertificateSecretRef != nil {
+		in, out := &in.CertificateSecretRef, &out.CertificateSecretRef
+		*out = new(string)
+		**out = **in
 	}
 	return
 }
