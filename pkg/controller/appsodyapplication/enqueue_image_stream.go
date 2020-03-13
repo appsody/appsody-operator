@@ -3,8 +3,8 @@ package appsodyapplication
 import (
 	"context"
 
+	oputils "github.com/application-stacks/runtime-component-operator/pkg/utils"
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
-	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -60,7 +60,7 @@ func (e *EnqueueRequestsForImageStream) handle(evtMeta metav1.Object, q workqueu
 func (e *EnqueueRequestsForImageStream) matchApplication(imageStreamTag metav1.Object) ([]appsodyv1beta1.AppsodyApplication, error) {
 	apps := []appsodyv1beta1.AppsodyApplication{}
 	var namespaces []string
-	if appsodyutils.IsClusterWide(e.WatchNamespaces) {
+	if oputils.IsClusterWide(e.WatchNamespaces) {
 		nsList := &corev1.NamespaceList{}
 		if err := e.Client.List(context.Background(), nsList, client.InNamespace("")); err != nil {
 			return nil, err

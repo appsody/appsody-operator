@@ -6,12 +6,12 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/appsody/appsody-operator/pkg/common"
-
+	"github.com/application-stacks/runtime-component-operator/pkg/common"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
+	oputils "github.com/application-stacks/runtime-component-operator/pkg/utils"
+	autils "github.com/appsody/appsody-operator/pkg/utils"
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
-	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
@@ -51,10 +51,10 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: appsodyutils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetEventRecorderFor("appsody-operator")),
+	reconciler := &ReconcileAppsodyApplication{ReconcilerBase: oputils.NewReconcilerBase(mgr.GetClient(), mgr.GetScheme(), mgr.GetConfig(), mgr.GetEventRecorderFor("appsody-operator")),
 		StackDefaults: map[string]appsodyv1beta1.AppsodyApplicationSpec{}, StackConstants: map[string]*appsodyv1beta1.AppsodyApplicationSpec{}}
 
-	watchNamespaces, err := appsodyutils.GetWatchNamespaces()
+	watchNamespaces, err := oputils.GetWatchNamespaces()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
@@ -120,6 +120,15 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return reconciler
 }
 
+func getAppsodyOpConfigMap(name string, ns string, r *ReconcileAppsodyApplication) (*corev1.ConfigMap, error) {
+	configMap := &corev1.ConfigMap{}
+	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
+	if err != nil {
+		return nil, err
+	}
+	return configMap, nil
+}
+
 func setup(mgr manager.Manager) {
 	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
 		instance := obj.(*appsodyv1beta1.AppsodyApplication)
@@ -147,7 +156,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	watchNamespaces, err := appsodyutils.GetWatchNamespaces()
+	watchNamespaces, err := oputils.GetWatchNamespaces()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
 		os.Exit(1)
@@ -157,7 +166,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	for _, ns := range watchNamespaces {
 		watchNamespacesMap[ns] = true
 	}
-	isClusterWide := appsodyutils.IsClusterWide(watchNamespaces)
+	isClusterWide := oputils.IsClusterWide(watchNamespaces)
 
 	log.V(1).Info("Adding a new controller", "watchNamespaces", watchNamespaces, "isClusterWide", isClusterWide)
 
@@ -240,7 +249,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	err = c.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
-		&appsodyutils.EnqueueRequestsForServiceBinding{
+		&oputils.EnqueueRequestsForServiceBinding{
 			Client:          mgr.GetClient(),
 			GroupName:       "appsody.dev",
 			WatchNamespaces: watchNamespaces,
@@ -300,7 +309,7 @@ var _ reconcile.Reconciler = &ReconcileAppsodyApplication{}
 type ReconcileAppsodyApplication struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	appsodyutils.ReconcilerBase
+	oputils.ReconcilerBase
 	StackDefaults   map[string]appsodyv1beta1.AppsodyApplicationSpec
 	StackConstants  map[string]*appsodyv1beta1.AppsodyApplicationSpec
 	lastDefautsRV   string
@@ -321,7 +330,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if ns == "" {
 		// Since this method can be called directly from unit test, populate `watchNamespaces`.
 		if watchNamespaces == nil {
-			watchNamespaces, err = appsodyutils.GetWatchNamespaces()
+			watchNamespaces, err = oputils.GetWatchNamespaces()
 			if err != nil {
 				reqLogger.Error(err, "Error getting watch namespace")
 				return reconcile.Result{}, err
@@ -332,7 +341,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		ns = watchNamespaces[0]
 	}
 
-	configMap, err := r.GetAppsodyOpConfigMap("appsody-operator-defaults", ns)
+	configMap, err := getAppsodyOpConfigMap("appsody-operator-defaults", ns, r)
 	if err != nil {
 		log.Info("Failed to find config map defaults in namespace " + ns)
 	} else {
@@ -353,7 +362,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		r.lastDefautsRV = configMap.ResourceVersion
 	}
 
-	configMap, err = r.GetAppsodyOpConfigMap("appsody-operator-constants", ns)
+	configMap, err = getAppsodyOpConfigMap("appsody-operator-constants", ns, r)
 	if err != nil {
 		log.Info("Failed to find config map constants")
 	} else {
@@ -374,7 +383,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		r.lastConstantsRV = configMap.ResourceVersion
 	}
 
-	configMap, err = r.GetAppsodyOpConfigMap("appsody-operator", ns)
+	configMap, err = getAppsodyOpConfigMap("appsody-operator", ns, r)
 	if err != nil {
 		log.Info("Failed to find appsody operator config map")
 	} else {
@@ -383,7 +392,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	// Fetch the AppsodyApplication instance
 	instance := &appsodyv1beta1.AppsodyApplication{}
-	var ba common.BaseApplication
+	var ba common.BaseComponent
 	ba = instance
 	err = r.GetClient().Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
@@ -417,12 +426,23 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			instance.Initialize(stackDefaults, r.StackConstants["generic"])
 		}
 	}
-	_, err = appsodyutils.Validate(instance)
+	_, err = oputils.Validate(instance)
 	// If there's any validation error, don't bother with requeuing
 	if err != nil {
 		reqLogger.Error(err, "Error validating AppsodyApplication")
 		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		return reconcile.Result{}, nil
+	}
+
+	if r.IsApplicationSupported() {
+		// Get labels from Application CRs selector and merge with instance labels
+		existingAppLabels, err := r.GetSelectorLabelsFromApplications(instance)
+		if err != nil {
+			r.ManageError(errors.Wrapf(err, "unable to get %q Application CR selector's labels ", instance.Spec.ApplicationName), common.StatusConditionTypeReconciled, instance)
+		}
+		instance.Labels = oputils.MergeMaps(existingAppLabels, instance.Labels)
+	} else {
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported on the cluster", servingv1alpha1.SchemeGroupVersion.String()))
 	}
 
 	currentGen := instance.Generation
@@ -488,7 +508,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
-			appsodyutils.CustomizeServiceAccount(serviceAccount, instance)
+			oputils.CustomizeServiceAccount(serviceAccount, instance)
 			return nil
 		})
 		if err != nil {
@@ -529,10 +549,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if isKnativeSupported {
 			ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(ksvc, instance, func() error {
-				appsodyutils.CustomizeKnativeService(ksvc, instance)
+				oputils.CustomizeKnativeService(ksvc, instance)
 				if r.IsOpenShift() {
-					ksvc.Annotations = appsodyutils.MergeMaps(ksvc.Annotations, appsodyutils.GetOpenShiftAnnotations(instance))
-					ksvc.Spec.Template.ObjectMeta.Annotations = appsodyutils.MergeMaps(appsodyutils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
+					ksvc.Annotations = oputils.MergeMaps(ksvc.Annotations, autils.GetOpenShiftAnnotations(instance))
+					ksvc.Spec.Template.ObjectMeta.Annotations = oputils.MergeMaps(oputils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
 				}
 				return nil
 			})
@@ -542,9 +562,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 			}
 			return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
-		} else {
-			return r.ManageError(errors.New("failed to reconcile Knative service as operator could not find Knative CRDs"), common.StatusConditionTypeReconciled, instance)
 		}
+		return r.ManageError(errors.New("failed to reconcile Knative service as operator could not find Knative CRDs"), common.StatusConditionTypeReconciled, instance)
 	}
 
 	if isKnativeSupported {
@@ -559,11 +578,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
 		if r.IsOpenShift() {
-			instance.Annotations = appsodyutils.MergeMaps(instance.Annotations, appsodyutils.GetOpenShiftAnnotations(instance))
+			instance.Annotations = oputils.MergeMaps(instance.Annotations, autils.GetOpenShiftAnnotations(instance))
 		}
 
-		appsodyutils.CustomizeService(svc, ba)
-		svc.Annotations = appsodyutils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
+		oputils.CustomizeService(svc, ba)
+		svc.Annotations = oputils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
+
 		if instance.Spec.Monitoring != nil {
 			svc.Labels["app."+ba.GetGroupName()+"/monitor"] = "true"
 		} else {
@@ -590,10 +610,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
 		err = r.CreateOrUpdate(svc, instance, func() error {
 			if r.IsOpenShift() {
-				instance.Annotations = appsodyutils.MergeMaps(instance.Annotations, appsodyutils.GetOpenShiftAnnotations(instance))
+				instance.Annotations = oputils.MergeMaps(instance.Annotations, autils.GetOpenShiftAnnotations(instance))
 			}
 
-			appsodyutils.CustomizeService(svc, instance)
+			oputils.CustomizeService(svc, instance)
 			svc.Spec.ClusterIP = corev1.ClusterIPNone
 			svc.Spec.Type = corev1.ServiceTypeClusterIP
 			return nil
@@ -606,12 +626,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(statefulSet, instance, func() error {
 			if r.IsOpenShift() {
-				instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+				instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
 			}
 
-			appsodyutils.CustomizeStatefulSet(statefulSet, instance)
-			appsodyutils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
-			appsodyutils.CustomizePersistence(statefulSet, instance)
+			oputils.CustomizeStatefulSet(statefulSet, instance)
+			oputils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
+			oputils.CustomizePersistence(statefulSet, instance)
 			return nil
 		})
 		if err != nil {
@@ -639,10 +659,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(deploy, instance, func() error {
 			if r.IsOpenShift() {
-				instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+				instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
 			}
-			appsodyutils.CustomizeDeployment(deploy, instance)
-			appsodyutils.CustomizePodSpec(&deploy.Spec.Template, instance)
+			oputils.CustomizeDeployment(deploy, instance)
+			oputils.CustomizePodSpec(&deploy.Spec.Template, instance)
 			return nil
 		})
 		if err != nil {
@@ -656,10 +676,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(hpa, instance, func() error {
 			if r.IsOpenShift() {
-				instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+				instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
 			}
 
-			appsodyutils.CustomizeHPA(hpa, instance)
+			oputils.CustomizeHPA(hpa, instance)
 			return nil
 		})
 
@@ -687,9 +707,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 				if err != nil {
 					return err
 				}
-				appsodyutils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
+				oputils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
 				if r.IsOpenShift() {
-					route.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(ba), route.Annotations)
+					route.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(ba), route.Annotations)
 				}
 
 				return nil
@@ -718,10 +738,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(sm, instance, func() error {
 				if r.IsOpenShift() {
-					instance.Annotations = appsodyutils.MergeMaps(appsodyutils.GetOpenShiftAnnotations(instance), instance.Annotations)
+					instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
 				}
 
-				appsodyutils.CustomizeServiceMonitor(sm, instance)
+				oputils.CustomizeServiceMonitor(sm, instance)
 				return nil
 			})
 			if err != nil {

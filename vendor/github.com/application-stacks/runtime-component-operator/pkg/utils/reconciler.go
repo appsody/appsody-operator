@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
-	"github.com/appsody/appsody-operator/pkg/common"
+	appstacksv1beta1 "github.com/application-stacks/runtime-component-operator/pkg/apis/appstacks/v1beta1"
+	"github.com/application-stacks/runtime-component-operator/pkg/common"
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	v1 "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	routev1 "github.com/openshift/api/route/v1"
@@ -18,13 +18,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
+	applicationsv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -142,8 +142,8 @@ func (r *ReconcilerBase) DeleteResources(resources []runtime.Object) error {
 	return nil
 }
 
-// GetAppsodyOpConfigMap ...
-func (r *ReconcilerBase) GetAppsodyOpConfigMap(name string, ns string) (*corev1.ConfigMap, error) {
+// GetOpConfigMap ...
+func (r *ReconcilerBase) GetOpConfigMap(name string, ns string) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
 	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
 	if err != nil {
@@ -153,7 +153,7 @@ func (r *ReconcilerBase) GetAppsodyOpConfigMap(name string, ns string) (*corev1.
 }
 
 // ManageError ...
-func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusConditionType, ba common.BaseComponent) (reconcile.Result, error) {
 	s := ba.GetStatus()
 	rObj := ba.(runtime.Object)
 	mObj := ba.(metav1.Object)
@@ -163,7 +163,7 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 
 	oldCondition := s.GetCondition(conditionType)
 	if oldCondition == nil {
-		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
+		oldCondition = &appstacksv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	lastUpdate := oldCondition.GetLastUpdateTime().Time
@@ -219,11 +219,11 @@ func (r *ReconcilerBase) ManageError(issue error, conditionType common.StatusCon
 }
 
 // ManageSuccess ...
-func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType, ba common.BaseApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ManageSuccess(conditionType common.StatusConditionType, ba common.BaseComponent) (reconcile.Result, error) {
 	s := ba.GetStatus()
 	oldCondition := s.GetCondition(conditionType)
 	if oldCondition == nil {
-		oldCondition = &appsodyv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
+		oldCondition = &appstacksv1beta1.StatusCondition{LastUpdateTime: metav1.Time{}}
 	}
 
 	// Keep the old `LastTransitionTime` when status has not changed
@@ -314,7 +314,7 @@ func (r *ReconcilerBase) AsOwner(rObj runtime.Object, controller bool) (metav1.O
 }
 
 // GetServiceBindingCreds returns a map containing username/password string values based on 'cr.spec.service.provides.auth'
-func (r *ReconcilerBase) GetServiceBindingCreds(ba common.BaseApplication) (map[string]string, error) {
+func (r *ReconcilerBase) GetServiceBindingCreds(ba common.BaseComponent) (map[string]string, error) {
 	if ba.GetService() == nil || ba.GetService().GetProvides() == nil || ba.GetService().GetProvides().GetAuth() == nil {
 		return nil, errors.Errorf("auth is not set on the object %s", ba)
 	}
@@ -354,7 +354,7 @@ func getCredFromSecret(namespace string, sel corev1.SecretKeySelector, cred stri
 }
 
 // ReconcileProvides ...
-func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconcile.Result, err error) {
+func (r *ReconcilerBase) ReconcileProvides(ba common.BaseComponent) (_ reconcile.Result, err error) {
 	mObj := ba.(metav1.Object)
 	logger := log.WithValues("ba.Namespace", mObj.GetNamespace(), "ba.Name", mObj.GetName())
 
@@ -420,14 +420,20 @@ func (r *ReconcilerBase) ReconcileProvides(ba common.BaseApplication) (_ reconci
 }
 
 // ReconcileConsumes ...
-func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseComponent) (reconcile.Result, error) {
 	rObj := ba.(runtime.Object)
 	mObj := ba.(metav1.Object)
 	for _, con := range ba.GetService().GetConsumes() {
 		if con.GetCategory() == common.ServiceBindingCategoryOpenAPI {
-			secretName := BuildServiceBindingSecretName(con.GetName(), con.GetNamespace())
+			namespace := ""
+			if con.GetNamespace() == "" {
+				namespace = mObj.GetNamespace()
+			} else {
+				namespace = con.GetNamespace()
+			}
+			secretName := BuildServiceBindingSecretName(con.GetName(), namespace)
 			existingSecret := &corev1.Secret{}
-			err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: con.GetNamespace()}, existingSecret)
+			err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: namespace}, existingSecret)
 			if err != nil {
 				if kerrors.IsNotFound(err) {
 					delErr := r.DeleteResource(&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: mObj.GetNamespace()}})
@@ -511,7 +517,7 @@ func (r *ReconcilerBase) ReconcileConsumes(ba common.BaseApplication) (reconcile
 }
 
 // ReconcileCertificate used to manage cert-manager integration
-func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconcile.Result, error) {
+func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseComponent) (reconcile.Result, error) {
 	owner := ba.(metav1.Object)
 	if ok, err := r.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String()); err != nil {
 		r.ManageError(err, common.StatusConditionTypeReconciled, ba)
@@ -530,7 +536,9 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 					crt.Spec.RenewBefore = &metav1.Duration{Duration: time.Hour * 24 * 31}
 				}
 				crt.Spec.CommonName = obj.GetName() + "." + obj.GetNamespace() + "." + "svc"
-				crt.Spec.SecretName = obj.GetName() + "-svc-tls"
+				if crt.Spec.SecretName == "" {
+					crt.Spec.SecretName = obj.GetName() + "-svc-tls"
+				}
 				if len(crt.Spec.DNSNames) == 0 {
 					crt.Spec.DNSNames = append(crt.Spec.DNSNames, crt.Spec.CommonName)
 				}
@@ -580,7 +588,9 @@ func (r *ReconcilerBase) ReconcileCertificate(ba common.BaseApplication) (reconc
 				if crt.Spec.RenewBefore == nil {
 					crt.Spec.RenewBefore = &metav1.Duration{Duration: time.Hour * 24 * 31}
 				}
-				crt.Spec.SecretName = obj.GetName() + "-route-tls"
+				if crt.Spec.SecretName == "" {
+					crt.Spec.SecretName = obj.GetName() + "-route-tls"
+				}
 				// use routes host if no DNS information provided on certificate
 				if crt.Spec.CommonName == "" {
 					crt.Spec.CommonName = ba.GetRoute().GetHost()
@@ -634,13 +644,29 @@ func (r *ReconcilerBase) IsOpenShift() bool {
 	return isOpenShift
 }
 
+// IsApplicationSupported checks if Application
+func (r *ReconcilerBase) IsApplicationSupported() bool {
+	isApplicationSupported, err := r.IsGroupVersionSupported(applicationsv1beta1.SchemeGroupVersion.String())
+	if err != nil {
+		return false
+	}
+	return isApplicationSupported
+}
+
 // GetRouteTLSValues returns certificate an key values to be used in the route
-func (r *ReconcilerBase) GetRouteTLSValues(ba common.BaseApplication) (key string, cert string, ca string, destCa string, err error) {
+func (r *ReconcilerBase) GetRouteTLSValues(ba common.BaseComponent) (key string, cert string, ca string, destCa string, err error) {
 	key, cert, ca, destCa = "", "", "", ""
 	mObj := ba.(metav1.Object)
-	if ba.GetService() != nil && ba.GetService().GetCertificate() != nil {
+	if ba.GetService() != nil && (ba.GetService().GetCertificate() != nil || ba.GetService().GetCertificateSecretRef() != nil) {
 		tlsSecret := &corev1.Secret{}
-		err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: mObj.GetName() + "-svc-tls", Namespace: mObj.GetNamespace()}, tlsSecret)
+		secretName := mObj.GetName() + "-svc-tls"
+		if ba.GetService().GetCertificate() != nil && ba.GetService().GetCertificate().GetSpec().SecretName != "" {
+			secretName = ba.GetService().GetCertificate().GetSpec().SecretName
+		}
+		if ba.GetService().GetCertificateSecretRef() != nil {
+			secretName = *ba.GetService().GetCertificateSecretRef()
+		}
+		err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: mObj.GetNamespace()}, tlsSecret)
 		if err != nil {
 			r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			return "", "", "", "", err
@@ -650,9 +676,16 @@ func (r *ReconcilerBase) GetRouteTLSValues(ba common.BaseApplication) (key strin
 			destCa = string(caCrt)
 		}
 	}
-	if ba.GetRoute() != nil && ba.GetRoute().GetCertificate() != nil {
+	if ba.GetRoute() != nil && (ba.GetRoute().GetCertificate() != nil || ba.GetRoute().GetCertificateSecretRef() != nil) {
 		tlsSecret := &corev1.Secret{}
-		err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: mObj.GetName() + "-route-tls", Namespace: mObj.GetNamespace()}, tlsSecret)
+		secretName := mObj.GetName() + "-route-tls"
+		if ba.GetRoute().GetCertificate() != nil && ba.GetRoute().GetCertificate().GetSpec().SecretName != "" {
+			secretName = ba.GetRoute().GetCertificate().GetSpec().SecretName
+		}
+		if ba.GetRoute().GetCertificateSecretRef() != nil {
+			secretName = *ba.GetRoute().GetCertificateSecretRef()
+		}
+		err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: secretName, Namespace: mObj.GetNamespace()}, tlsSecret)
 		if err != nil {
 			r.ManageError(err, common.StatusConditionTypeReconciled, ba)
 			return "", "", "", "", err
@@ -669,6 +702,48 @@ func (r *ReconcilerBase) GetRouteTLSValues(ba common.BaseApplication) (key strin
 		if ok {
 			key = string(v)
 		}
+		v, ok = tlsSecret.Data["destCA.crt"]
+		if ok {
+			destCa = string(v)
+		}
 	}
 	return key, cert, ca, destCa, nil
+}
+
+// GetSelectorLabelsFromApplications finds application CRs with the specified name in the BaseComponent's namespace and returns labels in `selector.matchLabels`.
+// If it fails to find in the current namespace, it looks up in the whole cluster and aggregates all labels in `selector.matchLabels`.
+func (r *ReconcilerBase) GetSelectorLabelsFromApplications(ba common.BaseComponent) (map[string]string, error) {
+	mObj := ba.(metav1.Object)
+	allSelectorLabels := map[string]string{}
+	app := &applicationsv1beta1.Application{}
+	key := types.NamespacedName{Name: ba.GetApplicationName(), Namespace: mObj.GetNamespace()}
+	var err error
+	if err = r.GetClient().Get(context.Background(), key, app); err == nil {
+		if app.Spec.Selector != nil {
+			for name, value := range app.Spec.Selector.MatchLabels {
+				allSelectorLabels[name] = value
+			}
+		}
+	} else if err != nil && kerrors.IsNotFound(err) {
+		apps := &applicationsv1beta1.ApplicationList{}
+		if err = r.GetClient().List(context.Background(), apps, client.InNamespace("")); err == nil {
+			for _, app := range apps.Items {
+				if app.Name == ba.GetApplicationName() && app.Annotations != nil {
+					namespaces := strings.Split(app.Annotations["kappnav.component.namespaces"], ",")
+					for i := range namespaces {
+						namespaces[i] = strings.TrimSpace(namespaces[i])
+					}
+					if ContainsString(namespaces, mObj.GetNamespace()) && app.Spec.Selector != nil {
+						for name, value := range app.Spec.Selector.MatchLabels {
+							allSelectorLabels[name] = value
+						}
+					}
+				}
+			}
+		}
+	}
+	if err != nil && !kerrors.IsNotFound(err) {
+		return nil, err
+	}
+	return allSelectorLabels, nil
 }

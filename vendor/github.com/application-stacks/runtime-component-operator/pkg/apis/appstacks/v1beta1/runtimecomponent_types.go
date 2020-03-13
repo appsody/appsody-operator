@@ -12,15 +12,15 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// AppsodyApplicationSpec defines the desired state of AppsodyApplication
+// RuntimeComponentSpec defines the desired state of RuntimeComponent
 // +k8s:openapi-gen=true
-type AppsodyApplicationSpec struct {
-	Version          string                         `json:"version,omitempty"`
-	ApplicationImage string                         `json:"applicationImage"`
-	Replicas         *int32                         `json:"replicas,omitempty"`
-	Autoscaling      *AppsodyApplicationAutoScaling `json:"autoscaling,omitempty"`
-	PullPolicy       *corev1.PullPolicy             `json:"pullPolicy,omitempty"`
-	PullSecret       *string                        `json:"pullSecret,omitempty"`
+type RuntimeComponentSpec struct {
+	Version          string                       `json:"version,omitempty"`
+	ApplicationImage string                       `json:"applicationImage"`
+	Replicas         *int32                       `json:"replicas,omitempty"`
+	Autoscaling      *RuntimeComponentAutoScaling `json:"autoscaling,omitempty"`
+	PullPolicy       *corev1.PullPolicy           `json:"pullPolicy,omitempty"`
+	PullSecret       *string                      `json:"pullSecret,omitempty"`
 	// +listType=map
 	// +listMapKey=name
 	Volumes []corev1.Volume `json:"volumes,omitempty"`
@@ -29,7 +29,7 @@ type AppsodyApplicationSpec struct {
 	ResourceConstraints *corev1.ResourceRequirements `json:"resourceConstraints,omitempty"`
 	ReadinessProbe      *corev1.Probe                `json:"readinessProbe,omitempty"`
 	LivenessProbe       *corev1.Probe                `json:"livenessProbe,omitempty"`
-	Service             *AppsodyApplicationService   `json:"service,omitempty"`
+	Service             *RuntimeComponentService     `json:"service,omitempty"`
 	Expose              *bool                        `json:"expose,omitempty"`
 	// +listType=atomic
 	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
@@ -38,23 +38,24 @@ type AppsodyApplicationSpec struct {
 	Env                []corev1.EnvVar `json:"env,omitempty"`
 	ServiceAccountName *string         `json:"serviceAccountName,omitempty"`
 	// +listType=set
-	Architecture         []string                      `json:"architecture,omitempty"`
-	Storage              *AppsodyApplicationStorage    `json:"storage,omitempty"`
-	CreateKnativeService *bool                         `json:"createKnativeService,omitempty"`
-	Stack                string                        `json:"stack,omitempty"`
-	Monitoring           *AppsodyApplicationMonitoring `json:"monitoring,omitempty"`
-	CreateAppDefinition  *bool                         `json:"createAppDefinition,omitempty"`
-	ApplicationName      string                        `json:"applicationName,omitempty"`
+	Architecture         []string                    `json:"architecture,omitempty"`
+	Storage              *RuntimeComponentStorage    `json:"storage,omitempty"`
+	CreateKnativeService *bool                       `json:"createKnativeService,omitempty"`
+	Monitoring           *RuntimeComponentMonitoring `json:"monitoring,omitempty"`
+	CreateAppDefinition  *bool                       `json:"createAppDefinition,omitempty"`
+	ApplicationName      string                      `json:"applicationName,omitempty"`
 	// +listType=map
 	// +listMapKey=name
-	InitContainers    []corev1.Container `json:"initContainers,omitempty"`
-	SidecarContainers []corev1.Container `json:"sidecarContainers,omitempty"`
-	Route             *AppsodyRoute      `json:"route,omitempty"`
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	SidecarContainers []corev1.Container     `json:"sidecarContainers,omitempty"`
+	Route             *RuntimeComponentRoute `json:"route,omitempty"`
 }
 
-// AppsodyApplicationAutoScaling ...
+// RuntimeComponentAutoScaling ...
 // +k8s:openapi-gen=true
-type AppsodyApplicationAutoScaling struct {
+type RuntimeComponentAutoScaling struct {
 	TargetCPUUtilizationPercentage *int32 `json:"targetCPUUtilizationPercentage,omitempty"`
 	MinReplicas                    *int32 `json:"minReplicas,omitempty"`
 
@@ -62,16 +63,16 @@ type AppsodyApplicationAutoScaling struct {
 	MaxReplicas int32 `json:"maxReplicas,omitempty"`
 }
 
-// AppsodyApplicationService ...
+// RuntimeComponentService ...
 // +k8s:openapi-gen=true
-type AppsodyApplicationService struct {
+type RuntimeComponentService struct {
 	Type *corev1.ServiceType `json:"type,omitempty"`
 
 	// +kubebuilder:validation:Maximum=65536
 	// +kubebuilder:validation:Minimum=1
-	Port       int32  `json:"port,omitempty"`
-	PortName   string `json:"portName,omitempty"`
-	TargetPort *int32 `json:"targetPort,omitempty"`
+	Port int32 `json:"port,omitempty"`
+
+	PortName string `json:"portName,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +listType=atomic
@@ -100,24 +101,24 @@ type ServiceBindingConsumes struct {
 	MountPath string                        `json:"mountPath,omitempty"`
 }
 
-// AppsodyApplicationStorage ...
+// RuntimeComponentStorage ...
 // +k8s:openapi-gen=false
-type AppsodyApplicationStorage struct {
+type RuntimeComponentStorage struct {
 	// +kubebuilder:validation:Pattern=^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$
 	Size                string                        `json:"size,omitempty"`
 	MountPath           string                        `json:"mountPath,omitempty"`
 	VolumeClaimTemplate *corev1.PersistentVolumeClaim `json:"volumeClaimTemplate,omitempty"`
 }
 
-// AppsodyApplicationMonitoring ...
-type AppsodyApplicationMonitoring struct {
+// RuntimeComponentMonitoring ...
+type RuntimeComponentMonitoring struct {
 	Labels    map[string]string       `json:"labels,omitempty"`
 	Endpoints []prometheusv1.Endpoint `json:"endpoints,omitempty"`
 }
 
-// AppsodyRoute ...
+// RuntimeComponentRoute ...
 // +k8s:openapi-gen=true
-type AppsodyRoute struct {
+type RuntimeComponentRoute struct {
 	Annotations                   map[string]string                          `json:"annotations,omitempty"`
 	Termination                   *routev1.TLSTerminationType                `json:"termination,omitempty"`
 	InsecureEdgeTerminationPolicy *routev1.InsecureEdgeTerminationPolicyType `json:"insecureEdgeTerminationPolicy,omitempty"`
@@ -135,9 +136,9 @@ type ServiceBindingAuth struct {
 	Password corev1.SecretKeySelector `json:"password,omitempty"`
 }
 
-// AppsodyApplicationStatus defines the observed state of AppsodyApplication
+// RuntimeComponentStatus defines the observed state of RuntimeComponent
 // +k8s:openapi-gen=true
-type AppsodyApplicationStatus struct {
+type RuntimeComponentStatus struct {
 	// +listType=atomic
 	Conditions       []StatusCondition       `json:"conditions,omitempty"`
 	ConsumedServices common.ConsumedServices `json:"consumedServices,omitempty"`
@@ -168,9 +169,9 @@ const (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AppsodyApplication is the Schema for the appsodyapplications API
+// RuntimeComponent is the Schema for the runtimecomponents API
 // +k8s:openapi-gen=true
-// +kubebuilder:resource:path=appsodyapplications,scope=Namespaced,shortName=app;apps
+// +kubebuilder:resource:path=runtimecomponents,scope=Namespaced,shortName=comp;comps
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Image",type="string",JSONPath=".spec.applicationImage",priority=0,description="Absolute name of the deployed image containing registry and tag"
 // +kubebuilder:printcolumn:name="Exposed",type="boolean",JSONPath=".spec.expose",priority=0,description="Specifies whether deployment is exposed externally via default Route"
@@ -179,104 +180,104 @@ const (
 // +kubebuilder:printcolumn:name="Message",type="string",JSONPath=".status.conditions[?(@.type=='Reconciled')].message",priority=1,description="Failure message from reconcile condition"
 // +kubebuilder:printcolumn:name="DependenciesSatisfied",type="string",JSONPath=".status.conditions[?(@.type=='DependenciesSatisfied')].status",priority=1,description="Status of the application dependencies"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority=0,description="Age of the resource"
-type AppsodyApplication struct {
+type RuntimeComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AppsodyApplicationSpec   `json:"spec,omitempty"`
-	Status AppsodyApplicationStatus `json:"status,omitempty"`
+	Spec   RuntimeComponentSpec   `json:"spec,omitempty"`
+	Status RuntimeComponentStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AppsodyApplicationList contains a list of AppsodyApplication
-type AppsodyApplicationList struct {
+// RuntimeComponentList contains a list of RuntimeComponent
+type RuntimeComponentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AppsodyApplication `json:"items"`
+	Items           []RuntimeComponent `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&AppsodyApplication{}, &AppsodyApplicationList{})
+	SchemeBuilder.Register(&RuntimeComponent{}, &RuntimeComponentList{})
 }
 
 // GetApplicationImage returns application image
-func (cr *AppsodyApplication) GetApplicationImage() string {
+func (cr *RuntimeComponent) GetApplicationImage() string {
 	return cr.Spec.ApplicationImage
 }
 
 // GetPullPolicy returns image pull policy
-func (cr *AppsodyApplication) GetPullPolicy() *corev1.PullPolicy {
+func (cr *RuntimeComponent) GetPullPolicy() *corev1.PullPolicy {
 	return cr.Spec.PullPolicy
 }
 
 // GetPullSecret returns secret name for docker registry credentials
-func (cr *AppsodyApplication) GetPullSecret() *string {
+func (cr *RuntimeComponent) GetPullSecret() *string {
 	return cr.Spec.PullSecret
 }
 
 // GetServiceAccountName returns service account name
-func (cr *AppsodyApplication) GetServiceAccountName() *string {
+func (cr *RuntimeComponent) GetServiceAccountName() *string {
 	return cr.Spec.ServiceAccountName
 }
 
 // GetReplicas returns number of replicas
-func (cr *AppsodyApplication) GetReplicas() *int32 {
+func (cr *RuntimeComponent) GetReplicas() *int32 {
 	return cr.Spec.Replicas
 }
 
 // GetLivenessProbe returns liveness probe
-func (cr *AppsodyApplication) GetLivenessProbe() *corev1.Probe {
+func (cr *RuntimeComponent) GetLivenessProbe() *corev1.Probe {
 	return cr.Spec.LivenessProbe
 }
 
 // GetReadinessProbe returns readiness probe
-func (cr *AppsodyApplication) GetReadinessProbe() *corev1.Probe {
+func (cr *RuntimeComponent) GetReadinessProbe() *corev1.Probe {
 	return cr.Spec.ReadinessProbe
 }
 
 // GetVolumes returns volumes slice
-func (cr *AppsodyApplication) GetVolumes() []corev1.Volume {
+func (cr *RuntimeComponent) GetVolumes() []corev1.Volume {
 	return cr.Spec.Volumes
 }
 
 // GetVolumeMounts returns volume mounts slice
-func (cr *AppsodyApplication) GetVolumeMounts() []corev1.VolumeMount {
+func (cr *RuntimeComponent) GetVolumeMounts() []corev1.VolumeMount {
 	return cr.Spec.VolumeMounts
 }
 
 // GetResourceConstraints returns resource constraints
-func (cr *AppsodyApplication) GetResourceConstraints() *corev1.ResourceRequirements {
+func (cr *RuntimeComponent) GetResourceConstraints() *corev1.ResourceRequirements {
 	return cr.Spec.ResourceConstraints
 }
 
 // GetExpose returns expose flag
-func (cr *AppsodyApplication) GetExpose() *bool {
+func (cr *RuntimeComponent) GetExpose() *bool {
 	return cr.Spec.Expose
 }
 
 // GetEnv returns slice of environment variables
-func (cr *AppsodyApplication) GetEnv() []corev1.EnvVar {
+func (cr *RuntimeComponent) GetEnv() []corev1.EnvVar {
 	return cr.Spec.Env
 }
 
 // GetEnvFrom returns slice of environment variables from source
-func (cr *AppsodyApplication) GetEnvFrom() []corev1.EnvFromSource {
+func (cr *RuntimeComponent) GetEnvFrom() []corev1.EnvFromSource {
 	return cr.Spec.EnvFrom
 }
 
 // GetCreateKnativeService returns flag that toggles Knative service
-func (cr *AppsodyApplication) GetCreateKnativeService() *bool {
+func (cr *RuntimeComponent) GetCreateKnativeService() *bool {
 	return cr.Spec.CreateKnativeService
 }
 
 // GetArchitecture returns slice of architectures
-func (cr *AppsodyApplication) GetArchitecture() []string {
+func (cr *RuntimeComponent) GetArchitecture() []string {
 	return cr.Spec.Architecture
 }
 
 // GetAutoscaling returns autoscaling settings
-func (cr *AppsodyApplication) GetAutoscaling() common.BaseComponentAutoscaling {
+func (cr *RuntimeComponent) GetAutoscaling() common.BaseComponentAutoscaling {
 	if cr.Spec.Autoscaling == nil {
 		return nil
 	}
@@ -284,7 +285,7 @@ func (cr *AppsodyApplication) GetAutoscaling() common.BaseComponentAutoscaling {
 }
 
 // GetStorage returns storage settings
-func (cr *AppsodyApplication) GetStorage() common.BaseComponentStorage {
+func (cr *RuntimeComponent) GetStorage() common.BaseComponentStorage {
 	if cr.Spec.Storage == nil {
 		return nil
 	}
@@ -292,7 +293,7 @@ func (cr *AppsodyApplication) GetStorage() common.BaseComponentStorage {
 }
 
 // GetService returns service settings
-func (cr *AppsodyApplication) GetService() common.BaseComponentService {
+func (cr *RuntimeComponent) GetService() common.BaseComponentService {
 	if cr.Spec.Service == nil {
 		return nil
 	}
@@ -300,50 +301,50 @@ func (cr *AppsodyApplication) GetService() common.BaseComponentService {
 }
 
 // GetVersion returns application version
-func (cr *AppsodyApplication) GetVersion() string {
+func (cr *RuntimeComponent) GetVersion() string {
 	return cr.Spec.Version
 }
 
 // GetCreateAppDefinition returns a toggle for integration with kAppNav
-func (cr *AppsodyApplication) GetCreateAppDefinition() *bool {
+func (cr *RuntimeComponent) GetCreateAppDefinition() *bool {
 	return cr.Spec.CreateAppDefinition
 }
 
 // GetApplicationName returns Application name to be used for integration with kAppNav
-func (cr *AppsodyApplication) GetApplicationName() string {
+func (cr *RuntimeComponent) GetApplicationName() string {
 	return cr.Spec.ApplicationName
 }
 
 // GetMonitoring returns monitoring settings
-func (cr *AppsodyApplication) GetMonitoring() common.BaseComponentMonitoring {
+func (cr *RuntimeComponent) GetMonitoring() common.BaseComponentMonitoring {
 	if cr.Spec.Monitoring == nil {
 		return nil
 	}
 	return cr.Spec.Monitoring
 }
 
-// GetStatus returns AppsodyApplication status
-func (cr *AppsodyApplication) GetStatus() common.BaseComponentStatus {
+// GetStatus returns RuntimeComponent status
+func (cr *RuntimeComponent) GetStatus() common.BaseComponentStatus {
 	return &cr.Status
 }
 
 // GetInitContainers returns list of init containers
-func (cr *AppsodyApplication) GetInitContainers() []corev1.Container {
+func (cr *RuntimeComponent) GetInitContainers() []corev1.Container {
 	return cr.Spec.InitContainers
 }
 
-// GetSidecarContainers returns the list of user specified containers
-func (cr *AppsodyApplication) GetSidecarContainers() []corev1.Container {
+// GetSidecarContainers returns list of user specified containers
+func (cr *RuntimeComponent) GetSidecarContainers() []corev1.Container {
 	return cr.Spec.SidecarContainers
 }
 
 // GetGroupName returns group name to be used in labels and annotation
-func (cr *AppsodyApplication) GetGroupName() string {
-	return "appsody.dev"
+func (cr *RuntimeComponent) GetGroupName() string {
+	return "app.stacks"
 }
 
-// GetRoute returns appsody route configuration
-func (cr *AppsodyApplication) GetRoute() common.BaseComponentRoute {
+// GetRoute returns route configuration for RuntimeComponent
+func (cr *RuntimeComponent) GetRoute() common.BaseComponentRoute {
 	if cr.Spec.Route == nil {
 		return nil
 	}
@@ -351,7 +352,7 @@ func (cr *AppsodyApplication) GetRoute() common.BaseComponentRoute {
 }
 
 // GetConsumedServices returns a map of all the service names to be consumed by the application
-func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices {
+func (s *RuntimeComponentStatus) GetConsumedServices() common.ConsumedServices {
 	if s.ConsumedServices == nil {
 		return nil
 	}
@@ -359,80 +360,72 @@ func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices
 }
 
 // SetConsumedServices sets ConsumedServices
-func (s *AppsodyApplicationStatus) SetConsumedServices(c common.ConsumedServices) {
+func (s *RuntimeComponentStatus) SetConsumedServices(c common.ConsumedServices) {
 	s.ConsumedServices = c
 }
 
 // GetImageReference returns Docker image reference to be deployed by the CR
-func (s *AppsodyApplicationStatus) GetImageReference() string {
+func (s *RuntimeComponentStatus) GetImageReference() string {
 	return s.ImageReference
 }
 
 // SetImageReference sets Docker image reference on the status portion of the CR
-func (s *AppsodyApplicationStatus) SetImageReference(imageReference string) {
+func (s *RuntimeComponentStatus) SetImageReference(imageReference string) {
 	s.ImageReference = imageReference
 }
 
 // GetMinReplicas returns minimum replicas
-func (a *AppsodyApplicationAutoScaling) GetMinReplicas() *int32 {
+func (a *RuntimeComponentAutoScaling) GetMinReplicas() *int32 {
 	return a.MinReplicas
 }
 
 // GetMaxReplicas returns maximum replicas
-func (a *AppsodyApplicationAutoScaling) GetMaxReplicas() int32 {
+func (a *RuntimeComponentAutoScaling) GetMaxReplicas() int32 {
 	return a.MaxReplicas
 }
 
 // GetTargetCPUUtilizationPercentage returns target cpu usage
-func (a *AppsodyApplicationAutoScaling) GetTargetCPUUtilizationPercentage() *int32 {
+func (a *RuntimeComponentAutoScaling) GetTargetCPUUtilizationPercentage() *int32 {
 	return a.TargetCPUUtilizationPercentage
 }
 
 // GetSize returns persistent volume size
-func (s *AppsodyApplicationStorage) GetSize() string {
+func (s *RuntimeComponentStorage) GetSize() string {
 	return s.Size
 }
 
 // GetMountPath returns mount path for persistent volume
-func (s *AppsodyApplicationStorage) GetMountPath() string {
+func (s *RuntimeComponentStorage) GetMountPath() string {
 	return s.MountPath
 }
 
 // GetVolumeClaimTemplate returns a template representing requested persitent volume
-func (s *AppsodyApplicationStorage) GetVolumeClaimTemplate() *corev1.PersistentVolumeClaim {
+func (s *RuntimeComponentStorage) GetVolumeClaimTemplate() *corev1.PersistentVolumeClaim {
 	return s.VolumeClaimTemplate
 }
 
 // GetAnnotations returns a set of annotations to be added to the service
-func (s *AppsodyApplicationService) GetAnnotations() map[string]string {
+func (s *RuntimeComponentService) GetAnnotations() map[string]string {
 	return s.Annotations
 }
 
 // GetPort returns service port
-func (s *AppsodyApplicationService) GetPort() int32 {
+func (s *RuntimeComponentService) GetPort() int32 {
 	return s.Port
 }
 
-// GetPortName return the name of the service port
-func (s *AppsodyApplicationService) GetPortName() string {
+// GetPortName returns name of service port
+func (s *RuntimeComponentService) GetPortName() string {
 	return s.PortName
 }
 
-// GetTargetPort returns the internal container port to be targetted
-func (s *AppsodyApplicationService) GetTargetPort() *int32 {
-	if s.TargetPort == nil {
-		return nil
-	}
-	return s.TargetPort
-}
-
 // GetType returns service type
-func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
+func (s *RuntimeComponentService) GetType() *corev1.ServiceType {
 	return s.Type
 }
 
 // GetProvides returns service provider configuration
-func (s *AppsodyApplicationService) GetProvides() common.ServiceBindingProvides {
+func (s *RuntimeComponentService) GetProvides() common.ServiceBindingProvides {
 	if s.Provides == nil {
 		return nil
 	}
@@ -440,19 +433,15 @@ func (s *AppsodyApplicationService) GetProvides() common.ServiceBindingProvides 
 }
 
 // GetCertificate returns services certificate configuration
-func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
+func (s *RuntimeComponentService) GetCertificate() common.Certificate {
 	if s.Certificate == nil {
 		return nil
 	}
 	return s.Certificate
 }
 
-// GetCertificateSecretRef ...
-func (s *AppsodyApplicationService) GetCertificateSecretRef() *string {
-	if s.CertificateSecretRef == nil {
-		return nil
-	}
-
+// GetCertificateSecretRef returns a secret reference with a certificate
+func (s *RuntimeComponentService) GetCertificateSecretRef() *string {
 	return s.CertificateSecretRef
 }
 
@@ -480,7 +469,7 @@ func (p *ServiceBindingProvides) GetProtocol() string {
 }
 
 // GetConsumes returns a list of service consumers' configuration
-func (s *AppsodyApplicationService) GetConsumes() []common.ServiceBindingConsumes {
+func (s *RuntimeComponentService) GetConsumes() []common.ServiceBindingConsumes {
 	consumes := make([]common.ServiceBindingConsumes, len(s.Consumes))
 	for i := range s.Consumes {
 		consumes[i] = &s.Consumes[i]
@@ -519,103 +508,65 @@ func (a *ServiceBindingAuth) GetPassword() corev1.SecretKeySelector {
 }
 
 // GetLabels returns labels to be added on ServiceMonitor
-func (m *AppsodyApplicationMonitoring) GetLabels() map[string]string {
+func (m *RuntimeComponentMonitoring) GetLabels() map[string]string {
 	return m.Labels
 }
 
 // GetEndpoints returns endpoints to be added to ServiceMonitor
-func (m *AppsodyApplicationMonitoring) GetEndpoints() []prometheusv1.Endpoint {
+func (m *RuntimeComponentMonitoring) GetEndpoints() []prometheusv1.Endpoint {
 	return m.Endpoints
 }
 
 // GetAnnotations returns route annotations
-func (r *AppsodyRoute) GetAnnotations() map[string]string {
+func (r *RuntimeComponentRoute) GetAnnotations() map[string]string {
 	return r.Annotations
 }
 
 // GetCertificate returns certficate spec for route
-func (r *AppsodyRoute) GetCertificate() common.Certificate {
+func (r *RuntimeComponentRoute) GetCertificate() common.Certificate {
 	if r.Certificate == nil {
 		return nil
 	}
 	return r.Certificate
 }
 
+// GetCertificateSecretRef returns a secret reference with a certificate
+func (r *RuntimeComponentRoute) GetCertificateSecretRef() *string {
+	return r.CertificateSecretRef
+}
+
 // GetTermination returns terminatation of the route's TLS
-func (r *AppsodyRoute) GetTermination() *routev1.TLSTerminationType {
+func (r *RuntimeComponentRoute) GetTermination() *routev1.TLSTerminationType {
 	return r.Termination
 }
 
 // GetInsecureEdgeTerminationPolicy returns terminatation of the route's TLS
-func (r *AppsodyRoute) GetInsecureEdgeTerminationPolicy() *routev1.InsecureEdgeTerminationPolicyType {
+func (r *RuntimeComponentRoute) GetInsecureEdgeTerminationPolicy() *routev1.InsecureEdgeTerminationPolicyType {
 	return r.InsecureEdgeTerminationPolicy
 }
 
 // GetHost returns hostname to be used by the route
-func (r *AppsodyRoute) GetHost() string {
+func (r *RuntimeComponentRoute) GetHost() string {
 	return r.Host
 }
 
 // GetPath returns path to use for the route
-func (r *AppsodyRoute) GetPath() string {
+func (r *RuntimeComponentRoute) GetPath() string {
 	return r.Path
 }
 
-// GetCertificateSecretRef returns the secret ref for route certificate
-func (r *AppsodyRoute) GetCertificateSecretRef() *string {
-	if r.CertificateSecretRef == nil {
-		return nil
-	}
-	return r.CertificateSecretRef
-}
-
-// Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
-func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
+// Initialize the RuntimeComponent instance
+func (cr *RuntimeComponent) Initialize() {
 	if cr.Spec.PullPolicy == nil {
-		cr.Spec.PullPolicy = defaults.PullPolicy
-		if cr.Spec.PullPolicy == nil {
-			pp := corev1.PullIfNotPresent
-			cr.Spec.PullPolicy = &pp
-		}
-	}
-
-	if cr.Spec.PullSecret == nil {
-		cr.Spec.PullSecret = defaults.PullSecret
-	}
-
-	if cr.Spec.ServiceAccountName == nil {
-		cr.Spec.ServiceAccountName = defaults.ServiceAccountName
-	}
-
-	if cr.Spec.ReadinessProbe == nil {
-		cr.Spec.ReadinessProbe = defaults.ReadinessProbe
-	}
-	if cr.Spec.LivenessProbe == nil {
-		cr.Spec.LivenessProbe = defaults.LivenessProbe
-	}
-	if cr.Spec.Env == nil {
-		cr.Spec.Env = defaults.Env
-	}
-	if cr.Spec.EnvFrom == nil {
-		cr.Spec.EnvFrom = defaults.EnvFrom
-	}
-
-	if cr.Spec.Volumes == nil {
-		cr.Spec.Volumes = defaults.Volumes
-	}
-
-	if cr.Spec.VolumeMounts == nil {
-		cr.Spec.VolumeMounts = defaults.VolumeMounts
+		pp := corev1.PullIfNotPresent
+		cr.Spec.PullPolicy = &pp
 	}
 
 	if cr.Spec.ResourceConstraints == nil {
-		if defaults.ResourceConstraints != nil {
-			cr.Spec.ResourceConstraints = defaults.ResourceConstraints
-		} else {
-			cr.Spec.ResourceConstraints = &corev1.ResourceRequirements{}
-		}
+		cr.Spec.ResourceConstraints = &corev1.ResourceRequirements{}
 	}
 
+	// Default applicationName to cr.Name, if a user sets createAppDefinition to true but doesn't set applicationName
 	if cr.Spec.ApplicationName == "" {
 		if cr.Labels != nil && cr.Labels["app.kubernetes.io/part-of"] != "" {
 			cr.Spec.ApplicationName = cr.Labels["app.kubernetes.io/part-of"]
@@ -628,76 +579,22 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 		cr.Labels["app.kubernetes.io/part-of"] = cr.Spec.ApplicationName
 	}
 
-	if cr.Spec.Autoscaling == nil {
-		cr.Spec.Autoscaling = defaults.Autoscaling
-	}
-
-	if cr.Spec.Expose == nil {
-		cr.Spec.Expose = defaults.Expose
-	}
-
-	if cr.Spec.CreateKnativeService == nil {
-		cr.Spec.CreateKnativeService = defaults.CreateKnativeService
-	}
-
+	// This is to handle when there is no service in the CR
 	if cr.Spec.Service == nil {
-		cr.Spec.Service = defaults.Service
-	}
-
-	// This is to handle when there is no service in the CR nor defaults
-	if cr.Spec.Service == nil {
-		cr.Spec.Service = &AppsodyApplicationService{}
+		cr.Spec.Service = &RuntimeComponentService{}
 	}
 
 	if cr.Spec.Service.Type == nil {
 		st := corev1.ServiceTypeClusterIP
 		cr.Spec.Service.Type = &st
 	}
+
 	if cr.Spec.Service.Port == 0 {
-		if defaults.Service != nil && defaults.Service.Port != 0 {
-			cr.Spec.Service.Port = defaults.Service.Port
-		} else {
-			cr.Spec.Service.Port = 8080
-		}
-	}
-	if cr.Spec.Service.TargetPort == nil {
-		if defaults.Service != nil && defaults.Service.TargetPort != nil {
-			cr.Spec.Service.TargetPort = defaults.Service.TargetPort
-		}
-	}
-
-	if cr.Spec.CreateAppDefinition == nil {
-		if defaults.CreateAppDefinition != nil {
-			cr.Spec.CreateAppDefinition = defaults.CreateAppDefinition
-		}
-	}
-
-	if cr.Spec.Monitoring == nil {
-		if defaults.Monitoring != nil {
-			cr.Spec.Monitoring = defaults.Monitoring
-		}
-	}
-
-	if cr.Spec.InitContainers == nil {
-		if defaults.InitContainers != nil {
-			cr.Spec.InitContainers = defaults.InitContainers
-		}
+		cr.Spec.Service.Port = 8080
 	}
 
 	if cr.Spec.Service.Provides != nil && cr.Spec.Service.Provides.Protocol == "" {
 		cr.Spec.Service.Provides.Protocol = "http"
-	}
-
-	for i := range cr.Spec.Service.Consumes {
-		if cr.Spec.Service.Consumes[i].Category == common.ServiceBindingCategoryOpenAPI {
-			if cr.Spec.Service.Consumes[i].Namespace == "" {
-				cr.Spec.Service.Consumes[i].Namespace = cr.Namespace
-			}
-		}
-	}
-
-	if constants != nil {
-		cr.applyConstants(defaults, constants)
 	}
 
 	if cr.Spec.Service.Certificate != nil {
@@ -719,159 +616,16 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 			cr.Spec.Route.Certificate.IssuerRef.Kind = "ClusterIssuer"
 		}
 	}
-
-}
-
-func (cr *AppsodyApplication) applyConstants(defaults AppsodyApplicationSpec, constants *AppsodyApplicationSpec) {
-
-	if constants.Replicas != nil {
-		cr.Spec.Replicas = constants.Replicas
-	}
-
-	if constants.Stack != "" {
-		cr.Spec.Stack = constants.Stack
-	}
-
-	if constants.ApplicationImage != "" {
-		cr.Spec.ApplicationImage = constants.ApplicationImage
-	}
-
-	if constants.PullPolicy != nil {
-		cr.Spec.PullPolicy = constants.PullPolicy
-	}
-
-	if constants.PullSecret != nil {
-		cr.Spec.PullSecret = constants.PullSecret
-	}
-
-	if constants.Expose != nil {
-		cr.Spec.Expose = constants.Expose
-	}
-
-	if constants.CreateKnativeService != nil {
-		cr.Spec.CreateKnativeService = constants.CreateKnativeService
-	}
-
-	if constants.ServiceAccountName != nil {
-		cr.Spec.ServiceAccountName = constants.ServiceAccountName
-	}
-
-	if constants.Architecture != nil {
-		cr.Spec.Architecture = constants.Architecture
-	}
-
-	if constants.ReadinessProbe != nil {
-		cr.Spec.ReadinessProbe = constants.ReadinessProbe
-	}
-
-	if constants.LivenessProbe != nil {
-		cr.Spec.LivenessProbe = constants.LivenessProbe
-	}
-
-	if constants.EnvFrom != nil {
-		for _, v := range constants.EnvFrom {
-
-			found := false
-			for _, v2 := range cr.Spec.EnvFrom {
-				if v2 == v {
-					found = true
-				}
-			}
-			if !found {
-				cr.Spec.EnvFrom = append(cr.Spec.EnvFrom, v)
-			}
-		}
-	}
-
-	if constants.Env != nil {
-		for _, v := range constants.Env {
-			found := false
-			for _, v2 := range cr.Spec.Env {
-				if v2.Name == v.Name {
-					found = true
-				}
-			}
-			if !found {
-				cr.Spec.Env = append(cr.Spec.Env, v)
-			}
-		}
-	}
-
-	if constants.Volumes != nil {
-		for _, v := range constants.Volumes {
-			found := false
-			for _, v2 := range cr.Spec.Volumes {
-				if v2.Name == v.Name {
-					found = true
-				}
-			}
-			if !found {
-				cr.Spec.Volumes = append(cr.Spec.Volumes, v)
-			}
-		}
-	}
-
-	if constants.VolumeMounts != nil {
-		for _, v := range constants.VolumeMounts {
-			found := false
-			for _, v2 := range cr.Spec.VolumeMounts {
-				if v2.Name == v.Name && v2.SubPath == v.SubPath {
-					found = true
-				}
-			}
-			if !found {
-				cr.Spec.VolumeMounts = append(cr.Spec.VolumeMounts, v)
-			}
-		}
-	}
-
-	if constants.ResourceConstraints != nil {
-		cr.Spec.ResourceConstraints = constants.ResourceConstraints
-	}
-
-	if constants.Service != nil {
-		if constants.Service.Type != nil {
-			cr.Spec.Service.Type = constants.Service.Type
-		}
-		if constants.Service.Port != 0 {
-			cr.Spec.Service.Port = constants.Service.Port
-		}
-		if constants.Service.TargetPort != nil {
-			cr.Spec.Service.TargetPort = constants.Service.TargetPort
-		}
-	}
-
-	if constants.Autoscaling != nil {
-		cr.Spec.Autoscaling = constants.Autoscaling
-	}
-
-	if constants.InitContainers != nil {
-		cr.Spec.InitContainers = constants.InitContainers
-	}
-
-	if constants.Monitoring != nil {
-		cr.Spec.Monitoring = constants.Monitoring
-	}
-
-	if constants.CreateAppDefinition != nil {
-		cr.Spec.CreateAppDefinition = constants.CreateAppDefinition
-	}
-
 }
 
 // GetLabels returns set of labels to be added to all resources
-func (cr *AppsodyApplication) GetLabels() map[string]string {
-
+func (cr *RuntimeComponent) GetLabels() map[string]string {
 	labels := map[string]string{
 		"app.kubernetes.io/instance":   cr.Name,
 		"app.kubernetes.io/name":       cr.Name,
-		"app.kubernetes.io/managed-by": "appsody-operator",
-		"app.kubernetes.io/component": "backend",
+		"app.kubernetes.io/managed-by": "runtime-component-operator",
+		"app.kubernetes.io/component":  "backend",
 		"app.kubernetes.io/part-of":    cr.Spec.ApplicationName,
-	}
-
-	if cr.Spec.Stack != "" {
-		labels["stack.appsody.dev/id"] = cr.Spec.Stack
 	}
 
 	if cr.Spec.Version != "" {
@@ -885,14 +639,14 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 	}
 
 	if cr.Spec.Service != nil && cr.Spec.Service.Provides != nil {
-		labels["service.appsody.dev/bindable"] = "true"
+		labels["service.app.stacks/bindable"] = "true"
 	}
 
 	return labels
 }
 
 // GetAnnotations returns set of annotations to be added to all resources
-func (cr *AppsodyApplication) GetAnnotations() map[string]string {
+func (cr *RuntimeComponent) GetAnnotations() map[string]string {
 	return cr.Annotations
 }
 
@@ -957,12 +711,12 @@ func (c *StatusCondition) SetStatus(s corev1.ConditionStatus) {
 }
 
 // NewCondition returns new condition
-func (s *AppsodyApplicationStatus) NewCondition() common.StatusCondition {
+func (s *RuntimeComponentStatus) NewCondition() common.StatusCondition {
 	return &StatusCondition{}
 }
 
 // GetConditions returns slice of conditions
-func (s *AppsodyApplicationStatus) GetConditions() []common.StatusCondition {
+func (s *RuntimeComponentStatus) GetConditions() []common.StatusCondition {
 	var conditions = make([]common.StatusCondition, len(s.Conditions))
 	for i := range s.Conditions {
 		conditions[i] = &s.Conditions[i]
@@ -971,7 +725,7 @@ func (s *AppsodyApplicationStatus) GetConditions() []common.StatusCondition {
 }
 
 // GetCondition ...
-func (s *AppsodyApplicationStatus) GetCondition(t common.StatusConditionType) common.StatusCondition {
+func (s *RuntimeComponentStatus) GetCondition(t common.StatusConditionType) common.StatusCondition {
 	for i := range s.Conditions {
 		if s.Conditions[i].GetType() == t {
 			return &s.Conditions[i]
@@ -981,7 +735,7 @@ func (s *AppsodyApplicationStatus) GetCondition(t common.StatusConditionType) co
 }
 
 // SetCondition ...
-func (s *AppsodyApplicationStatus) SetCondition(c common.StatusCondition) {
+func (s *RuntimeComponentStatus) SetCondition(c common.StatusCondition) {
 	condition := &StatusCondition{}
 	found := false
 	for i := range s.Conditions {

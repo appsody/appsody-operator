@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"testing"
 
+	oputils "github.com/application-stacks/runtime-component-operator/pkg/utils"
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
-	appsodyutils "github.com/appsody/appsody-operator/pkg/utils"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 
@@ -27,6 +27,7 @@ import (
 	"k8s.io/client-go/rest"
 	coretesting "k8s.io/client-go/testing"
 	"k8s.io/client-go/tools/record"
+	applicationsv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
@@ -83,6 +84,10 @@ func TestAppsodyController(t *testing.T) {
 		t.Fatalf("Unable to add image scheme: (%v)", err)
 	}
 
+	if err := applicationsv1beta1.AddToScheme(s); err != nil {
+		t.Fatalf("Unable to add image scheme: (%v)", err)
+	}
+
 	if err := certmngrv1alpha2.AddToScheme(s); err != nil {
 		t.Fatalf("Unable to add cert-manager scheme: (%v)", err)
 	}
@@ -98,7 +103,7 @@ func TestAppsodyController(t *testing.T) {
 	// Create a fake client to mock API calls.
 	cl := fakeclient.NewFakeClient(objs...)
 
-	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
+	rb := oputils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{
 		stack:    {ServiceAccountName: &serviceAccountName, Service: service},
 		genStack: {Service: genService},
@@ -287,9 +292,10 @@ func TestConfigMapDefaults(t *testing.T) {
 
 	objs, s := []runtime.Object{appsody}, scheme.Scheme
 	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
+
 	cl := fakeclient.NewFakeClient(objs...)
 
-	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
+	rb := oputils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
 	constantsMap := map[string]*appsodyv1beta1.AppsodyApplicationSpec{}
 
@@ -332,7 +338,7 @@ func TestConfigMapConstants(t *testing.T) {
 	s.AddKnownTypes(appsodyv1beta1.SchemeGroupVersion, appsody)
 	cl := fakeclient.NewFakeClient(objs...)
 
-	rb := appsodyutils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
+	rb := oputils.NewReconcilerBase(cl, s, &rest.Config{}, record.NewFakeRecorder(10))
 	defaultsMap := map[string]appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
 	constantsMap := map[string]*appsodyv1beta1.AppsodyApplicationSpec{stack: {Service: service}}
 
@@ -414,6 +420,12 @@ func createFakeDiscoveryClient() discovery.DiscoveryInterface {
 			GroupVersion: imagev1.SchemeGroupVersion.String(),
 			APIResources: []metav1.APIResource{
 				{Name: "imagestreams", Namespaced: true, Kind: "ImageStream", SingularName: "imagestream"},
+			},
+		},
+		{
+			GroupVersion: applicationsv1beta1.SchemeGroupVersion.String(),
+			APIResources: []metav1.APIResource{
+				{Name: "applications", Namespaced: true, Kind: "Application", SingularName: "application"},
 			},
 		},
 	}
