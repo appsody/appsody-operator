@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0]
+
 ### Added
 
 - Added optional targetPort field to CRD ([#181](https://github.com/appsody/appsody-operator/issues/181))
@@ -17,6 +19,13 @@ All notable changes to this project will be documented in this file.
 - Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
 - Added support for integration with OpenShift's Certificate Management. ([#214](https://github.com/appsody/appsody-operator/pull/214))
 - Added support for referencing images in image streams. ([#218](https://github.com/appsody/appsody-operator/pull/218))
+- Added support for sidecar containers. ([#237](https://github.com/appsody/appsody-operator/pull/237))
+- Added support for naming service port. ([#237](https://github.com/appsody/appsody-operator/pull/237))
+- Added support to specify application name to group related resources. ([#237](https://github.com/appsody/appsody-operator/pull/237))
+
+### Changed
+
+- Changed label selector of the ServiceMonitor created by operator from `app.appsody.dev/monitor` to `monitor.appsody.dev/enabled`
 
 ## [0.3.0]
 
@@ -70,7 +79,8 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/appsody/appsody-operator/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/appsody/appsody-operator/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/appsody/appsody-operator/compare/0.2.1...v0.2.2
 [0.2.1]: https://github.com/appsody/appsody-operator/compare/v0.2.0...0.2.1

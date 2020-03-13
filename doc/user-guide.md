@@ -2,6 +2,8 @@
 
 The Appsody Operator can be used to deploy applications created by [Appsody Application Stacks](https://appsody.dev/) into [OKD](https://www.okd.io/) or [OpenShift](https://www.openshift.com/) clusters.
 
+This documentation refers to the current master branch.  For documentation and samples of older releases, please check out the [main releases](https://github.com/appsody/appsody-operator/releases) page and navigate the corresponding tag.
+
 ## Operator installation
 
 Use the instructions for one of the [releases](../deploy/releases) to install the operator into a Kubernetes cluster.
