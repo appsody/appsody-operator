@@ -10,8 +10,8 @@ import (
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 
 	oputils "github.com/application-stacks/runtime-component-operator/pkg/utils"
-	autils "github.com/appsody/appsody-operator/pkg/utils"
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
+	autils "github.com/appsody/appsody-operator/pkg/utils"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
@@ -585,10 +585,10 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		svc.Annotations = oputils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
 
 		if instance.Spec.Monitoring != nil {
-			svc.Labels["app."+ba.GetGroupName()+"/monitor"] = "true"
+			svc.Labels["monitor."+ba.GetGroupName()+"/enabled"] = "true"
 		} else {
-			if _, ok := svc.Labels["app."+ba.GetGroupName()+"/monitor"]; ok {
-				delete(svc.Labels, "app."+ba.GetGroupName()+"/monitor")
+			if _, ok := svc.Labels["monitor."+ba.GetGroupName()+"/enabled"]; ok {
+				delete(svc.Labels, "monitor."+ba.GetGroupName()+"/enabled")
 			}
 		}
 		return nil
