@@ -20,6 +20,7 @@ rules:
   - configmaps
   - secrets
   - serviceaccounts
+  - namespaces
   verbs:
   - '*'
 - apiGroups:
@@ -67,6 +68,7 @@ rules:
   - route.openshift.io
   resources:
   - routes
+  - routes/custom-host
   verbs:
   - '*'
 - apiGroups:
@@ -80,7 +82,13 @@ rules:
   resources:
   - certificates
   verbs:
-    - '*'
+  - '*'
+- apiGroups:
+  - app.k8s.io
+  resources:
+  - applications
+  verbs:
+  - '*'
 ---  
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
