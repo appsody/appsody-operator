@@ -688,14 +688,6 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 		cr.Spec.Service.Provides.Protocol = "http"
 	}
 
-	for i := range cr.Spec.Service.Consumes {
-		if cr.Spec.Service.Consumes[i].Category == common.ServiceBindingCategoryOpenAPI {
-			if cr.Spec.Service.Consumes[i].Namespace == "" {
-				cr.Spec.Service.Consumes[i].Namespace = cr.Namespace
-			}
-		}
-	}
-
 	if constants != nil {
 		cr.applyConstants(defaults, constants)
 	}

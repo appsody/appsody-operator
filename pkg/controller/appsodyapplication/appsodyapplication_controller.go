@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	applicationsv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -442,7 +443,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		instance.Labels = oputils.MergeMaps(existingAppLabels, instance.Labels)
 	} else {
-		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported on the cluster", servingv1alpha1.SchemeGroupVersion.String()))
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported on the cluster", applicationsv1beta1.SchemeGroupVersion.String()))
 	}
 
 	currentGen := instance.Generation
