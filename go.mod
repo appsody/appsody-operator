@@ -3,7 +3,7 @@ module github.com/appsody/appsody-operator
 go 1.13
 
 require (
-	github.com/application-stacks/runtime-component-operator v0.4.0
+	github.com/application-stacks/runtime-component-operator v0.0.0-20200309212613-04873619c468
 	github.com/coreos/prometheus-operator v0.34.0
 	github.com/go-openapi/spec v0.19.4
 	github.com/jetstack/cert-manager v0.12.0
