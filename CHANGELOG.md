@@ -21,11 +21,13 @@ All notable changes to this project will be documented in this file.
 - Added support for naming service port. ([#237](https://github.com/appsody/appsody-operator/pull/237))
 - Added must-gather scripts for troubleshooting. ([#209](https://github.com/appsody/appsody-operator/pull/209))
 - Added the shortnames `app` and `apps` to the AppsodyApplication CRD. ([#198](https://github.com/appsody/appsody-operator/issues/198))
+- Added OpenShift specific annotations ([#54](https://github.com/application-stacks/runtime-component-operator/pull/54))
+- Set port name for Knative service if specified ([#55](https://github.com/application-stacks/runtime-component-operator/pull/55))
 
 ### Changed
 
 - Changed the match label of the ServiceMonitor created by operator from `app.appsody.dev/monitor` to `monitor.appsody.dev/enabled`
-- **Breaking change:** When `service.consumes[].namespace` is not specified, injected name of environemnt variable follows `<SERVICE-NAME>_<KEY>` format and binding information are mounted at `<mountPath>/<service_name>`. ([#27](https://github.com/application-stacks/runtime-component-operator/pull/27) and [#46](https://github.com/application-stacks/runtime-component-operator/pull/46))
+- **Breaking change:** When `service.consumes[].namespace` is not specified, injected name of environment variable follows `<SERVICE-NAME>_<KEY>` format and binding information are mounted at `<mountPath>/<service_name>`. ([#27](https://github.com/application-stacks/runtime-component-operator/pull/27) and [#46](https://github.com/application-stacks/runtime-component-operator/pull/46))
 
 ## [0.3.0]
 
