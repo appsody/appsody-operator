@@ -7,7 +7,7 @@ metadata:
     categories: Application Runtime
     certified: 'true'
     containerImage: appsody/application-operator:0.4.0
-    createdAt: 2020-03-13 09:00:00
+    createdAt: 2020-03-20 09:00:00
     description: Deploys Appsody based applications
     repository: https://github.com/appsody/appsody-operator
     support: Appsody
