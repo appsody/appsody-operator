@@ -11,7 +11,6 @@ import (
 
 	oputils "github.com/application-stacks/runtime-component-operator/pkg/utils"
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
-	autils "github.com/appsody/appsody-operator/pkg/utils"
 	prometheusv1 "github.com/coreos/prometheus-operator/pkg/apis/monitoring/v1"
 	certmngrv1alpha2 "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	servingv1alpha1 "github.com/knative/serving/pkg/apis/serving/v1alpha1"
@@ -446,6 +445,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported on the cluster", applicationsv1beta1.SchemeGroupVersion.String()))
 	}
 
+	if r.IsOpenShift() {
+		// The order of items passed to the MergeMaps matters here! Annotations from GetOpenShiftAnnotations have higher importance. Otherwise,
+		// it is not possible to override converted annotations.
+		instance.Annotations = oputils.MergeMaps(instance.Annotations, oputils.GetOpenShiftAnnotations(instance))
+	}
+
 	currentGen := instance.Generation
 	err = r.GetClient().Update(context.TODO(), instance)
 	if err != nil {
@@ -551,10 +556,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(ksvc, instance, func() error {
 				oputils.CustomizeKnativeService(ksvc, instance)
-				if r.IsOpenShift() {
-					ksvc.Annotations = oputils.MergeMaps(ksvc.Annotations, autils.GetOpenShiftAnnotations(instance))
-					ksvc.Spec.Template.ObjectMeta.Annotations = oputils.MergeMaps(oputils.GetConnectToAnnotation(instance), ksvc.Spec.Template.ObjectMeta.Annotations)
-				}
 				return nil
 			})
 
@@ -578,10 +579,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 	svc := &corev1.Service{ObjectMeta: defaultMeta}
 	err = r.CreateOrUpdate(svc, instance, func() error {
-		if r.IsOpenShift() {
-			instance.Annotations = oputils.MergeMaps(instance.Annotations, autils.GetOpenShiftAnnotations(instance))
-		}
-
 		oputils.CustomizeService(svc, ba)
 		svc.Annotations = oputils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
 
@@ -610,10 +607,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		svc := &corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}}
 		err = r.CreateOrUpdate(svc, instance, func() error {
-			if r.IsOpenShift() {
-				instance.Annotations = oputils.MergeMaps(instance.Annotations, autils.GetOpenShiftAnnotations(instance))
-			}
-
 			oputils.CustomizeService(svc, instance)
 			svc.Spec.ClusterIP = corev1.ClusterIPNone
 			svc.Spec.Type = corev1.ServiceTypeClusterIP
@@ -626,10 +619,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 
 		statefulSet := &appsv1.StatefulSet{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(statefulSet, instance, func() error {
-			if r.IsOpenShift() {
-				instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
-			}
-
 			oputils.CustomizeStatefulSet(statefulSet, instance)
 			oputils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			oputils.CustomizePersistence(statefulSet, instance)
@@ -659,9 +648,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 		deploy := &appsv1.Deployment{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(deploy, instance, func() error {
-			if r.IsOpenShift() {
-				instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
-			}
 			oputils.CustomizeDeployment(deploy, instance)
 			oputils.CustomizePodSpec(&deploy.Spec.Template, instance)
 			return nil
@@ -676,10 +662,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	if instance.Spec.Autoscaling != nil {
 		hpa := &autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(hpa, instance, func() error {
-			if r.IsOpenShift() {
-				instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
-			}
-
 			oputils.CustomizeHPA(hpa, instance)
 			return nil
 		})
@@ -709,10 +691,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 					return err
 				}
 				oputils.CustomizeRoute(route, ba, key, cert, caCert, destCACert)
-				if r.IsOpenShift() {
-					route.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(ba), route.Annotations)
-				}
-
 				return nil
 			})
 			if err != nil {
@@ -738,10 +716,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
 			sm := &prometheusv1.ServiceMonitor{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(sm, instance, func() error {
-				if r.IsOpenShift() {
-					instance.Annotations = oputils.MergeMaps(autils.GetOpenShiftAnnotations(instance), instance.Annotations)
-				}
-
 				oputils.CustomizeServiceMonitor(sm, instance)
 				return nil
 			})
