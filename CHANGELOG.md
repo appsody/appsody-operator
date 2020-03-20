@@ -25,6 +25,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 
 - Changed the match label of the ServiceMonitor created by operator from `app.appsody.dev/monitor` to `monitor.appsody.dev/enabled`
+- **Breaking change:** When `service.consumes[].namespace` is not specified, injected name of environemnt variable follows `<SERVICE-NAME>_<KEY>` format and binding information are mounted at `<mountPath>/<service_name>`. ([#27](https://github.com/application-stacks/runtime-component-operator/pull/27) and [#46](https://github.com/application-stacks/runtime-component-operator/pull/46))
 
 ## [0.3.0]
 
@@ -62,7 +63,7 @@ All notable changes to this project will be documented in this file.
 - Support for watching multiple namespaces by setting `WATCH_NAMESPACE` to a comma-separated list of namespaces. ([#114](https://github.com/appsody/appsody-operator/issues/114))
 - Allow users to add new labels or override default labels for resources created by the operator via setting labels on `AppsodyApplication` CRs. ([#118](https://github.com/appsody/appsody-operator/issues/118))
 - Support for automatically creating and configuring `ServiceMonitor` resource for integration with Prometheus Operator. ([#125](https://github.com/appsody/appsody-operator/issues/125))
-- Automatically configure the `AppsodyApplication`'s Kubernetes resources to allow automatic creation of an application definition by [kAppNav](https://kappnav.io/), Kubernetes Application Navigator. ([#128](https://github.com/appsody/appsody-operator/issues/128),[#135](https://github.com/appsody/appsody-operator/issues/135))
+- Automatically configure the `AppsodyApplication`'s Kubernetes resources to allow automatic creation of an application definition by [kAppNav](https://kappnav.io/), Kubernetes Application Navigator. ([#128](https://github.com/appsody/appsody-operator/issues/128) and [#135](https://github.com/appsody/appsody-operator/issues/135))
 
 ### Changed
 
