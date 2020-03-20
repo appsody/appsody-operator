@@ -67,11 +67,14 @@ type AppsodyApplicationAutoScaling struct {
 type AppsodyApplicationService struct {
 	Type *corev1.ServiceType `json:"type,omitempty"`
 
-	// +kubebuilder:validation:Maximum=65536
+	// +kubebuilder:validation:Maximum=65535
 	// +kubebuilder:validation:Minimum=1
-	Port       int32  `json:"port,omitempty"`
-	PortName   string `json:"portName,omitempty"`
+	Port int32 `json:"port,omitempty"`
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:validation:Minimum=1
 	TargetPort *int32 `json:"targetPort,omitempty"`
+
+	PortName string `json:"portName,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +listType=atomic
@@ -858,7 +861,7 @@ func (cr *AppsodyApplication) GetLabels() map[string]string {
 		"app.kubernetes.io/instance":   cr.Name,
 		"app.kubernetes.io/name":       cr.Name,
 		"app.kubernetes.io/managed-by": "appsody-operator",
-		"app.kubernetes.io/component": "backend",
+		"app.kubernetes.io/component":  "backend",
 		"app.kubernetes.io/part-of":    cr.Spec.ApplicationName,
 	}
 
