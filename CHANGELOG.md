@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1]
+
+### Fixed
+
+- Auto-scaling (HPA) not working as expected ([#72](https://github.com/application-stacks/runtime-component-operator/pull/72))
+- Operator crashes on some cluster due to optional CRDs (Knative Service, ServiceMonitor) not being present ([#254](https://github.com/appsody/appsody-operator/pull/254))
+- Update the predicates for watching StatefulSet and Deployment sub-resource to check for generation to minimize number of reconciles ([#254](https://github.com/appsody/appsody-operator/pull/254))
+
 ## [0.4.0]
 
 ### Added
@@ -81,7 +89,8 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/appsody/appsody-operator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/appsody/appsody-operator/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/appsody/appsody-operator/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/appsody/appsody-operator/compare/0.2.1...v0.2.2

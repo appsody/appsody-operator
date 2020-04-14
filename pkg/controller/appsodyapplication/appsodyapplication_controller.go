@@ -208,10 +208,26 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		},
 	}
 
+	predSubResWithGenCheck := predicate.Funcs{
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			// Ignore updates to CR status in which case metadata.Generation does not change
+			return (isClusterWide || watchNamespacesMap[e.MetaOld.GetNamespace()]) && e.MetaOld.GetGeneration() != e.MetaNew.GetGeneration()
+		},
+		CreateFunc: func(e event.CreateEvent) bool {
+			return false
+		},
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return isClusterWide || watchNamespacesMap[e.Meta.GetNamespace()]
+		},
+		GenericFunc: func(e event.GenericEvent) bool {
+			return false
+		},
+	}
+
 	err = c.Watch(&source.Kind{Type: &appsv1.Deployment{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	}, predSubResWithGenCheck)
 	if err != nil {
 		return err
 	}
@@ -219,7 +235,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(&source.Kind{Type: &appsv1.StatefulSet{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
 		OwnerType:    &appsodyv1beta1.AppsodyApplication{},
-	}, predSubResource)
+	}, predSubResWithGenCheck)
 	if err != nil {
 		return err
 	}
@@ -258,7 +274,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	ok, _ := reconciler.IsGroupVersionSupported(imagev1.SchemeGroupVersion.String())
+	ok, _ := reconciler.IsGroupVersionSupported(imagev1.SchemeGroupVersion.String(), "ImageStream")
 	if ok {
 		c.Watch(
 			&source.Kind{Type: &imagev1.ImageStream{}},
@@ -268,7 +284,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			})
 	}
 
-	ok, _ = reconciler.IsGroupVersionSupported(routev1.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(routev1.SchemeGroupVersion.String(), "Route")
 	if ok {
 		c.Watch(&source.Kind{Type: &routev1.Route{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
@@ -276,7 +292,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}, predSubResource)
 	}
 
-	ok, _ = reconciler.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String(), "Service")
 	if ok {
 		c.Watch(&source.Kind{Type: &servingv1alpha1.Service{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
@@ -284,7 +300,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}, predSubResource)
 	}
 
-	ok, _ = reconciler.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(certmngrv1alpha2.SchemeGroupVersion.String(), "Certificate")
 	if ok {
 		c.Watch(&source.Kind{Type: &certmngrv1alpha2.Certificate{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
@@ -292,7 +308,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		}, predSubResource)
 	}
 
-	ok, _ = reconciler.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String())
+	ok, _ = reconciler.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String(), "ServiceMonitor")
 	if ok {
 		c.Watch(&source.Kind{Type: &prometheusv1.ServiceMonitor{}}, &handler.EnqueueRequestForOwner{
 			IsController: true,
@@ -530,7 +546,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	}
 
-	isKnativeSupported, err := r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String())
+	isKnativeSupported, err := r.IsGroupVersionSupported(servingv1alpha1.SchemeGroupVersion.String(), "Service")
 	if err != nil {
 		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	} else if !isKnativeSupported {
@@ -679,7 +695,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 	}
 
-	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String()); err != nil {
+	if ok, err := r.IsGroupVersionSupported(routev1.SchemeGroupVersion.String(), "Route"); err != nil {
 		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
 		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	} else if ok {
@@ -709,8 +725,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
 	}
 
-	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String()); err != nil {
-		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", routev1.SchemeGroupVersion.String()))
+	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String(), "ServiceMonitor"); err != nil {
+		reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", prometheusv1.SchemeGroupVersion.String()))
 		r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 	} else if ok {
 		if instance.Spec.Monitoring != nil && (instance.Spec.CreateKnativeService == nil || !*instance.Spec.CreateKnativeService) {
@@ -733,7 +749,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		}
 
 	} else {
-		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
+		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", prometheusv1.SchemeGroupVersion.String()))
 	}
 
 	return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
