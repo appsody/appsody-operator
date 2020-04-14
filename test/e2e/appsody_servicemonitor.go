@@ -77,21 +77,15 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 		util.FailureCleanup(t, f, namespace, errors.New("There is another service monitor running"))
 	}
 
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}, appsody)
-	if err != nil {
-		util.FailureCleanup(t, f, namespace, err)
-	}
-
-	// Adds the mandatory label to the application so it will be picked up by the prometheus operator
-	label := map[string]string{"apps-prometheus": ""}
-	monitor := &appsodyv1beta1.AppsodyApplicationMonitoring{Labels: label}
-	appsody.Spec.Monitoring = monitor
-
-	// Updates the application so the operator is reconciled
-	helper = int32(2)
-	appsody.Spec.Replicas = &helper
-
-	err = f.Client.Update(goctx.TODO(), appsody)
+	target := types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}
+	err = util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		// Adds the mandatory label to the application so it will be picked up by the prometheus operator
+		label := map[string]string{"apps-prometheus": ""}
+		monitor := &appsodyv1beta1.AppsodyApplicationMonitoring{Labels: label}
+		a.Spec.Monitoring = monitor
+		helper = int32(2)
+		a.Spec.Replicas = &helper
+	})
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
@@ -154,44 +148,41 @@ func AppsodyServiceMonitorTest(t *testing.T) {
 }
 
 func testSettingAppsodyServiceMonitor(t *testing.T, f *framework.Framework, namespace string, appsody *appsodyv1beta1.AppsodyApplication) {
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}, appsody)
-	if err != nil {
-		t.Fatal(err)
-	}
+	target := types.NamespacedName{Name: "example-appsody-sm", Namespace: namespace}
+	err := util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		params := map[string][]string{
+			"params": []string{"param1", "param2"},
+		}
+		username := v1.SecretKeySelector{Key: "username"}
+		password := v1.SecretKeySelector{Key: "password"}
 
-	params := map[string][]string{
-		"params": []string{"param1", "param2"},
-	}
-	username := v1.SecretKeySelector{Key: "username"}
-	password := v1.SecretKeySelector{Key: "password"}
+		// Creates the endpoint fields the user can customize
+		endpoint := prometheusv1.Endpoint{
+			Path:            "/path",
+			Scheme:          "myScheme",
+			Params:          params,
+			Interval:        "30s",
+			ScrapeTimeout:   "10s",
+			TLSConfig:       &prometheusv1.TLSConfig{InsecureSkipVerify: true},
+			BearerTokenFile: "myBTF",
+			BasicAuth:       &prometheusv1.BasicAuth{Username: username, Password: password},
+		}
 
-	// Creates the endpoint fields the user can customize
-	endpoint := prometheusv1.Endpoint{
-		Path:            "/path",
-		Scheme:          "myScheme",
-		Params:          params,
-		Interval:        "30s",
-		ScrapeTimeout:   "10s",
-		TLSConfig:       &prometheusv1.TLSConfig{InsecureSkipVerify: true},
-		BearerTokenFile: "myBTF",
-		BasicAuth:       &prometheusv1.BasicAuth{Username: username, Password: password},
-	}
+		endpoints := []prometheusv1.Endpoint{endpoint}
 
-	endpoints := []prometheusv1.Endpoint{endpoint}
+		// Adds the mandatory label to the application so it will be picked up by the prometheus operator
+		label := map[string]string{"apps-prometheus": ""}
+		monitor := &appsodyv1beta1.AppsodyApplicationMonitoring{Labels: label, Endpoints: endpoints}
+		a.Spec.Monitoring = monitor
 
-	// Adds the mandatory label to the application so it will be picked up by the prometheus operator
-	label := map[string]string{"apps-prometheus": ""}
-	monitor := &appsodyv1beta1.AppsodyApplicationMonitoring{Labels: label, Endpoints: endpoints}
-	appsody.Spec.Monitoring = monitor
-
-	// Updates the application so the operator is reconciled
-	helper := int32(3)
-	appsody.Spec.Replicas = &helper
-
-	err = f.Client.Update(goctx.TODO(), appsody)
+		// Updates the application so the operator is reconciled
+		helper := int32(3)
+		a.Spec.Replicas = &helper
+	})
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
+
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-sm", 3, retryInterval, timeout)
 	if err != nil {

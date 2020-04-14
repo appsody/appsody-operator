@@ -48,9 +48,11 @@ func AppsodyAutoScalingTest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	const name = "example-appsody-autoscaling"
+
 	// Make basic appsody application with 1 replica
 	replicas := int32(1)
-	appsodyApplication := util.MakeBasicAppsodyApplication(t, f, "example-appsody-autoscaling", namespace, replicas)
+	appsodyApplication := util.MakeBasicAppsodyApplication(t, f, name, namespace, replicas)
 
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), appsodyApplication, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
@@ -59,31 +61,27 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	}
 
 	// wait for example-appsody-autoscaling to reach 1 replicas
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, name, 1, retryInterval, timeout)
 	if err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	// Check the name field that matches
-	m := map[string]string{"metadata.name": "example-appsody-autoscaling"}
+	m := map[string]string{"metadata.name": name}
 	l := fields.Set(m)
 	selec := l.AsSelector()
 
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
+	target := types.NamespacedName{Name: name, Namespace: namespace}
+	err = util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		a.Spec.ResourceConstraints = setResources("0.2")
+		a.Spec.Autoscaling = setAutoScale(5, 50)
+	})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	appsodyApplication.Spec.ResourceConstraints = setResources("0.2")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(5, 50)
-
-	err = f.Client.Update(goctx.TODO(), appsodyApplication)
-	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	hpa := &autoscalingv1.HorizontalPodAutoscalerList{}
-	options := k.ListOptions{FieldSelector: selec}
+	options := k.ListOptions{FieldSelector: selec, Namespace: namespace}
 	hpa = getHPA(hpa, t, f, options)
 
 	timestamp = time.Now().UTC()
@@ -98,6 +96,7 @@ func AppsodyAutoScalingTest(t *testing.T) {
 	minMaxTest(t, f, appsodyApplication, options, namespace, hpa)
 	minBoundaryTest(t, f, appsodyApplication, options, namespace, hpa)
 	incorrectFieldsTest(t, f, ctx)
+	replicasTest(t, f, ctx)
 }
 
 func getHPA(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, f *framework.Framework, options k.ListOptions) *autoscalingv1.HorizontalPodAutoscalerList {
@@ -109,7 +108,7 @@ func getHPA(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, f *fra
 
 func waitForHPA(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, minReplicas int32, maxReplicas int32, utiliz int32, f *framework.Framework, options k.ListOptions) error {
 	for counter := 0; counter < 6; counter++ {
-		time.Sleep(4000 * time.Millisecond)
+		time.Sleep(6000 * time.Millisecond)
 		hpa = getHPA(hpa, t, f, options)
 		if checkValues(hpa, t, minReplicas, maxReplicas, utiliz) == nil {
 			return nil
@@ -169,18 +168,13 @@ func checkValues(hpa *autoscalingv1.HorizontalPodAutoscalerList, t *testing.T, m
 
 // Updates the values and checks they are changed
 func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, options k.ListOptions, namespace string, hpa *autoscalingv1.HorizontalPodAutoscalerList) {
-
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
+	target := types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}
+	err := util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		a.Spec.ResourceConstraints = setResources("0.2")
+		a.Spec.Autoscaling = setAutoScale(3, 2, 30)
+	})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	appsodyApplication.Spec.ResourceConstraints = setResources("0.2")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(3, 2, 30)
-
-	err = f.Client.Update(goctx.TODO(), appsodyApplication)
-	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	timestamp := time.Now().UTC()
@@ -191,23 +185,23 @@ func updateTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 	err = waitForHPA(hpa, t, 2, 3, 30, f, options)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling", 2, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
 // Checks when max is less than min, there should be no update
 func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, options k.ListOptions, namespace string, hpa *autoscalingv1.HorizontalPodAutoscalerList) {
-
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
+	target := types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}
+	err := util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		a.Spec.ResourceConstraints = setResources("0.2")
+		a.Spec.Autoscaling = setAutoScale(1, 6, 10)
+	})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	appsodyApplication.Spec.ResourceConstraints = setResources("0.2")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(1, 6, 10)
-
-	err = f.Client.Update(goctx.TODO(), appsodyApplication)
-	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	timestamp := time.Now().UTC()
@@ -218,23 +212,24 @@ func minMaxTest(t *testing.T, f *framework.Framework, appsodyApplication *appsod
 	err = waitForHPA(hpa, t, 2, 3, 30, f, options)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling", 2, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
 // When min is set to less than 1, there should be no update since the minReplicas are updated to a value less than 1
 func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *appsodyv1beta1.AppsodyApplication, options k.ListOptions, namespace string, hpa *autoscalingv1.HorizontalPodAutoscalerList) {
 
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}, appsodyApplication)
+	target := types.NamespacedName{Name: "example-appsody-autoscaling", Namespace: namespace}
+	err := util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		a.Spec.ResourceConstraints = setResources("0.5")
+		a.Spec.Autoscaling = setAutoScale(4, 0, 20)
+	})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	appsodyApplication.Spec.ResourceConstraints = setResources("0.5")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(4, 0, 20)
-
-	err = f.Client.Update(goctx.TODO(), appsodyApplication)
-	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	timestamp := time.Now().UTC()
@@ -246,11 +241,16 @@ func minBoundaryTest(t *testing.T, f *framework.Framework, appsodyApplication *a
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling", 2, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
 }
 
 // When the mandatory fields for autoscaling are not set
 func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) {
-
+	const name = "example-appsody-autoscaling2"
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		t.Fatalf("could not get namespace: %v", err)
@@ -261,7 +261,7 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 
 	// Make basic appsody application with 1 replica
 	replicas := int32(1)
-	appsodyApplication := util.MakeBasicAppsodyApplication(t, f, "example-appsody-autoscaling2", namespace, replicas)
+	appsodyApplication := util.MakeBasicAppsodyApplication(t, f, name, namespace, replicas)
 
 	// use TestCtx's create helper to create the object and add a cleanup function for the new object
 	err = f.Client.Create(goctx.TODO(), appsodyApplication, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
@@ -270,29 +270,25 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 	}
 
 	// wait for example-appsody-autoscaling to reach 1 replicas
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-autoscaling2", 1, retryInterval, timeout)
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, name, 1, retryInterval, timeout)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Check the name field that matches
-	m := map[string]string{"metadata.name": "example-appsody-autoscaling2"}
+	m := map[string]string{"metadata.name": name}
 	l := fields.Set(m)
 	selec := l.AsSelector()
 
-	options := k.ListOptions{FieldSelector: selec}
+	options := k.ListOptions{FieldSelector: selec, Namespace: namespace}
 
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-autoscaling2", Namespace: namespace}, appsodyApplication)
+	target := types.NamespacedName{Name: name, Namespace: namespace}
+	err = util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		a.Spec.ResourceConstraints = setResources("0.3")
+		a.Spec.Autoscaling = setAutoScale(4)
+	})
 	if err != nil {
-		t.Fatal(err)
-	}
-
-	appsodyApplication.Spec.ResourceConstraints = setResources("0.3")
-	appsodyApplication.Spec.Autoscaling = setAutoScale(4)
-
-	err = f.Client.Update(goctx.TODO(), appsodyApplication)
-	if err != nil {
-		t.Fatal(err)
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
 	timestamp = time.Now().UTC()
@@ -305,5 +301,66 @@ func incorrectFieldsTest(t *testing.T, f *framework.Framework, ctx *framework.Te
 		t.Log("The mandatory fields were not set so autoscaling is not enabled")
 	} else {
 		t.Fatal("Error: The mandatory fields were not set so autoscaling should not be enabled")
+	}
+}
+
+// verify behaviour between spec replicas and HPA minReplicas
+func replicasTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) {
+	const name = "appsody-autoscaling-replicas"
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		t.Fatalf("could not get namespace: %v", err)
+	}
+
+	timestamp := time.Now().UTC()
+	t.Logf("%s - Starting appsody autoscaling test...", timestamp)
+
+	// Make basic appsody omponent with 1 replica
+	replicas := int32(2)
+	appsody := util.MakeBasicAppsodyApplication(t, f, name, namespace, replicas)
+
+	err = f.Client.Create(goctx.TODO(), appsody, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, name, int(replicas), retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	// check that it prioritizes the HPA's minimum number of replicas over spec replicas
+	target := types.NamespacedName{Namespace: namespace, Name: name}
+	err = util.UpdateApplication(f, target, func(r *appsodyv1beta1.AppsodyApplication) {
+		r.Spec.ResourceConstraints = setResources("0.5")
+		var cpu int32 = 50
+		var min int32 = 3
+		r.Spec.Autoscaling = &appsodyv1beta1.AppsodyApplicationAutoScaling{
+			TargetCPUUtilizationPercentage: &cpu,
+			MaxReplicas:                    5,
+			MinReplicas:                    &min,
+		}
+	})
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, name, 3, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	// check that it correctly returns to defined replica count after deleting HPA
+	err = util.UpdateApplication(f, target, func(r *appsodyv1beta1.AppsodyApplication) {
+		r.Spec.ResourceConstraints = nil
+		r.Spec.Autoscaling = nil
+	})
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, name, int(replicas), retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
 	}
 }

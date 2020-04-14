@@ -82,17 +82,11 @@ func appsodyBasicScaleTest(t *testing.T, f *framework.Framework, ctx *framework.
 }
 
 func appsodyUpdateScaleTest(t *testing.T, f *framework.Framework, namespace string, exampleAppsody *appsodyv1beta1.AppsodyApplication) error {
-	err := f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody", Namespace: namespace}, exampleAppsody)
-	if err != nil {
-		return err
-	}
-
-	helper2 := int32(2)
-	exampleAppsody.Spec.Replicas = &helper2
-	err = f.Client.Update(goctx.TODO(), exampleAppsody)
-	if err != nil {
-		return err
-	}
+	target := types.NamespacedName{Name: "example-appsody", Namespace: namespace}
+	err := util.UpdateApplication(f, target, func(a *appsodyv1beta1.AppsodyApplication) {
+		helper2 := int32(2)
+		a.Spec.Replicas = &helper2
+	})
 
 	// wait for example-memcached to reach 2 replicas
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody", 2, retryInterval, timeout)
