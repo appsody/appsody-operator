@@ -27,6 +27,11 @@ tidy: ## Clean up Go modules by adding missing and removing unused mod
 build: ## Compile the operator
 	go install ./cmd/manager
 
+custom-push: setup
+	git checkout v0.4.1
+	operator-sdk build "${OPERATOR_IMAGE}:0.4.1"
+	docker push "${OPERATOR_IMAGE}:0.4.1"
+
 unit-test: ## Run unit tests
 	go test -v -mod=vendor -tags=unit github.com/appsody/appsody-operator/pkg/...
 
