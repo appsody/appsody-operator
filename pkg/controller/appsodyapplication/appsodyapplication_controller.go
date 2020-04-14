@@ -560,7 +560,6 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			&corev1.Service{ObjectMeta: metav1.ObjectMeta{Name: instance.Name + "-headless", Namespace: instance.Namespace}},
 			&appsv1.Deployment{ObjectMeta: defaultMeta},
 			&appsv1.StatefulSet{ObjectMeta: defaultMeta},
-			&routev1.Route{ObjectMeta: defaultMeta},
 			&autoscalingv1.HorizontalPodAutoscaler{ObjectMeta: defaultMeta},
 		}
 		err = r.DeleteResources(resources)
@@ -568,6 +567,16 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			reqLogger.Error(err, "Failed to clean up non-Knative resources")
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
+
+		if r.IsOpenShift() {
+			route := &routev1.Route{ObjectMeta: defaultMeta}
+			err = r.DeleteResource(route)
+			if err != nil {
+				reqLogger.Error(err, "Failed to clean up non-Knative resource Route")
+				return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+			}
+		}
+
 		if isKnativeSupported {
 			ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(ksvc, instance, func() error {
