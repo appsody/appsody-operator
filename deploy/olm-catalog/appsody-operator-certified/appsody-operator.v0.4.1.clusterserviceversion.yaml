@@ -2,7 +2,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[{"apiVersion":"appsody.dev/v1beta1","kind":"AppsodyApplication","metadata":{"name":"example-appsodyapplication"},"spec":{"applicationImage":"APPLICATION_IMAGE","stack":"java-microprofile"}}]'
+    alm-examples: '[{"apiVersion":"appsody.dev/v1beta1","kind":"AppsodyApplication","metadata":{"name":"example-appsodyapplication"},"spec":{"applicationImage":"registry.connect.redhat.com/ibm/open-liberty-samples:springPetClinic","stack":"java-openliberty"}}]'
     capabilities: Seamless Upgrades
     categories: Application Runtime
     certified: 'true'
