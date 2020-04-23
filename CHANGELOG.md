@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0]
+
+### Added
+
+- Added Ingress (vanilla) support ([#79](https://github.com/application-stacks/runtime-component-operator/pull/79))
+- Added support for external service bindings ([#76](https://github.com/application-stacks/runtime-component-operator/pull/76))
+- Added additional service ports support ([#80](https://github.com/application-stacks/runtime-component-operator/pull/80))
+- Added support to specify NodePort on service ([#60](https://github.com/application-stacks/runtime-component-operator/pull/60))
+
 ## [0.4.1]
 
 ### Fixed
@@ -89,7 +98,8 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/appsody/appsody-operator/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/appsody/appsody-operator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/appsody/appsody-operator/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/appsody/appsody-operator/compare/v0.2.2...v0.3.0

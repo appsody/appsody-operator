@@ -8,6 +8,7 @@ import (
 
 	"github.com/application-stacks/runtime-component-operator/pkg/common"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
+	networkingv1beta1 "k8s.io/api/networking/v1beta1"
 
 	oputils "github.com/application-stacks/runtime-component-operator/pkg/utils"
 	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	applicationsv1beta1 "sigs.k8s.io/application/pkg/apis/app/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -120,15 +122,6 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return reconciler
 }
 
-func getAppsodyOpConfigMap(name string, ns string, r *ReconcileAppsodyApplication) (*corev1.ConfigMap, error) {
-	configMap := &corev1.ConfigMap{}
-	err := r.GetClient().Get(context.TODO(), types.NamespacedName{Name: name, Namespace: ns}, configMap)
-	if err != nil {
-		return nil, err
-	}
-	return configMap, nil
-}
-
 func setup(mgr manager.Manager) {
 	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldImageStreamName, func(obj runtime.Object) []string {
 		instance := obj.(*appsodyv1beta1.AppsodyApplication)
@@ -140,6 +133,14 @@ func setup(mgr manager.Manager) {
 			}
 			fullName := fmt.Sprintf("%s/%s", imageNamespace, image.Name)
 			return []string{fullName}
+		}
+		return nil
+	})
+	mgr.GetFieldIndexer().IndexField(&appsodyv1beta1.AppsodyApplication{}, indexFieldBindingsResourceRef, func(obj runtime.Object) []string {
+		instance := obj.(*appsodyv1beta1.AppsodyApplication)
+
+		if instance.Spec.Bindings != nil && instance.Spec.Bindings.ResourceRef != "" {
+			return []string{instance.Spec.Bindings.ResourceRef}
 		}
 		return nil
 	})
@@ -274,13 +275,21 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(
+		&source.Kind{Type: &corev1.Secret{}},
+		&EnqueueRequestsForCustomIndexField{
+			Matcher: CreateBindingSecretMatcher(mgr.GetClient()),
+		})
+	if err != nil {
+		return err
+	}
+
 	ok, _ := reconciler.IsGroupVersionSupported(imagev1.SchemeGroupVersion.String(), "ImageStream")
 	if ok {
 		c.Watch(
 			&source.Kind{Type: &imagev1.ImageStream{}},
-			&EnqueueRequestsForImageStream{
-				Client:          mgr.GetClient(),
-				WatchNamespaces: watchNamespaces,
+			&EnqueueRequestsForCustomIndexField{
+				Matcher: CreateImageStreamMatcher(mgr.GetClient(), watchNamespaces),
 			})
 	}
 
@@ -357,7 +366,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		ns = watchNamespaces[0]
 	}
 
-	configMap, err := getAppsodyOpConfigMap("appsody-operator-defaults", ns, r)
+	configMap, err := r.GetOpConfigMap("appsody-operator-defaults", ns)
 	if err != nil {
 		log.Info("Failed to find config map defaults in namespace " + ns)
 	} else {
@@ -378,7 +387,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		r.lastDefautsRV = configMap.ResourceVersion
 	}
 
-	configMap, err = getAppsodyOpConfigMap("appsody-operator-constants", ns, r)
+	configMap, err = r.GetOpConfigMap("appsody-operator-constants", ns)
 	if err != nil {
 		log.Info("Failed to find config map constants")
 	} else {
@@ -399,11 +408,23 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		r.lastConstantsRV = configMap.ResourceVersion
 	}
 
-	configMap, err = getAppsodyOpConfigMap("appsody-operator", ns, r)
+	configMap, err = r.GetOpConfigMap("appsody-operator", ns)
 	if err != nil {
-		log.Info("Failed to find appsody operator config map")
+		log.Info("Failed to find appsody-operator config map")
+		common.Config = common.DefaultOpConfig()
+		configMap = &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: "appsody-operator", Namespace: ns}}
+		configMap.Data = common.Config
 	} else {
 		common.Config.LoadFromConfigMap(configMap)
+	}
+
+	_, err = controllerutil.CreateOrUpdate(context.TODO(), r.GetClient(), configMap, func() error {
+		configMap.Data = common.Config
+		return nil
+	})
+
+	if err != nil {
+		log.Info("Failed to update appsody-operator config map")
 	}
 
 	// Fetch the AppsodyApplication instance
@@ -527,6 +548,19 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return result, nil
 	}
 
+	if r.IsSeriveBindingSupported() {
+		result, err = r.ReconcileBindings(instance)
+		if err != nil || result != (reconcile.Result{}) {
+			return result, err
+		}
+	} else if instance.Spec.Bindings != nil {
+		return r.ManageError(errors.New("failed to reconcile as the operator failed to find Service Binding CRDs"), common.StatusConditionTypeReconciled, instance)
+	}
+	resolvedBindingSecret, err := r.GetResolvedBindingSecret(ba)
+	if err != nil {
+		return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+	}
+
 	if instance.Spec.ServiceAccountName == nil || *instance.Spec.ServiceAccountName == "" {
 		serviceAccount := &corev1.ServiceAccount{ObjectMeta: defaultMeta}
 		err = r.CreateOrUpdate(serviceAccount, instance, func() error {
@@ -568,6 +602,9 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
 		}
 
+		if ok, _ := r.IsGroupVersionSupported(networkingv1beta1.SchemeGroupVersion.String(), "Ingress"); ok {
+			r.DeleteResource(&networkingv1beta1.Ingress{ObjectMeta: defaultMeta})
+		}
 		if r.IsOpenShift() {
 			route := &routev1.Route{ObjectMeta: defaultMeta}
 			err = r.DeleteResource(route)
@@ -581,6 +618,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			ksvc := &servingv1alpha1.Service{ObjectMeta: defaultMeta}
 			err = r.CreateOrUpdate(ksvc, instance, func() error {
 				oputils.CustomizeKnativeService(ksvc, instance)
+				oputils.CustomizeServiceBinding(resolvedBindingSecret, &ksvc.Spec.Template.Spec.PodSpec, instance)
 				return nil
 			})
 
@@ -606,12 +644,12 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	err = r.CreateOrUpdate(svc, instance, func() error {
 		oputils.CustomizeService(svc, ba)
 		svc.Annotations = oputils.MergeMaps(svc.Annotations, instance.Spec.Service.Annotations)
-
+		monitoringEnabledLabelName := getMonitoringEnabledLabelName(ba)
 		if instance.Spec.Monitoring != nil {
-			svc.Labels["monitor."+ba.GetGroupName()+"/enabled"] = "true"
+			svc.Labels[monitoringEnabledLabelName] = "true"
 		} else {
-			if _, ok := svc.Labels["monitor."+ba.GetGroupName()+"/enabled"]; ok {
-				delete(svc.Labels, "monitor."+ba.GetGroupName()+"/enabled")
+			if _, ok := svc.Labels[monitoringEnabledLabelName]; ok {
+				delete(svc.Labels, monitoringEnabledLabelName)
 			}
 		}
 		return nil
@@ -647,6 +685,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			oputils.CustomizeStatefulSet(statefulSet, instance)
 			oputils.CustomizePodSpec(&statefulSet.Spec.Template, instance)
 			oputils.CustomizePersistence(statefulSet, instance)
+			oputils.CustomizeServiceBinding(resolvedBindingSecret, &statefulSet.Spec.Template.Spec, instance)
 			return nil
 		})
 		if err != nil {
@@ -675,6 +714,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		err = r.CreateOrUpdate(deploy, instance, func() error {
 			oputils.CustomizeDeployment(deploy, instance)
 			oputils.CustomizePodSpec(&deploy.Spec.Template, instance)
+			oputils.CustomizeServiceBinding(resolvedBindingSecret, &deploy.Spec.Template.Spec, instance)
 			return nil
 		})
 		if err != nil {
@@ -731,7 +771,30 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 			}
 		}
 	} else {
-		reqLogger.V(1).Info(fmt.Sprintf("%s is not supported", routev1.SchemeGroupVersion.String()))
+
+		if ok, err := r.IsGroupVersionSupported(networkingv1beta1.SchemeGroupVersion.String(), "Ingress"); err != nil {
+			reqLogger.Error(err, fmt.Sprintf("Failed to check if %s is supported", networkingv1beta1.SchemeGroupVersion.String()))
+			r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+		} else if ok {
+			if instance.Spec.Expose != nil && *instance.Spec.Expose {
+				ing := &networkingv1beta1.Ingress{ObjectMeta: defaultMeta}
+				err = r.CreateOrUpdate(ing, instance, func() error {
+					oputils.CustomizeIngress(ing, instance)
+					return nil
+				})
+				if err != nil {
+					reqLogger.Error(err, "Failed to reconcile Ingress")
+					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				}
+			} else {
+				ing := &networkingv1beta1.Ingress{ObjectMeta: defaultMeta}
+				err = r.DeleteResource(ing)
+				if err != nil {
+					reqLogger.Error(err, "Failed to delete Ingress")
+					return r.ManageError(err, common.StatusConditionTypeReconciled, instance)
+				}
+			}
+		}
 	}
 
 	if ok, err = r.IsGroupVersionSupported(prometheusv1.SchemeGroupVersion.String(), "ServiceMonitor"); err != nil {
@@ -762,4 +825,8 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 	}
 
 	return r.ManageSuccess(common.StatusConditionTypeReconciled, instance)
+}
+
+func getMonitoringEnabledLabelName(ba common.BaseComponent) string {
+	return "monitor." + ba.GetGroupName() + "/enabled"
 }
