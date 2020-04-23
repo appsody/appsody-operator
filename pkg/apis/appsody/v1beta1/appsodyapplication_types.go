@@ -47,9 +47,12 @@ type AppsodyApplicationSpec struct {
 	ApplicationName      string                        `json:"applicationName,omitempty"`
 	// +listType=map
 	// +listMapKey=name
-	InitContainers    []corev1.Container `json:"initContainers,omitempty"`
+	InitContainers []corev1.Container `json:"initContainers,omitempty"`
+	// +listType=map
+	// +listMapKey=name
 	SidecarContainers []corev1.Container `json:"sidecarContainers,omitempty"`
 	Route             *AppsodyRoute      `json:"route,omitempty"`
+	Bindings          *AppsodyBindings   `json:"bindings,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -74,7 +77,13 @@ type AppsodyApplicationService struct {
 	// +kubebuilder:validation:Minimum=1
 	TargetPort *int32 `json:"targetPort,omitempty"`
 
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:validation:Minimum=0
+	NodePort *int32 `json:"nodePort,omitempty"`
+
 	PortName string `json:"portName,omitempty"`
+
+	Ports []corev1.ServicePort `json:"ports,omitempty"`
 
 	Annotations map[string]string `json:"annotations,omitempty"`
 	// +listType=atomic
@@ -138,13 +147,21 @@ type ServiceBindingAuth struct {
 	Password corev1.SecretKeySelector `json:"password,omitempty"`
 }
 
+// AppsodyBindings represents service binding related parameters
+type AppsodyBindings struct {
+	AutoDetect  *bool  `json:"autoDetect,omitempty"`
+	ResourceRef string `json:"resourceRef,omitempty"`
+}
+
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
 // +k8s:openapi-gen=true
 type AppsodyApplicationStatus struct {
 	// +listType=atomic
 	Conditions       []StatusCondition       `json:"conditions,omitempty"`
 	ConsumedServices common.ConsumedServices `json:"consumedServices,omitempty"`
-	ImageReference   string                  `json:"imageReference,omitempty"`
+	// +listType=set
+	ResolvedBindings []string `json:"resolvedBindings,omitempty"`
+	ImageReference   string   `json:"imageReference,omitempty"`
 }
 
 // StatusCondition ...
@@ -353,6 +370,24 @@ func (cr *AppsodyApplication) GetRoute() common.BaseComponentRoute {
 	return cr.Spec.Route
 }
 
+// GetBindings returns route configuration for RuntimeComponent
+func (cr *AppsodyApplication) GetBindings() common.BaseComponentBindings {
+	if cr.Spec.Bindings == nil {
+		return nil
+	}
+	return cr.Spec.Bindings
+}
+
+// GetResolvedBindings returns a map of all the service names to be consumed by the application
+func (s *AppsodyApplicationStatus) GetResolvedBindings() []string {
+	return s.ResolvedBindings
+}
+
+// SetResolvedBindings sets ConsumedServices
+func (s *AppsodyApplicationStatus) SetResolvedBindings(rb []string) {
+	s.ResolvedBindings = rb
+}
+
 // GetConsumedServices returns a map of all the service names to be consumed by the application
 func (s *AppsodyApplicationStatus) GetConsumedServices() common.ConsumedServices {
 	if s.ConsumedServices == nil {
@@ -401,7 +436,7 @@ func (s *AppsodyApplicationStorage) GetMountPath() string {
 	return s.MountPath
 }
 
-// GetVolumeClaimTemplate returns a template representing requested persitent volume
+// GetVolumeClaimTemplate returns a template representing requested persistent volume
 func (s *AppsodyApplicationStorage) GetVolumeClaimTemplate() *corev1.PersistentVolumeClaim {
 	return s.VolumeClaimTemplate
 }
@@ -416,12 +451,15 @@ func (s *AppsodyApplicationService) GetPort() int32 {
 	return s.Port
 }
 
-// GetPortName return the name of the service port
-func (s *AppsodyApplicationService) GetPortName() string {
-	return s.PortName
+// GetNodePort returns service nodePort
+func (s *AppsodyApplicationService) GetNodePort() *int32 {
+	if s.NodePort == nil {
+		return nil
+	}
+	return s.NodePort
 }
 
-// GetTargetPort returns the internal container port to be targetted
+// GetTargetPort returns the internal target port for containers
 func (s *AppsodyApplicationService) GetTargetPort() *int32 {
 	if s.TargetPort == nil {
 		return nil
@@ -429,9 +467,19 @@ func (s *AppsodyApplicationService) GetTargetPort() *int32 {
 	return s.TargetPort
 }
 
+// GetPortName returns name of service port
+func (s *AppsodyApplicationService) GetPortName() string {
+	return s.PortName
+}
+
 // GetType returns service type
 func (s *AppsodyApplicationService) GetType() *corev1.ServiceType {
 	return s.Type
+}
+
+// GetPorts returns a list of service ports
+func (s *AppsodyApplicationService) GetPorts() []corev1.ServicePort {
+	return s.Ports
 }
 
 // GetProvides returns service provider configuration
@@ -544,6 +592,14 @@ func (r *AppsodyRoute) GetCertificate() common.Certificate {
 	return r.Certificate
 }
 
+// GetCertificateSecretRef returns the secret ref for route certificate
+func (r *AppsodyRoute) GetCertificateSecretRef() *string {
+	if r.CertificateSecretRef == nil {
+		return nil
+	}
+	return r.CertificateSecretRef
+}
+
 // GetTermination returns terminatation of the route's TLS
 func (r *AppsodyRoute) GetTermination() *routev1.TLSTerminationType {
 	return r.Termination
@@ -564,12 +620,14 @@ func (r *AppsodyRoute) GetPath() string {
 	return r.Path
 }
 
-// GetCertificateSecretRef returns the secret ref for route certificate
-func (r *AppsodyRoute) GetCertificateSecretRef() *string {
-	if r.CertificateSecretRef == nil {
-		return nil
-	}
-	return r.CertificateSecretRef
+// GetAutoDetect returns a boolean to specify if the operator should auto-detect ServiceBinding CRs with the same name as the RuntimeComponent CR
+func (r *AppsodyBindings) GetAutoDetect() *bool {
+	return r.AutoDetect
+}
+
+// GetResourceRef returns name of ServiceBinding CRs created manually in the same namespace as the RuntimeComponent CR
+func (r *AppsodyBindings) GetResourceRef() string {
+	return r.ResourceRef
 }
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
@@ -619,6 +677,7 @@ func (cr *AppsodyApplication) Initialize(defaults AppsodyApplicationSpec, consta
 		}
 	}
 
+	// Default applicationName to cr.Name, if a user sets createAppDefinition to true but doesn't set applicationName
 	if cr.Spec.ApplicationName == "" {
 		if cr.Labels != nil && cr.Labels["app.kubernetes.io/part-of"] != "" {
 			cr.Spec.ApplicationName = cr.Labels["app.kubernetes.io/part-of"]
