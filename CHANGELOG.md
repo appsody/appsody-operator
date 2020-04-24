@@ -13,10 +13,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
-- Added Ingress (vanilla) support ([#79](https://github.com/application-stacks/runtime-component-operator/pull/79))
-- Added support for external service bindings ([#76](https://github.com/application-stacks/runtime-component-operator/pull/76))
-- Added additional service ports support ([#80](https://github.com/application-stacks/runtime-component-operator/pull/80))
-- Added support to specify NodePort on service ([#60](https://github.com/application-stacks/runtime-component-operator/pull/60))
+- Added Ingress (vanilla) support ([#259](https://github.com/appsody/appsody-operator/pull/259), [#79](https://github.com/application-stacks/runtime-component-operator/pull/79))
+- Added support for external service bindings ([#259](https://github.com/appsody/appsody-operator/pull/259), [#76](https://github.com/application-stacks/runtime-component-operator/pull/76))
+- Added additional service ports support ([#259](https://github.com/appsody/appsody-operator/pull/259), [#80](https://github.com/application-stacks/runtime-component-operator/pull/80))
+- Added support to specify NodePort on service ([#259](https://github.com/appsody/appsody-operator/pull/259), [#60](https://github.com/application-stacks/runtime-component-operator/pull/60))
 
 ## [0.4.1]
 
