@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 LABEL vendor="Appsody" \
       name="Appsody Application Operator" \
-      version="0.5.0" \
+      version="0.5.1" \
       summary="Image for Appsody Application Operator" \
       description="This image contains the controller for Appsody Application Operator. See https://github.com/appsody/appsody-operator#appsody-application-operator"
       
