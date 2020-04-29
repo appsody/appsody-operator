@@ -9,6 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1]
+
+### Fixed
+
+- Operator crash when Ingress is created without defining spec.route field ([#261](https://github.com/appsody/appsody-operator/pull/261))
+- Unnecessary pod restarts due to adding kubectl.kubernetes.io/last-applied-configuration to resources created by the operator ([#261](https://github.com/appsody/appsody-operator/pull/261))
+
 ## [0.5.0]
 
 ### Added
@@ -98,7 +105,8 @@ All notable changes to this project will be documented in this file.
 
 The initial release of the Appsody Operator 🎉🥳
 
-[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/appsody/appsody-operator/compare/v0.5.1...HEAD
+[0.5.0]: https://github.com/appsody/appsody-operator/compare/v0.5.0...v0.5.1
 [0.5.0]: https://github.com/appsody/appsody-operator/compare/v0.4.1...v0.5.0
 [0.4.1]: https://github.com/appsody/appsody-operator/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/appsody/appsody-operator/compare/v0.3.0...v0.4.0
