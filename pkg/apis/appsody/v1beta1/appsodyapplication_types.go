@@ -8,6 +8,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -149,8 +150,9 @@ type ServiceBindingAuth struct {
 
 // AppsodyBindings represents service binding related parameters
 type AppsodyBindings struct {
-	AutoDetect  *bool  `json:"autoDetect,omitempty"`
-	ResourceRef string `json:"resourceRef,omitempty"`
+	AutoDetect  *bool                 `json:"autoDetect,omitempty"`
+	ResourceRef string                `json:"resourceRef,omitempty"`
+	Embedded    *runtime.RawExtension `json:"embedded,omitempty"`
 }
 
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
@@ -500,10 +502,6 @@ func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
 
 // GetCertificateSecretRef ...
 func (s *AppsodyApplicationService) GetCertificateSecretRef() *string {
-	if s.CertificateSecretRef == nil {
-		return nil
-	}
-
 	return s.CertificateSecretRef
 }
 
@@ -594,9 +592,6 @@ func (r *AppsodyRoute) GetCertificate() common.Certificate {
 
 // GetCertificateSecretRef returns the secret ref for route certificate
 func (r *AppsodyRoute) GetCertificateSecretRef() *string {
-	if r.CertificateSecretRef == nil {
-		return nil
-	}
 	return r.CertificateSecretRef
 }
 
@@ -628,6 +623,11 @@ func (r *AppsodyBindings) GetAutoDetect() *bool {
 // GetResourceRef returns name of ServiceBinding CRs created manually in the same namespace as the RuntimeComponent CR
 func (r *AppsodyBindings) GetResourceRef() string {
 	return r.ResourceRef
+}
+
+// GetEmbedded returns the embedded underlying Service Binding resource
+func (r *AppsodyBindings) GetEmbedded() *runtime.RawExtension {
+	return r.Embedded
 }
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap

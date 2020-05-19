@@ -409,6 +409,11 @@ func (in *AppsodyBindings) DeepCopyInto(out *AppsodyBindings) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.Embedded != nil {
+		in, out := &in.Embedded, &out.Embedded
+		*out = new(runtime.RawExtension)
+		(*in).DeepCopyInto(*out)
+	}
 	return
 }
 

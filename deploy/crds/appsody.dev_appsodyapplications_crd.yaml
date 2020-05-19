@@ -93,6 +93,8 @@ spec:
               properties:
                 autoDetect:
                   type: boolean
+                embedded:
+                  type: object
                 resourceRef:
                   type: string
               type: object
