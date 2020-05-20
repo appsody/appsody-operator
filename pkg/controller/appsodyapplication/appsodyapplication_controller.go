@@ -157,6 +157,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	reconciler.SetController(c)
+
 	watchNamespaces, err := oputils.GetWatchNamespaces()
 	if err != nil {
 		log.Error(err, "Failed to get watch namespace")
@@ -278,7 +280,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	err = c.Watch(
 		&source.Kind{Type: &corev1.Secret{}},
 		&EnqueueRequestsForCustomIndexField{
-			Matcher: CreateBindingSecretMatcher(mgr.GetClient()),
+			Matcher: &BindingSecretMatcher{
+				klient: mgr.GetClient(),
+			},
 		})
 	if err != nil {
 		return err
@@ -289,7 +293,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		c.Watch(
 			&source.Kind{Type: &imagev1.ImageStream{}},
 			&EnqueueRequestsForCustomIndexField{
-				Matcher: CreateImageStreamMatcher(mgr.GetClient(), watchNamespaces),
+				Matcher: &ImageStreamMatcher{
+					Klient:          mgr.GetClient(),
+					WatchNamespaces: watchNamespaces,
+				},
 			})
 	}
 
@@ -548,7 +555,7 @@ func (r *ReconcileAppsodyApplication) Reconcile(request reconcile.Request) (reco
 		return result, nil
 	}
 
-	if r.IsSeriveBindingSupported() {
+	if r.IsServiceBindingSupported() {
 		result, err = r.ReconcileBindings(instance)
 		if err != nil || result != (reconcile.Result{}) {
 			return result, err

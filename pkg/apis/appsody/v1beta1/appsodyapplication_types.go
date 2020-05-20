@@ -8,6 +8,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -53,6 +54,18 @@ type AppsodyApplicationSpec struct {
 	SidecarContainers []corev1.Container `json:"sidecarContainers,omitempty"`
 	Route             *AppsodyRoute      `json:"route,omitempty"`
 	Bindings          *AppsodyBindings   `json:"bindings,omitempty"`
+	Affinity          *AppsodyAffinity   `json:"affinity,omitempty"`
+}
+
+// AppsodyAffinity deployment affinity settings
+// +k8s:openapi-gen=true
+type AppsodyAffinity struct {
+	NodeAffinity    *corev1.NodeAffinity    `json:"nodeAffinity,omitempty"`
+	PodAffinity     *corev1.PodAffinity     `json:"podAffinity,omitempty"`
+	PodAntiAffinity *corev1.PodAntiAffinity `json:"podAntiAffinity,omitempty"`
+	// +listType=set
+	Architecture       []string          `json:"architecture,omitempty"`
+	NodeAffinityLabels map[string]string `json:"nodeAffinityLabels,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -149,8 +162,9 @@ type ServiceBindingAuth struct {
 
 // AppsodyBindings represents service binding related parameters
 type AppsodyBindings struct {
-	AutoDetect  *bool  `json:"autoDetect,omitempty"`
-	ResourceRef string `json:"resourceRef,omitempty"`
+	AutoDetect  *bool                 `json:"autoDetect,omitempty"`
+	ResourceRef string                `json:"resourceRef,omitempty"`
+	Embedded    *runtime.RawExtension `json:"embedded,omitempty"`
 }
 
 // AppsodyApplicationStatus defines the observed state of AppsodyApplication
@@ -378,6 +392,14 @@ func (cr *AppsodyApplication) GetBindings() common.BaseComponentBindings {
 	return cr.Spec.Bindings
 }
 
+// GetAffinity returns deployment's node and pod affinity settings
+func (cr *AppsodyApplication) GetAffinity() common.BaseComponentAffinity {
+	if cr.Spec.Affinity == nil {
+		return nil
+	}
+	return cr.Spec.Affinity
+}
+
 // GetResolvedBindings returns a map of all the service names to be consumed by the application
 func (s *AppsodyApplicationStatus) GetResolvedBindings() []string {
 	return s.ResolvedBindings
@@ -498,12 +520,8 @@ func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
 	return s.Certificate
 }
 
-// GetCertificateSecretRef ...
+// GetCertificateSecretRef returns a secret reference with a certificate
 func (s *AppsodyApplicationService) GetCertificateSecretRef() *string {
-	if s.CertificateSecretRef == nil {
-		return nil
-	}
-
 	return s.CertificateSecretRef
 }
 
@@ -592,11 +610,8 @@ func (r *AppsodyRoute) GetCertificate() common.Certificate {
 	return r.Certificate
 }
 
-// GetCertificateSecretRef returns the secret ref for route certificate
+// GetCertificateSecretRef returns a secret reference with a certificate
 func (r *AppsodyRoute) GetCertificateSecretRef() *string {
-	if r.CertificateSecretRef == nil {
-		return nil
-	}
 	return r.CertificateSecretRef
 }
 
@@ -628,6 +643,36 @@ func (r *AppsodyBindings) GetAutoDetect() *bool {
 // GetResourceRef returns name of ServiceBinding CRs created manually in the same namespace as the RuntimeComponent CR
 func (r *AppsodyBindings) GetResourceRef() string {
 	return r.ResourceRef
+}
+
+// GetEmbedded returns the embedded underlying Service Binding resource
+func (r *AppsodyBindings) GetEmbedded() *runtime.RawExtension {
+	return r.Embedded
+}
+
+// GetNodeAffinity returns node affinity
+func (a *AppsodyAffinity) GetNodeAffinity() *corev1.NodeAffinity {
+	return a.NodeAffinity
+}
+
+// GetPodAffinity returns pod affinity
+func (a *AppsodyAffinity) GetPodAffinity() *corev1.PodAffinity {
+	return a.PodAffinity
+}
+
+// GetPodAntiAffinity returns pod anti-affinity
+func (a *AppsodyAffinity) GetPodAntiAffinity() *corev1.PodAntiAffinity {
+	return a.PodAntiAffinity
+}
+
+// GetArchitecture returns list of architecture names
+func (a *AppsodyAffinity) GetArchitecture() []string {
+	return a.Architecture
+}
+
+// GetNodeAffinityLabels returns list of architecture names
+func (a *AppsodyAffinity) GetNodeAffinityLabels() map[string]string {
+	return a.NodeAffinityLabels
 }
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap

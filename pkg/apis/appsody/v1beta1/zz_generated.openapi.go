@@ -11,6 +11,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyAffinity":               schema_pkg_apis_appsody_v1beta1_AppsodyAffinity(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplication":            schema_pkg_apis_appsody_v1beta1_AppsodyApplication(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling": schema_pkg_apis_appsody_v1beta1_AppsodyApplicationAutoScaling(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService":     schema_pkg_apis_appsody_v1beta1_AppsodyApplicationService(ref),
@@ -20,6 +21,68 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingConsumes":        schema_pkg_apis_appsody_v1beta1_ServiceBindingConsumes(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.ServiceBindingProvides":        schema_pkg_apis_appsody_v1beta1_ServiceBindingProvides(ref),
 		"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.StatusCondition":               schema_pkg_apis_appsody_v1beta1_StatusCondition(ref),
+	}
+}
+
+func schema_pkg_apis_appsody_v1beta1_AppsodyAffinity(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AppsodyAffinity deployment affinity settings",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"nodeAffinity": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/api/core/v1.NodeAffinity"),
+						},
+					},
+					"podAffinity": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/api/core/v1.PodAffinity"),
+						},
+					},
+					"podAntiAffinity": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/api/core/v1.PodAntiAffinity"),
+						},
+					},
+					"architecture": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-type": "set",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"nodeAffinityLabels": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Allows: true,
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.NodeAffinity", "k8s.io/api/core/v1.PodAffinity", "k8s.io/api/core/v1.PodAntiAffinity"},
 	}
 }
 
@@ -444,12 +507,17 @@ func schema_pkg_apis_appsody_v1beta1_AppsodyApplicationSpec(ref common.Reference
 							Ref: ref("github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyBindings"),
 						},
 					},
+					"affinity": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyAffinity"),
+						},
+					},
 				},
 				Required: []string{"applicationImage"},
 			},
 		},
 		Dependencies: []string{
-			"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyBindings", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyRoute", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
+			"github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyAffinity", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationAutoScaling", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationMonitoring", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationService", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyApplicationStorage", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyBindings", "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1.AppsodyRoute", "k8s.io/api/core/v1.Container", "k8s.io/api/core/v1.EnvFromSource", "k8s.io/api/core/v1.EnvVar", "k8s.io/api/core/v1.Probe", "k8s.io/api/core/v1.ResourceRequirements", "k8s.io/api/core/v1.Volume", "k8s.io/api/core/v1.VolumeMount"},
 	}
 }
 
