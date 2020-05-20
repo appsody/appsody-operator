@@ -54,6 +54,18 @@ type AppsodyApplicationSpec struct {
 	SidecarContainers []corev1.Container `json:"sidecarContainers,omitempty"`
 	Route             *AppsodyRoute      `json:"route,omitempty"`
 	Bindings          *AppsodyBindings   `json:"bindings,omitempty"`
+	Affinity          *AppsodyAffinity   `json:"affinity,omitempty"`
+}
+
+// AppsodyAffinity deployment affinity settings
+// +k8s:openapi-gen=true
+type AppsodyAffinity struct {
+	NodeAffinity    *corev1.NodeAffinity    `json:"nodeAffinity,omitempty"`
+	PodAffinity     *corev1.PodAffinity     `json:"podAffinity,omitempty"`
+	PodAntiAffinity *corev1.PodAntiAffinity `json:"podAntiAffinity,omitempty"`
+	// +listType=set
+	Architecture       []string          `json:"architecture,omitempty"`
+	NodeAffinityLabels map[string]string `json:"nodeAffinityLabels,omitempty"`
 }
 
 // AppsodyApplicationAutoScaling ...
@@ -380,6 +392,14 @@ func (cr *AppsodyApplication) GetBindings() common.BaseComponentBindings {
 	return cr.Spec.Bindings
 }
 
+// GetAffinity returns deployment's node and pod affinity settings
+func (cr *AppsodyApplication) GetAffinity() common.BaseComponentAffinity {
+	if cr.Spec.Affinity == nil {
+		return nil
+	}
+	return cr.Spec.Affinity
+}
+
 // GetResolvedBindings returns a map of all the service names to be consumed by the application
 func (s *AppsodyApplicationStatus) GetResolvedBindings() []string {
 	return s.ResolvedBindings
@@ -500,7 +520,7 @@ func (s *AppsodyApplicationService) GetCertificate() common.Certificate {
 	return s.Certificate
 }
 
-// GetCertificateSecretRef ...
+// GetCertificateSecretRef returns a secret reference with a certificate
 func (s *AppsodyApplicationService) GetCertificateSecretRef() *string {
 	return s.CertificateSecretRef
 }
@@ -590,7 +610,7 @@ func (r *AppsodyRoute) GetCertificate() common.Certificate {
 	return r.Certificate
 }
 
-// GetCertificateSecretRef returns the secret ref for route certificate
+// GetCertificateSecretRef returns a secret reference with a certificate
 func (r *AppsodyRoute) GetCertificateSecretRef() *string {
 	return r.CertificateSecretRef
 }
@@ -628,6 +648,31 @@ func (r *AppsodyBindings) GetResourceRef() string {
 // GetEmbedded returns the embedded underlying Service Binding resource
 func (r *AppsodyBindings) GetEmbedded() *runtime.RawExtension {
 	return r.Embedded
+}
+
+// GetNodeAffinity returns node affinity
+func (a *AppsodyAffinity) GetNodeAffinity() *corev1.NodeAffinity {
+	return a.NodeAffinity
+}
+
+// GetPodAffinity returns pod affinity
+func (a *AppsodyAffinity) GetPodAffinity() *corev1.PodAffinity {
+	return a.PodAffinity
+}
+
+// GetPodAntiAffinity returns pod anti-affinity
+func (a *AppsodyAffinity) GetPodAntiAffinity() *corev1.PodAntiAffinity {
+	return a.PodAntiAffinity
+}
+
+// GetArchitecture returns list of architecture names
+func (a *AppsodyAffinity) GetArchitecture() []string {
+	return a.Architecture
+}
+
+// GetNodeAffinityLabels returns list of architecture names
+func (a *AppsodyAffinity) GetNodeAffinityLabels() map[string]string {
+	return a.NodeAffinityLabels
 }
 
 // Initialize the AppsodyApplication instance with values from the default and constant ConfigMap
