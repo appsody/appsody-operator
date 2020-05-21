@@ -56,6 +56,7 @@ func testAdvancedFeatures(t *testing.T) {
 	t.Run("AppsodyServiceMonitorTest", AppsodyServiceMonitorTest)
 	t.Run("AppsodyKnativeTest", AppsodyKnativeTest)
 	t.Run("AppsodyServiceBindingTest", AppsodyServiceBindingTest)
+<<<<<<< HEAD
 	t.Run("AppsodyCertManagerTest", AppsodyCertManagerTest)
 }
 
@@ -67,4 +68,7 @@ func testOCPFeatures(t *testing.T) {
 // Verify functionality that is not expected to run on OCP
 func testIndependantFeatures(t *testing.T) {
 	// TODO: implement test for ingress
+=======
+	t.Run("AppsodyKappNavTest", AppsodyKappNavTest)
+>>>>>>> Add kAppNav e2e testing to appsody
 }
