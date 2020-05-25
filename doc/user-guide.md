@@ -151,6 +151,7 @@ RuntimeComponent` must be replaced with `Kind: AppsodyApplication`.
 - [Annotations](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#Annotations)
 - [Environment Variables](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#Environment-variables)
 - [High Availability](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#High-availability)
+- [Service Ports](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#Service-ports)
 - [Persistence](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#Persistence)
 - [Service Binding](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#Service-binding)
 - [Monitoring](https://github.com/application-stacks/runtime-component-operator/blob/master/doc/user-guide.adoc#Monitoring)
