@@ -17,7 +17,7 @@ The Appsody Operator can be installed to:
 
 Appropriate cluster roles and bindings are required to watch another namespace, watch multiple namespaces or watch all namespaces.
 
-NOTE: The Appsody Operator can only interact with resources it is given permission to interact through link:++https://kubernetes.io/docs/reference/access-authn-authz/rbac/++[Role-based access control (RBAC)]. Some of the operator features require interacting with resources in other namespaces. In that case, the operator must be installed with correct `ClusterRole` definitions.
+NOTE: The Appsody Operator can only interact with resources it is given permission to interact through [Role-based access control (RBAC)](https://kubernetes.io/docs/reference/access-authn-authz/rbac). Some of the operator features require interacting with resources in other namespaces. In that case, the operator must be installed with correct `ClusterRole` definitions.
 
 ## Overview
 
