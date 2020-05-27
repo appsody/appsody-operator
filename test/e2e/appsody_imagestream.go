@@ -48,8 +48,8 @@ func AppsodyImageStreamTest(t *testing.T) {
 	}
 
 	if err = appsodyImageStreamTest(t, f, ctx); err != nil {
-		out, err := exec.Command("oc", "delete", "imagestream", "imagestream-example").Output()
-		if err != nil {
+		out, deleteErr := exec.Command("oc", "delete", "imagestream", "imagestream-example").Output()
+		if deleteErr != nil {
 			t.Fatalf("Failed to delete imagestream: %s", out)
 		}
 		util.FailureCleanup(t, f, namespace, err)
@@ -73,28 +73,11 @@ func appsodyImageStreamTest(t *testing.T, f *framework.Framework, ctx *framework
 		t.Fatalf("Creating the imagestream failed: %s", out)
 	}
 
-	// Check the name field that matches
-	key := map[string]string{"metadata.name": imgstreamName}
-
-	options := &dynclient.ListOptions{
-		FieldSelector: fields.Set(key).AsSelector(),
-		Namespace:     ns,
+	err = waitForImageStream(f, ctx, imgstreamName, ns)
+	if err != nil {
+		return err
 	}
-
-	imageStreamList := &imagev1.ImageStreamList{}
-	if err = f.Client.List(goctx.TODO(), imageStreamList, options); err != nil {
-		t.Logf("Imagestreams not found: %s", err)
-	}
-
-	if len(imageStreamList.Items) == 0 {
-		for i := 0; i < 10; i++ {
-			time.Sleep(4000 * time.Millisecond)
-			if err = f.Client.List(goctx.TODO(), imageStreamList, options); err != nil {
-				t.Logf("Imagestreams not found: %s", err)
-			}
-		}
-	}
-
+	
 	// Make an appplication that points to the imagestream
 	appsody := util.MakeBasicAppsodyApplication(t, f, name, ns, 1)
 	appsody.Spec.ApplicationImage = imgstreamName
@@ -191,6 +174,37 @@ func testRemoveImageStream(t *testing.T, f *framework.Framework, ctx *framework.
 }
 
 /* Helper Functions Below */
+func waitForImageStream(f *framework.Framework, ctx *framework.TestCtx, imgstreamName string, ns string) error {
+	// Check the name field that matches
+	key := map[string]string{"metadata.name": imgstreamName}
+
+	options := &dynclient.ListOptions{
+		FieldSelector: fields.Set(key).AsSelector(),
+		Namespace:     ns,
+	}
+
+	imageStreamList := &imagev1.ImageStreamList{}
+
+	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
+		err = f.Client.List(goctx.TODO(), imageStreamList, options)
+		if err != nil {
+			return true, err
+		}
+
+		if len(imageStreamList.Items) == 0 {
+			return false, nil
+		}
+
+		return true, nil
+	})
+
+	if errors.Is(err, wait.ErrWaitTimeout) {
+		return errors.New("imagestream not found")
+	}
+
+	return err
+}
+
 func getCurrImageRef(f *framework.Framework, ctx *framework.TestCtx,
 		target types.NamespacedName) (string, error) {
 	appsody := appsodyv1beta1.AppsodyApplication{}
@@ -203,7 +217,6 @@ func getCurrImageRef(f *framework.Framework, ctx *framework.TestCtx,
 
 func waitImageRefUpdated(t *testing.T, f *framework.Framework, ctx *framework.TestCtx,
 		target types.NamespacedName, imageRef string) error {
-	updateFailed := false
 	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
 		currImage, err := getCurrImageRef(f, ctx, target)
 		if err != nil {
@@ -213,20 +226,15 @@ func waitImageRefUpdated(t *testing.T, f *framework.Framework, ctx *framework.Te
 		// Check if the image the application is pointing to has been changed
 		if currImage == imageRef {
 			// keep polling if the image ref is not updated
-			updateFailed = true
 			t.Log("Waiting for the image reference to be updated ...")
 			return false, nil
 		}
-		updateFailed = false
 		return true, nil
 	})
 
-	if err != nil {
-		return err
+	if errors.Is(err, wait.ErrWaitTimeout) {
+		return errors.New("status code outside of 200 range upon initiating https request")
 	}
 
-	if updateFailed == true {
-		return fmt.Errorf("the docker image has not been updated: it's still %s", imageRef)
-	}
-	return nil
+	return err	// implicitly return nil if no errors
 }
