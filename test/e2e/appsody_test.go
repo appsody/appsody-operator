@@ -31,4 +31,5 @@ func TestAppsodyApplication(t *testing.T) {
 	t.Run("AppsodyConfigMapsConstTest", AppsodyConfigMapsConstTest)
 	t.Run("AppsodyKnativeTest", AppsodyKnativeTest)
 	t.Run("AppsodyServiceBindingTest", AppsodyServiceBindingTest)
+	t.Run("AppsodyImageStreamTest", AppsodyImageStreamTest)
 }
