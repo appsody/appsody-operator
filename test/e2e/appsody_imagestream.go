@@ -19,7 +19,7 @@ import (
 	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//AppsodyImageStreamTest ...
+//AppsodyImageStreamTest consists of tests that verify the behaviour of OpenShift's Image Streams feature.
 func AppsodyImageStreamTest(t *testing.T) {
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
 	if err != nil {
@@ -56,6 +56,7 @@ func AppsodyImageStreamTest(t *testing.T) {
 	}
 }
 
+// appsodyImageStreamTest is the actual test inside the wrapper function AppsodyImageStreamTest
 func appsodyImageStreamTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	const name = "appsody-app"
 	const imgstreamName = "imagestream-example"
@@ -174,6 +175,7 @@ func testRemoveImageStream(t *testing.T, f *framework.Framework, ctx *framework.
 }
 
 /* Helper Functions Below */
+// Wait for the ImageStreamList contains at least one item.
 func waitForImageStream(f *framework.Framework, ctx *framework.TestCtx, imgstreamName string, ns string) error {
 	// Check the name field that matches
 	key := map[string]string{"metadata.name": imgstreamName}
@@ -205,6 +207,7 @@ func waitForImageStream(f *framework.Framework, ctx *framework.TestCtx, imgstrea
 	return err
 }
 
+// Get the target's current image reference.
 func getCurrImageRef(f *framework.Framework, ctx *framework.TestCtx,
 		target types.NamespacedName) (string, error) {
 	appsody := appsodyv1beta1.AppsodyApplication{}
@@ -215,6 +218,7 @@ func getCurrImageRef(f *framework.Framework, ctx *framework.TestCtx,
 	return appsody.Status.ImageReference, nil
 }
 
+// Polling wait for the target's image reference to be updated to the imageRef.
 func waitImageRefUpdated(t *testing.T, f *framework.Framework, ctx *framework.TestCtx,
 		target types.NamespacedName, imageRef string) error {
 	err := wait.Poll(retryInterval, timeout, func() (done bool, err error) {
