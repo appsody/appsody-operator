@@ -77,7 +77,7 @@ func appsodyImageStreamTest(t *testing.T, f *framework.Framework, ctx *framework
 	if err != nil {
 		return err
 	}
-	
+
 	// Make an appplication that points to the imagestream
 	appsody := util.MakeBasicAppsodyApplication(t, f, name, ns, 1)
 	appsody.Spec.ApplicationImage = imgstreamName
@@ -233,7 +233,7 @@ func waitImageRefUpdated(t *testing.T, f *framework.Framework, ctx *framework.Te
 	})
 
 	if errors.Is(err, wait.ErrWaitTimeout) {
-		return errors.New("status code outside of 200 range upon initiating https request")
+		return errors.New("image reference not updated")
 	}
 
 	return err	// implicitly return nil if no errors
