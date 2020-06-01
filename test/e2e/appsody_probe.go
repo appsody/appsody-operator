@@ -49,6 +49,14 @@ func AppsodyProbeTest(t *testing.T) {
 	if err = probeTest(t, f, ctx, libertyProbe); err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
+
+	if err = editProbeTest(t, f, ctx); err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	if err = deleteProbeTest(t, f, ctx); err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
 }
 
 func probeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx, probe corev1.Handler) error {
@@ -73,34 +81,46 @@ func probeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx, pro
 		return err
 	}
 
-	if err = editProbeTest(t, f, ctx, exampleAppsody); err != nil {
-		return err
-	}
 	return nil
 }
 
-func editProbeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx, app *appsodyv1beta1.AppsodyApplication) error {
+func editProbeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
 	namespace, err := ctx.GetNamespace()
 	if err != nil {
 		return err
 	}
+	target := types.NamespacedName{Name: "example-appsody-readiness", Namespace: namespace}
 
-	err = f.Client.Get(goctx.TODO(), types.NamespacedName{Name: "example-appsody-readiness", Namespace: namespace}, app)
-	if err != nil {
-		return err
-	}
-
-	// Adjust tests for update SMALL amounts to keep the test fast.
-	app.Spec.LivenessProbe.InitialDelaySeconds = int32(6)
-	app.Spec.ReadinessProbe.InitialDelaySeconds = int32(3)
-	err = f.Client.Update(goctx.TODO(), app)
-	if err != nil {
-		return err
-	}
+	util.UpdateApplication(f, target, func(r *appsodyv1beta1.AppsodyApplication) {
+		// Adjust tests for update SMALL amounts to keep the test fast.
+		r.Spec.LivenessProbe.InitialDelaySeconds = int32(6)
+		r.Spec.ReadinessProbe.InitialDelaySeconds = int32(3)
+	})
 
 	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-readiness", 1, retryInterval, timeout)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func deleteProbeTest(t *testing.T, f *framework.Framework, ctx *framework.TestCtx) error {
+	namespace, err := ctx.GetNamespace()
+	if err != nil {
+		return err
+	}
+
+	target := types.NamespacedName{Namespace: namespace, Name: "example-appsody-readiness"}
+
+	util.UpdateApplication(f, target, func(r *appsodyv1beta1.AppsodyApplication) {
+		r.Spec.LivenessProbe = nil
+		r.Spec.ReadinessProbe = nil
+	})
+
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-readiness", 1, retryInterval, timeout)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

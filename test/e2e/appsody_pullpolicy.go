@@ -3,20 +3,25 @@ package e2e
 import (
 	goctx "context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
-	appsodyv1beta1 "github.com/appsody/appsody-operator/pkg/apis/appsody/v1beta1"
 	"github.com/appsody/appsody-operator/test/util"
 	framework "github.com/operator-framework/operator-sdk/pkg/test"
 	e2eutil "github.com/operator-framework/operator-sdk/pkg/test/e2eutil"
-	k "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	corev1 "k8s.io/api/core/v1"
+	dynclient "sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+var (
+	ifNotPresentMessage = "Container image \"navidsh/demo-day\" already present on machine"
+	alwaysMessage       = "Pulling image \"navidsh/demo-day\""
+	neverMessage        = "Container image \"navidsh/demo-day-fake\" is not present with pull policy of Never"
 )
 
 // AppsodyPullPolicyTest checks that the configured pull policy is applied to deployment
 func AppsodyPullPolicyTest(t *testing.T) {
-
 	ctx, err := util.InitializeContext(t, cleanupTimeout, retryInterval)
 	if err != nil {
 		t.Fatal(err)
@@ -35,50 +40,117 @@ func AppsodyPullPolicyTest(t *testing.T) {
 	timestamp := time.Now().UTC()
 	t.Logf("%s - Starting appsody pull policy test...", timestamp)
 
-	// create one replica of the operator deployment in current namespace with provided name
-	err = e2eutil.WaitForOperatorDeployment(t, f.KubeClient, namespace, "appsody-operator", 1, retryInterval, operatorTimeout)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	replicas := int32(1)
-	policy := k.PullAlways
-
-	appsodyApplication := util.MakeBasicAppsodyApplication(t, f, "example-appsody-pullpolicy", namespace, replicas)
-	appsodyApplication.Spec.PullPolicy = &policy
-
-	// use TestCtx's create helper to create the object and add a cleanup function for the new object
-	err = f.Client.Create(goctx.TODO(), appsodyApplication, &framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
-	if err != nil {
+	if err = testPullPolicyAlways(t, f, namespace, ctx); err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
 
-	// wait for example-appsody-pullpolicy to reach 2 replicas
-	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy", 1, retryInterval, timeout)
-	if err != nil {
+	if err = testPullPolicyIfNotPresent(t, f, namespace, ctx); err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
 
-	timestamp = time.Now().UTC()
-	t.Logf("%s - Deployment created, verifying pull policy...", timestamp)
-
-	if err = verifyPullPolicy(t, f, appsodyApplication); err != nil {
+	if err = testPullPolicyNever(t, f, namespace, ctx); err != nil {
 		util.FailureCleanup(t, f, namespace, err)
 	}
 }
 
-func verifyPullPolicy(t *testing.T, f *framework.Framework, app *appsodyv1beta1.AppsodyApplication) error {
-	name := app.ObjectMeta.Name
-	ns := app.ObjectMeta.Namespace
+func testPullPolicyAlways(t *testing.T, f *framework.Framework, namespace string, ctx *framework.TestCtx) error {
+	replicas := int32(1)
+	policy := corev1.PullAlways
 
-	deploy, err := f.KubeClient.AppsV1().Deployments(ns).Get(name, metav1.GetOptions{})
+	appsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-pullpolicy-always", namespace, replicas)
+	appsody.Spec.PullPolicy = &policy
+
+	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+	err := f.Client.Create(goctx.TODO(), appsody,
+		&framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
 	if err != nil {
-		t.Logf("Got error when getting PullPolicy %s: %s", name, err)
-		return err
+		util.FailureCleanup(t, f, namespace, err)
 	}
 
-	if deploy.Spec.Template.Spec.Containers[0].ImagePullPolicy != "Always" {
-		return errors.New("pull policy was not successfully configured from the default value")
+	// wait for example-appsody-pullpolicy to reach 1 replica
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace, "example-appsody-pullpolicy-always", 1, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
 	}
-	return nil
+
+	timestamp := time.Now().UTC()
+	t.Logf("%s - Deployment created, verifying pull policy...", timestamp)
+
+	return searchEventMessages(t, f, alwaysMessage, namespace)
+}
+
+func testPullPolicyIfNotPresent(t *testing.T, f *framework.Framework, namespace string, ctx *framework.TestCtx) error {
+	replicas := int32(1)
+
+	appsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-pullpolicy-ifnotpresent", namespace, replicas)
+
+	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+	err := f.Client.Create(goctx.TODO(), appsody,
+		&framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	// wait for example-appsody-pullpolicy to reach 1 replica
+	err = e2eutil.WaitForDeployment(t, f.KubeClient, namespace,
+		"example-appsody-pullpolicy-ifnotpresent", 1, retryInterval, timeout)
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	timestamp := time.Now().UTC()
+	t.Logf("%s - Deployment created, verifying pull policy...", timestamp)
+
+	return searchEventMessages(t, f, ifNotPresentMessage, namespace)
+}
+
+func searchEventMessages(t *testing.T, f *framework.Framework, key string, namespace string) error {
+	options := &dynclient.ListOptions{
+		Namespace: namespace,
+	}
+
+	eventlist := &corev1.EventList{}
+	err := f.Client.List(goctx.TODO(), eventlist, options)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Logf("***** Logging events in namespace: %s", namespace)
+	for i := len(eventlist.Items) - 1; i >= 0; i-- {
+		if strings.Contains(eventlist.Items[i].Message, "navidsh/demo-day") {
+			if strings.ToLower(eventlist.Items[i].Message) == strings.ToLower(key) {
+				return nil
+			}
+		}
+		t.Log("------------------------------------------------------------")
+		t.Log(eventlist.Items[i].Message)
+	}
+
+	return errors.New("The pull policy was not correctly set")
+
+}
+
+func testPullPolicyNever(t *testing.T, f *framework.Framework, namespace string, ctx *framework.TestCtx) error {
+	replicas := int32(1)
+	policy := corev1.PullNever
+
+	appsody := util.MakeBasicAppsodyApplication(t, f, "example-appsody-pullpolicy-never", namespace, replicas)
+	appsody.Spec.PullPolicy = &policy
+	appsody.Spec.ApplicationImage = "navidsh/demo-day-fake"
+
+	// use TestCtx's create helper to create the object and add a cleanup function for the new object
+	err := f.Client.Create(goctx.TODO(), appsody,
+		&framework.CleanupOptions{TestContext: ctx, Timeout: cleanupTimeout, RetryInterval: cleanupRetryInterval})
+	if err != nil {
+		util.FailureCleanup(t, f, namespace, err)
+	}
+
+	for i := 0; i < 5; i++ {
+		time.Sleep(time.Millisecond * 1000)
+	}
+
+	timestamp := time.Now().UTC()
+	t.Logf("%s - Deployment created, verifying pull policy...", timestamp)
+
+	return searchEventMessages(t, f, neverMessage, namespace)
 }
