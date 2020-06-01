@@ -57,6 +57,7 @@ func testAdvancedFeatures(t *testing.T) {
 	t.Run("AppsodyKnativeTest", AppsodyKnativeTest)
 	t.Run("AppsodyServiceBindingTest", AppsodyServiceBindingTest)
 	t.Run("AppsodyCertManagerTest", AppsodyCertManagerTest)
+	t.Run("AppsodyKappNavTest", AppsodyKappNavTest)
 }
 
 // Verify functionality that is tied to OCP
