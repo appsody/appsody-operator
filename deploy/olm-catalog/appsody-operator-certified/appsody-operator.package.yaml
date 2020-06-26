@@ -1,5 +1,5 @@
 channels:
-- currentCSV: appsody-operator.v0.6.0
+- currentCSV: appsody-operator.v0.6.1
   name: beta
 defaultChannel: beta
 packageName: appsody-operator-certified
